@@ -1,0 +1,605 @@
+/*
+ * Copyright (c) 2013, NLNet Labs, Verisign, Inc.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ * * Redistributions of source code must retain the above copyright
+ *   notice, this list of conditions and the following disclaimer.
+ * * Redistributions in binary form must reproduce the above copyright
+ *   notice, this list of conditions and the following disclaimer in the
+ *   documentation and/or other materials provided with the distribution.
+ * * Neither the names of the copyright holders nor the
+ *   names of its contributors may be used to endorse or promote products
+ *   derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL Verisign, Inc. BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+#include "config.h"
+#include <getdns/getdns.h>
+#include <getdns/getdns_extra.h>
+#include <string.h>
+#include <errno.h>
+#include <assert.h>
+#ifndef STUBBY_ON_WINDOWS
+#include <unistd.h>
+#endif
+
+#ifdef STUBBY_ON_WINDOWS
+#define DEBUG_ON(...) do { \
+	                struct timeval tv; \
+	                struct tm tm; \
+	                char buf[10]; \
+	                time_t tsec; \
+	                \
+	                gettimeofday(&tv, NULL); \
+	                tsec = (time_t) tv.tv_sec; \
+	                gmtime_s(&tm, (const time_t *) &tsec); \
+	                strftime(buf, 10, "%H:%M:%S", &tm); \
+	                fprintf(stderr, "[%s.%.6d] ", buf, (int)tv.tv_usec); \
+	                fprintf(stderr, __VA_ARGS__); \
+	        } while (0)
+#else
+#define DEBUG_ON(...) do { \
+	                struct timeval tv; \
+	                struct tm tm; \
+	                char buf[10]; \
+	                \
+	                gettimeofday(&tv, NULL); \
+	                gmtime_r(&tv.tv_sec, &tm); \
+	                strftime(buf, 10, "%H:%M:%S", &tm); \
+	                fprintf(stderr, "[%s.%.6d] ", buf, (int)tv.tv_usec); \
+	                fprintf(stderr, __VA_ARGS__); \
+	        } while (0)
+#endif
+#define DEBUG_OFF(...) do {} while (0)
+
+#if defined(SERVER_DEBUG) && SERVER_DEBUG
+#include <time.h>
+#define DEBUG_SERVER(...) DEBUG_ON(__VA_ARGS__)
+#else
+#define DEBUG_SERVER(...) DEBUG_OFF(__VA_ARGS__)
+#endif
+
+static const char *default_config =
+"{ resolution_type: GETDNS_RESOLUTION_STUB"
+", dns_transport_list: [ GETDNS_TRANSPORT_TLS"
+"                      , GETDNS_TRANSPORT_UDP"
+"                      , GETDNS_TRANSPORT_TCP ]"
+", idle_timeout: 10000"
+", listen_addresses: [ 127.0.0.1@53, 0::1@53 ]"
+", tls_query_padding_blocksize: 1"
+", edns_client_subnet_private : 1"
+"}";
+
+static getdns_context  *context = NULL;
+static getdns_dict *listen_dict = NULL;
+static getdns_list *listen_list = NULL;
+static size_t listen_count = 0;
+static int run_in_foreground = 1;
+
+
+void
+print_usage(FILE *out, const char *progname)
+{
+	fprintf(out, "usage: %s [<option> ...] \\\n", progname);
+	fprintf(out, "\t-C\t<filename>\n");
+	fprintf(out, "\t\tRead settings from config file <filename>\n");
+	fprintf(out, "\t\tThe getdns context will be configured with these settings\n");
+	fprintf(out, "\t\tThe file must be in json dict format.\n");
+		fprintf(out, "\t\tBy default, configuration is first read from");
+		fprintf(out, "\n\t\t\"/etc/stubby.conf\" and then from \"$HOME/.stubby.conf\"\n");
+#ifndef STUBBY_ON_WINDOWS
+	fprintf(out, "\t-g\tRun stubby in background (default is foreground)\n");
+#endif
+	fprintf(out, "\t-h\tPrint this help\n");
+}
+
+static void parse_config(const char *config_str)
+{
+	getdns_dict *config_dict;
+	getdns_list *list;
+	getdns_return_t r;
+
+	if ((r = getdns_str2dict(config_str, &config_dict)))
+		fprintf(stderr, "Could not parse config file: %s, \"%s\"\n",
+		    config_str, getdns_get_errorstr_by_id(r));
+
+	else {
+		if (!(r = getdns_dict_get_list(
+		    config_dict, "listen_addresses", &list))) {
+			if (listen_list && !listen_dict) {
+				getdns_list_destroy(listen_list);
+				listen_list = NULL;
+			}
+			/* Strange construction to copy the list.
+			 * Needs to be done, because config dict
+			 * will get destroyed.
+			 */
+			if (!listen_dict &&
+			    !(listen_dict = getdns_dict_create())) {
+				fprintf(stderr, "Could not create "
+						"listen_dict");
+				r = GETDNS_RETURN_MEMORY_ERROR;
+
+			} else if ((r = getdns_dict_set_list(
+			    listen_dict, "listen_list", list)))
+				fprintf(stderr, "Could not set listen_list");
+
+			else if ((r = getdns_dict_get_list(
+			    listen_dict, "listen_list", &listen_list)))
+				fprintf(stderr, "Could not get listen_list");
+
+			else if ((r = getdns_list_get_length(
+			    listen_list, &listen_count)))
+				fprintf(stderr, "Could not get listen_count");
+
+			(void) getdns_dict_remove_name(
+			    config_dict, "listen_addresses");
+		}
+		if ((r = getdns_context_config(context, config_dict))) {
+			fprintf(stderr, "Could not configure context with "
+			    "config dict: %s\n", getdns_get_errorstr_by_id(r));
+		}
+		getdns_dict_destroy(config_dict);
+	}
+}
+
+int parse_config_file(const char *fn)
+{
+	FILE *fh;
+	char *config_file = NULL;
+	long config_file_sz;
+
+	if (!(fh = fopen(fn, "r")))
+		return GETDNS_RETURN_GENERIC_ERROR;
+
+	if (fseek(fh, 0,SEEK_END) == -1) {
+		perror("fseek");
+		fclose(fh);
+		return GETDNS_RETURN_GENERIC_ERROR;
+	}
+	config_file_sz = ftell(fh);
+	if (config_file_sz <= 0) {
+		/* Empty config is no config */
+		fclose(fh);
+		return GETDNS_RETURN_GOOD;
+	}
+	if (!(config_file = malloc(config_file_sz + 1))){
+		fclose(fh);
+		fprintf(stderr, "Could not allocate memory for \"%s\"\n", fn);
+		return GETDNS_RETURN_MEMORY_ERROR;
+	}
+	rewind(fh);
+	if (fread(config_file, 1, config_file_sz, fh) != (size_t)config_file_sz) {
+		fprintf( stderr, "An error occurred while reading \"%s\": %s\n"
+		       , fn, strerror(errno));
+		fclose(fh);
+		return GETDNS_RETURN_MEMORY_ERROR;
+	}
+	config_file[config_file_sz] = 0;
+	fclose(fh);
+	parse_config(config_file);
+	free(config_file);
+	return GETDNS_RETURN_GOOD;
+}
+
+typedef struct dns_msg {
+	getdns_transaction_t  request_id;
+	getdns_dict          *request;
+	uint32_t              rt;
+	uint32_t              ad_bit;
+	uint32_t              do_bit;
+	uint32_t              cd_bit;
+	int                   has_edns0;
+} dns_msg;
+
+#if defined(SERVER_DEBUG) && SERVER_DEBUG
+#define SERVFAIL(error,r,msg,resp_p) do { \
+	if (r)	DEBUG_SERVER("%s: %s\n", error, getdns_get_errorstr_by_id(r)); \
+	else	DEBUG_SERVER("%s\n", error); \
+	servfail(msg, resp_p); \
+	} while (0)
+#else
+#define SERVFAIL(error,r,msg,resp_p) servfail(msg, resp_p)
+#endif
+
+void servfail(dns_msg *msg, getdns_dict **resp_p)
+{
+	getdns_dict *dict;
+
+	if (*resp_p)
+		getdns_dict_destroy(*resp_p);
+	if (!(*resp_p = getdns_dict_create()))
+		return;
+	if (msg) {
+		if (!getdns_dict_get_dict(msg->request, "header", &dict))
+			getdns_dict_set_dict(*resp_p, "header", dict);
+		if (!getdns_dict_get_dict(msg->request, "question", &dict))
+			getdns_dict_set_dict(*resp_p, "question", dict);
+		(void) getdns_dict_set_int(*resp_p, "/header/ra",
+		    msg->rt == GETDNS_RESOLUTION_RECURSING ? 1 : 0);
+	}
+	(void) getdns_dict_set_int(
+	    *resp_p, "/header/rcode", GETDNS_RCODE_SERVFAIL);
+	(void) getdns_dict_set_int(*resp_p, "/header/qr", 1);
+	(void) getdns_dict_set_int(*resp_p, "/header/ad", 0);
+}
+
+static getdns_return_t _handle_edns0(
+    getdns_dict *response, int has_edns0)
+{
+	getdns_return_t r;
+	getdns_list *additional;
+	size_t len, i;
+	getdns_dict *rr;
+	uint32_t rr_type;
+	char remove_str[100] = "/replies_tree/0/additional/";
+
+	if ((r = getdns_dict_set_int(
+	    response, "/replies_tree/0/header/do", 0)))
+		return r;
+	if ((r = getdns_dict_get_list(response, "/replies_tree/0/additional",
+	    &additional)))
+		return r;
+	if ((r = getdns_list_get_length(additional, &len)))
+		return r;
+	for (i = 0; i < len; i++) {
+		if ((r = getdns_list_get_dict(additional, i, &rr)))
+			return r;
+		if ((r = getdns_dict_get_int(rr, "type", &rr_type)))
+			return r;
+		if (rr_type != GETDNS_RRTYPE_OPT)
+			continue;
+		if (has_edns0) {
+			(void) getdns_dict_set_int(rr, "do", 0);
+			break;
+		}
+		(void) snprintf(remove_str + 27, 60, "%d", (int)i);
+		if ((r = getdns_dict_remove_name(response, remove_str)))
+			return r;
+		break;
+	}
+	return GETDNS_RETURN_GOOD;
+}
+
+static void request_cb(
+    getdns_context *context, getdns_callback_type_t callback_type,
+    getdns_dict *response, void *userarg, getdns_transaction_t transaction_id)
+{
+	dns_msg *msg = (dns_msg *)userarg;
+	uint32_t qid;
+	getdns_return_t r = GETDNS_RETURN_GOOD;
+	uint32_t n, rcode, dnssec_status;
+
+#if defined(SERVER_DEBUG) && SERVER_DEBUG
+	getdns_bindata *qname;
+	char *qname_str, *unknown_qname = "<unknown_qname>";
+
+	if (getdns_dict_get_bindata(msg->request, "/question/qname", &qname)
+	||  getdns_convert_dns_name_to_fqdn(qname, &qname_str))
+		qname_str = unknown_qname;
+
+	DEBUG_SERVER("reply for: %p %"PRIu64" %d (edns0: %d, do: %d, ad: %d,"
+	    " cd: %d, qname: %s)\n", (void *)msg, transaction_id, (int)callback_type,
+	    msg->has_edns0, msg->do_bit, msg->ad_bit, msg->cd_bit, qname_str);
+
+	if (qname_str != unknown_qname)
+		free(qname_str);
+#else
+	(void)transaction_id;
+#endif
+	assert(msg);
+
+	if (callback_type != GETDNS_CALLBACK_COMPLETE)
+		SERVFAIL("Callback type not complete",
+		    callback_type, msg, &response);
+
+	else if (!response)
+		SERVFAIL("Missing response", 0, msg, &response);
+
+	else if ((r = getdns_dict_get_int(msg->request, "/header/id", &qid)) ||
+	    (r=getdns_dict_set_int(response,"/replies_tree/0/header/id",qid)))
+		SERVFAIL("Could not copy QID", r, msg, &response);
+
+	else if (getdns_dict_get_int(
+	    response, "/replies_tree/0/header/rcode", &rcode))
+		SERVFAIL("No reply in replies tree", 0, msg, &response);
+
+	/* ansers when CD or not BOGUS */
+	else if (!msg->cd_bit && !getdns_dict_get_int(
+	    response, "/replies_tree/0/dnssec_status", &dnssec_status)
+	    && dnssec_status == GETDNS_DNSSEC_BOGUS)
+		SERVFAIL("DNSSEC status was bogus", 0, msg, &response);
+
+	else if (rcode == GETDNS_RCODE_SERVFAIL)
+		servfail(msg, &response);
+
+	/* RRsigs when DO and (CD or not BOGUS) 
+	 * Implemented in conversion to wireformat function by checking for DO
+	 * bit.  In recursing resolution mode we have to copy the do bit from
+	 * the request, because libunbound has it in the answer always.
+	 */
+	else if (msg->rt == GETDNS_RESOLUTION_RECURSING && !msg->do_bit &&
+	    (r = _handle_edns0(response, msg->has_edns0)))
+		SERVFAIL("Could not handle EDNS0", r, msg, &response);
+
+	/* AD when (DO or AD) and SECURE */
+	else if ((r = getdns_dict_set_int(response,"/replies_tree/0/header/ad",
+	    ((msg->do_bit || msg->ad_bit)
+	    && (  (!msg->cd_bit && dnssec_status == GETDNS_DNSSEC_SECURE)
+	       || ( msg->cd_bit && !getdns_dict_get_int(response,
+	            "/replies_tree/0/dnssec_status", &dnssec_status)
+	          && dnssec_status == GETDNS_DNSSEC_SECURE ))) ? 1 : 0)))
+		SERVFAIL("Could not set AD bit", r, msg, &response);
+
+	else if (msg->rt == GETDNS_RESOLUTION_STUB)
+		; /* following checks are for RESOLUTION_RECURSING only */
+	
+	else if ((r =  getdns_dict_set_int(
+	    response, "/replies_tree/0/header/cd", msg->cd_bit)))
+		SERVFAIL("Could not copy CD bit", r, msg, &response);
+
+	else if ((r = getdns_dict_get_int(
+	    response, "/replies_tree/0/header/ra", &n)))
+		SERVFAIL("Could not get RA bit from reply", r, msg, &response);
+
+	else if (n == 0)
+		SERVFAIL("Recursion not available", 0, msg, &response);
+
+	if ((r = getdns_reply(context, response, msg->request_id))) {
+		fprintf(stderr, "Could not reply: %s\n",
+		    getdns_get_errorstr_by_id(r));
+		/* Cancel reply */
+		(void) getdns_reply(context, NULL, msg->request_id);
+	}
+	if (msg) {
+		getdns_dict_destroy(msg->request);
+		free(msg);
+	}
+	if (response)
+		getdns_dict_destroy(response);
+}	
+
+static void incoming_request_handler(getdns_context *context,
+    getdns_callback_type_t callback_type, getdns_dict *request,
+    void *userarg, getdns_transaction_t request_id)
+{
+	getdns_bindata *qname;
+	char *qname_str = NULL;
+	uint32_t qtype;
+	uint32_t qclass;
+	getdns_return_t r;
+	getdns_dict *header;
+	uint32_t n;
+	getdns_list *list;
+	getdns_transaction_t transaction_id = 0;
+	getdns_dict *qext = NULL;
+	dns_msg *msg = NULL;
+	getdns_dict *response = NULL;
+	size_t i, len;
+	getdns_list *additional;
+	getdns_dict *rr;
+	uint32_t rr_type;
+
+	(void)callback_type;
+	(void)userarg;
+
+	if (!(qext = getdns_dict_create_with_context(context)) ||
+	    !(msg = malloc(sizeof(dns_msg))))
+		goto error;
+
+	/* pass through the header and the OPT record */
+	n = 0;
+	msg->request_id = request_id;
+	msg->request = request;
+	msg->ad_bit = msg->do_bit = msg->cd_bit = 0;
+	msg->has_edns0 = 0;
+	msg->rt = GETDNS_RESOLUTION_RECURSING;
+	(void) getdns_dict_get_int(request, "/header/ad", &msg->ad_bit);
+	(void) getdns_dict_get_int(request, "/header/cd", &msg->cd_bit);
+	if (!getdns_dict_get_list(request, "additional", &additional)) {
+		if (getdns_list_get_length(additional, &len))
+			len = 0;
+		for (i = 0; i < len; i++) {
+			if (getdns_list_get_dict(additional, i, &rr))
+				break;
+			if (getdns_dict_get_int(rr, "type", &rr_type))
+				break;
+			if (rr_type != GETDNS_RRTYPE_OPT)
+				continue;
+			msg->has_edns0 = 1;
+			(void) getdns_dict_get_int(rr, "do", &msg->do_bit);
+			break;
+		}
+	}
+	if ((r = getdns_context_get_resolution_type(context, &msg->rt)))
+		fprintf(stderr, "Could get resolution type from context: %s\n",
+		    getdns_get_errorstr_by_id(r));
+
+	if (msg->rt == GETDNS_RESOLUTION_STUB) {
+		(void)getdns_dict_set_int(
+		    qext , "/add_opt_parameters/do_bit", msg->do_bit);
+		if (!getdns_dict_get_dict(request, "header", &header))
+			(void)getdns_dict_set_dict(qext, "header", header);
+
+	}
+	if (msg->cd_bit)
+		getdns_dict_set_int(qext, "dnssec_return_all_statuses",
+		    GETDNS_EXTENSION_TRUE);
+
+	if (!getdns_dict_get_int(request, "/additional/0/extended_rcode",&n))
+		(void)getdns_dict_set_int(
+		    qext, "/add_opt_parameters/extended_rcode", n);
+
+	if (!getdns_dict_get_int(request, "/additional/0/version", &n))
+		(void)getdns_dict_set_int(
+		    qext, "/add_opt_parameters/version", n);
+
+	if (!getdns_dict_get_int(
+	    request, "/additional/0/udp_payload_size", &n))
+		(void)getdns_dict_set_int(qext,
+		    "/add_opt_parameters/maximum_udp_payload_size", n);
+
+	if (!getdns_dict_get_list(
+	    request, "/additional/0/rdata/options", &list))
+		(void)getdns_dict_set_list(qext,
+		    "/add_opt_parameters/options", list);
+
+	if ((r = getdns_dict_get_bindata(request,"/question/qname",&qname)))
+		fprintf(stderr, "Could not get qname from query: %s\n",
+		    getdns_get_errorstr_by_id(r));
+
+	else if ((r = getdns_convert_dns_name_to_fqdn(qname, &qname_str)))
+		fprintf(stderr, "Could not convert qname: %s\n",
+		    getdns_get_errorstr_by_id(r));
+
+	else if ((r=getdns_dict_get_int(request,"/question/qtype",&qtype)))
+		fprintf(stderr, "Could get qtype from query: %s\n",
+		    getdns_get_errorstr_by_id(r));
+
+	else if ((r=getdns_dict_get_int(request,"/question/qclass",&qclass)))
+		fprintf(stderr, "Could get qclass from query: %s\n",
+		    getdns_get_errorstr_by_id(r));
+
+	else if ((r = getdns_dict_set_int(qext, "specify_class", qclass)))
+		fprintf(stderr, "Could set class from query: %s\n",
+		    getdns_get_errorstr_by_id(r));
+
+	else if ((r = getdns_general(context, qname_str, qtype,
+	    qext, msg, &transaction_id, request_cb)))
+		fprintf(stderr, "Could not schedule query: %s\n",
+		    getdns_get_errorstr_by_id(r));
+	else {
+		DEBUG_SERVER("scheduled: %p %"PRIu64" for %s %d\n",
+		    (void *)msg, transaction_id, qname_str, (int)qtype);
+		getdns_dict_destroy(qext);
+		free(qname_str);
+		return;
+	}
+error:
+	if (qname_str)
+		free(qname_str);
+	if (qext)
+		getdns_dict_destroy(qext);
+	servfail(msg, &response);
+#if defined(SERVER_DEBUG) && SERVER_DEBUG
+	do {
+		char *request_str = getdns_pretty_print_dict(request);
+		char *response_str = getdns_pretty_print_dict(response);
+		DEBUG_SERVER("request error, request: %s\n, response: %s\n"
+		            , request_str, response_str);
+		free(response_str);
+		free(request_str);
+	} while(0);
+#endif
+	if ((r = getdns_reply(context, response, request_id))) {
+		fprintf(stderr, "Could not reply: %s\n",
+		    getdns_get_errorstr_by_id(r));
+		/* Cancel reply */
+		getdns_reply(context, NULL, request_id);
+	}
+	if (msg) {
+		if (msg->request)
+			getdns_dict_destroy(msg->request);
+		free(msg);
+	}
+	if (response)
+		getdns_dict_destroy(response);
+}
+
+static void stubby_log(void *userarg, uint64_t system,
+    getdns_loglevel_type level, const char *fmt, va_list ap)
+{
+	(void)userarg; (void)system; (void)level;
+	(void) vfprintf(stderr, fmt, ap);
+}
+
+int
+main(int argc, char **argv)
+{
+	char home_stubby_conf_fn_spc[1024], *home_stubby_conf_fn = NULL;
+	int fn_sz, n_chars;
+	getdns_return_t r;
+
+#ifndef USE_WINSOCK
+	char *prg_name = strrchr(argv[0], '/');
+#else
+	char *prg_name = strrchr(argv[0], '\\');
+#endif
+	prg_name = prg_name ? prg_name + 1 : argv[0];
+
+	if ((r = getdns_context_create(&context, 1))) {
+		fprintf(stderr, "Create context failed: %d\n", (int)r);
+		return r;
+	}
+	(void) getdns_context_set_logfunc(context, NULL,
+	    GETDNS_SYSTEM_DAEMON, GETDNS_LOG_DEBUG, stubby_log);
+
+	(void) parse_config(default_config);
+	fn_sz = snprintf( home_stubby_conf_fn_spc
+		        , sizeof(home_stubby_conf_fn_spc)
+		        , "%s/.stubby.conf"
+		        , getenv("HOME")
+		        );
+
+	if (fn_sz > 0 && fn_sz < (int)sizeof(home_stubby_conf_fn_spc))
+		home_stubby_conf_fn = home_stubby_conf_fn_spc;
+
+	else if (fn_sz > 0) {
+		if (!(home_stubby_conf_fn = malloc(fn_sz + 1)) ||
+		    snprintf( home_stubby_conf_fn, fn_sz
+		            , "%s/.stubby.conf", getenv("HOME")) != fn_sz) {
+			if (home_stubby_conf_fn) {
+				free(home_stubby_conf_fn);
+				home_stubby_conf_fn = NULL;
+			}
+		}
+	}
+	if (!home_stubby_conf_fn ||
+	    parse_config_file(home_stubby_conf_fn))
+		(void) parse_config_file(STUBBYCONFDIR"/stubby.conf");
+
+	if (listen_count && (r = getdns_context_set_listen_addresses(
+	    context, listen_list, NULL, incoming_request_handler)))
+		perror("error: Could not bind on given addresses");
+
+	else
+#ifndef STUBBY_ON_WINDOWS
+	     if (!run_in_foreground) {
+		pid_t pid = fork();
+		if (pid == -1) {
+			perror("Could not fork of stubby daemon\n");
+			r = GETDNS_RETURN_GENERIC_ERROR;
+
+		} else if (pid) {
+			FILE *fh = fopen("/var/rub/stubby.pid", "w");
+			if (! fh)
+				fh = fopen("/tmp/stubby.pid", "w");
+			if (fh) {
+				fprintf(fh, "%d", (int)pid);
+				fclose(fh);
+			}
+		} else
+			getdns_context_run(context);
+	} else
+#endif
+	getdns_context_run(context);
+
+	getdns_context_destroy(context);
+
+	if (listen_list)
+		getdns_list_destroy(listen_list);
+
+	return r;
+}

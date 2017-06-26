@@ -1,0 +1,59 @@
+{ resolution_type: GETDNS_RESOLUTION_STUB
+, dns_transport_list: [ GETDNS_TRANSPORT_TLS ]
+, tls_authentication: GETDNS_AUTHENTICATION_REQUIRED
+, tls_query_padding_blocksize: 256
+, edns_client_subnet_private : 1
+, listen_addresses: [ 127.0.0.1, 0::1 ]
+, idle_timeout: 10000
+, round_robin_upstreams: 1
+, upstream_recursive_servers:
+  [ { address_data: 145.100.185.15
+    , tls_auth_name: "dnsovertls.sinodun.com"
+    , tls_pubkey_pinset:
+      [ { digest: "sha256"
+        , value: 62lKu9HsDVbyiPenApnc4sfmSYTHOVfFgL3pyB+cBL4=
+      } ] 
+    },
+    { address_data: 145.100.185.16
+    , tls_auth_name: "dnsovertls1.sinodun.com"
+    , tls_pubkey_pinset:
+      [ { digest: "sha256"
+        , value: cE2ecALeE5B+urJhDrJlVFmf38cJLAvqekONvjvpqUA=
+      } ] 
+    },
+    { address_data: 185.49.141.37
+    , tls_auth_name: "getdnsapi.net"
+    , tls_pubkey_pinset:
+      [ { digest: "sha256"
+        , value: foxZRnIh9gZpWnl+zEiKa0EJ2rdCGroMWm02gaxSc9Q=
+      } ]
+    },
+    { address_data: 2001:610:1:40ba:145:100:185:15
+    , tls_auth_name: "dnsovertls.sinodun.com"
+    , tls_pubkey_pinset:
+      [ { digest: "sha256"
+        , value: 62lKu9HsDVbyiPenApnc4sfmSYTHOVfFgL3pyB+cBL4=
+      } ] 
+    },
+    { address_data: 2001:610:1:40ba:145:100:185:16
+    , tls_auth_name: "dnsovertls1.sinodun.com"
+    , tls_pubkey_pinset:
+      [ { digest: "sha256"
+        , value: cE2ecALeE5B+urJhDrJlVFmf38cJLAvqekONvjvpqUA=
+      } ] 
+    },
+    { address_data: 2a04:b900:0:100::37
+    , tls_auth_name: "getdnsapi.net"
+    , tls_pubkey_pinset:
+      [ { digest: "sha256"
+        , value: foxZRnIh9gZpWnl+zEiKa0EJ2rdCGroMWm02gaxSc9Q=
+      } ]
+    },
+    { address_data: 89.233.43.71 
+    , tls_auth_name: "unicast.censurfridns.dk"
+    },
+    { address_data: 2a01:3a0:53:53::
+    , tls_auth_name: "unicast.censurfridns.dk"
+    }
+  ]
+}
