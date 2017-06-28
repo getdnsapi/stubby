@@ -105,75 +105,85 @@ print_usage(FILE *out, const char *progname)
 	fprintf(out, "\t-h\tPrint this help\n");
 }
 
-static void parse_config(const char *config_str)
+#define GETDNS_RETURN_IO_ERROR ((getdns_return_t) 3000)
+
+static const char *_getdns_strerror(getdns_return_t r)
+{
+	return r == GETDNS_RETURN_IO_ERROR ? strerror(errno)
+	                                   : getdns_get_errorstr_by_id(r);
+}
+
+static getdns_return_t parse_config(const char *config_str)
 {
 	getdns_dict *config_dict;
 	getdns_list *list;
 	getdns_return_t r;
 
-	if ((r = getdns_str2dict(config_str, &config_dict)))
-		fprintf(stderr, "Could not parse config file: %s, \"%s\"\n",
-		    config_str, getdns_get_errorstr_by_id(r));
+	if ((r = getdns_str2dict(config_str, &config_dict))) {
+		fprintf(stderr, "Could not parse config file %s, \"%s\"\n",
+		    config_str, _getdns_strerror(r));
+		return r;
 
-	else {
-		if (!(r = getdns_dict_get_list(
-		    config_dict, "listen_addresses", &list))) {
-			if (listen_list && !listen_dict) {
-				getdns_list_destroy(listen_list);
-				listen_list = NULL;
-			}
-			/* Strange construction to copy the list.
-			 * Needs to be done, because config dict
-			 * will get destroyed.
-			 */
-			if (!listen_dict &&
-			    !(listen_dict = getdns_dict_create())) {
-				fprintf(stderr, "Could not create "
-						"listen_dict");
-				r = GETDNS_RETURN_MEMORY_ERROR;
-
-			} else if ((r = getdns_dict_set_list(
-			    listen_dict, "listen_list", list)))
-				fprintf(stderr, "Could not set listen_list");
-
-			else if ((r = getdns_dict_get_list(
-			    listen_dict, "listen_list", &listen_list)))
-				fprintf(stderr, "Could not get listen_list");
-
-			else if ((r = getdns_list_get_length(
-			    listen_list, &listen_count)))
-				fprintf(stderr, "Could not get listen_count");
-
-			(void) getdns_dict_remove_name(
-			    config_dict, "listen_addresses");
-		}
-		if ((r = getdns_context_config(context, config_dict))) {
-			fprintf(stderr, "Could not configure context with "
-			    "config dict: %s\n", getdns_get_errorstr_by_id(r));
-		}
-		getdns_dict_destroy(config_dict);
 	}
+	if (!(r = getdns_dict_get_list(
+	    config_dict, "listen_addresses", &list))) {
+		if (listen_list && !listen_dict) {
+			getdns_list_destroy(listen_list);
+			listen_list = NULL;
+		}
+		/* Strange construction to copy the list.
+		 * Needs to be done, because config dict
+		 * will get destroyed.
+		 */
+		if (!listen_dict &&
+		    !(listen_dict = getdns_dict_create())) {
+			fprintf(stderr, "Could not create "
+					"listen_dict");
+			r = GETDNS_RETURN_MEMORY_ERROR;
+
+		} else if ((r = getdns_dict_set_list(
+		    listen_dict, "listen_list", list)))
+			fprintf(stderr, "Could not set listen_list");
+
+		else if ((r = getdns_dict_get_list(
+		    listen_dict, "listen_list", &listen_list)))
+			fprintf(stderr, "Could not get listen_list");
+
+		else if ((r = getdns_list_get_length(
+		    listen_list, &listen_count)))
+			fprintf(stderr, "Could not get listen_count");
+
+		(void) getdns_dict_remove_name(
+		    config_dict, "listen_addresses");
+	}
+	if ((r = getdns_context_config(context, config_dict))) {
+		fprintf(stderr, "Could not configure context with "
+		    "config dict: %s\n", _getdns_strerror(r));
+	}
+	getdns_dict_destroy(config_dict);
+	return r;
 }
 
-int parse_config_file(const char *fn)
+static getdns_return_t parse_config_file(const char *fn)
 {
 	FILE *fh;
 	char *config_file = NULL;
 	long config_file_sz;
+	getdns_return_t r;
 
 	if (!(fh = fopen(fn, "r")))
-		return GETDNS_RETURN_GENERIC_ERROR;
+		return GETDNS_RETURN_IO_ERROR;
 
 	if (fseek(fh, 0,SEEK_END) == -1) {
 		perror("fseek");
 		fclose(fh);
-		return GETDNS_RETURN_GENERIC_ERROR;
+		return GETDNS_RETURN_IO_ERROR;
 	}
 	config_file_sz = ftell(fh);
 	if (config_file_sz <= 0) {
 		/* Empty config is no config */
 		fclose(fh);
-		return GETDNS_RETURN_GOOD;
+		return GETDNS_RETURN_IO_ERROR;
 	}
 	if (!(config_file = malloc(config_file_sz + 1))){
 		fclose(fh);
@@ -185,13 +195,13 @@ int parse_config_file(const char *fn)
 		fprintf( stderr, "An error occurred while reading \"%s\": %s\n"
 		       , fn, strerror(errno));
 		fclose(fh);
-		return GETDNS_RETURN_MEMORY_ERROR;
+		return GETDNS_RETURN_IO_ERROR;
 	}
 	config_file[config_file_sz] = 0;
 	fclose(fh);
-	parse_config(config_file);
+	r = parse_config(config_file);
 	free(config_file);
-	return GETDNS_RETURN_GOOD;
+	return r;
 }
 
 typedef struct dns_msg {
@@ -206,7 +216,7 @@ typedef struct dns_msg {
 
 #if defined(SERVER_DEBUG) && SERVER_DEBUG
 #define SERVFAIL(error,r,msg,resp_p) do { \
-	if (r)	DEBUG_SERVER("%s: %s\n", error, getdns_get_errorstr_by_id(r)); \
+	if (r)	DEBUG_SERVER("%s: %s\n", error, _getdns_strerror(r)); \
 	else	DEBUG_SERVER("%s\n", error); \
 	servfail(msg, resp_p); \
 	} while (0)
@@ -358,8 +368,7 @@ static void request_cb(
 		SERVFAIL("Recursion not available", 0, msg, &response);
 
 	if ((r = getdns_reply(context, response, msg->request_id))) {
-		fprintf(stderr, "Could not reply: %s\n",
-		    getdns_get_errorstr_by_id(r));
+		fprintf(stderr, "Could not reply: %s\n", _getdns_strerror(r));
 		/* Cancel reply */
 		(void) getdns_reply(context, NULL, msg->request_id);
 	}
@@ -425,7 +434,7 @@ static void incoming_request_handler(getdns_context *context,
 	}
 	if ((r = getdns_context_get_resolution_type(context, &msg->rt)))
 		fprintf(stderr, "Could get resolution type from context: %s\n",
-		    getdns_get_errorstr_by_id(r));
+		    _getdns_strerror(r));
 
 	if (msg->rt == GETDNS_RESOLUTION_STUB) {
 		(void)getdns_dict_set_int(
@@ -458,28 +467,28 @@ static void incoming_request_handler(getdns_context *context,
 
 	if ((r = getdns_dict_get_bindata(request,"/question/qname",&qname)))
 		fprintf(stderr, "Could not get qname from query: %s\n",
-		    getdns_get_errorstr_by_id(r));
+		    _getdns_strerror(r));
 
 	else if ((r = getdns_convert_dns_name_to_fqdn(qname, &qname_str)))
 		fprintf(stderr, "Could not convert qname: %s\n",
-		    getdns_get_errorstr_by_id(r));
+		    _getdns_strerror(r));
 
 	else if ((r=getdns_dict_get_int(request,"/question/qtype",&qtype)))
 		fprintf(stderr, "Could get qtype from query: %s\n",
-		    getdns_get_errorstr_by_id(r));
+		    _getdns_strerror(r));
 
 	else if ((r=getdns_dict_get_int(request,"/question/qclass",&qclass)))
 		fprintf(stderr, "Could get qclass from query: %s\n",
-		    getdns_get_errorstr_by_id(r));
+		    _getdns_strerror(r));
 
 	else if ((r = getdns_dict_set_int(qext, "specify_class", qclass)))
 		fprintf(stderr, "Could set class from query: %s\n",
-		    getdns_get_errorstr_by_id(r));
+		    _getdns_strerror(r));
 
 	else if ((r = getdns_general(context, qname_str, qtype,
 	    qext, msg, &transaction_id, request_cb)))
 		fprintf(stderr, "Could not schedule query: %s\n",
-		    getdns_get_errorstr_by_id(r));
+		    _getdns_strerror(r));
 	else {
 		DEBUG_SERVER("scheduled: %p %"PRIu64" for %s %d\n",
 		    (void *)msg, transaction_id, qname_str, (int)qtype);
@@ -505,7 +514,7 @@ error:
 #endif
 	if ((r = getdns_reply(context, response, request_id))) {
 		fprintf(stderr, "Could not reply: %s\n",
-		    getdns_get_errorstr_by_id(r));
+		    _getdns_strerror(r));
 		/* Cancel reply */
 		getdns_reply(context, NULL, request_id);
 	}
@@ -529,8 +538,10 @@ int
 main(int argc, char **argv)
 {
 	char home_stubby_conf_fn_spc[1024], *home_stubby_conf_fn = NULL;
+	const char *custom_config_fn = NULL;
 	int fn_sz, n_chars;
 	getdns_return_t r;
+	int opt;
 
 #ifndef USE_WINSOCK
 	char *prg_name = strrchr(argv[0], '/');
@@ -539,37 +550,75 @@ main(int argc, char **argv)
 #endif
 	prg_name = prg_name ? prg_name + 1 : argv[0];
 
+	while ((opt = getopt(argc, argv, "C:gh")) != -1) {
+		switch (opt) {
+		case 'C':
+			custom_config_fn = optarg;
+			break;
+		case 'g':
+			run_in_foreground = 0;
+			break;
+		case 'h':
+			print_usage(stdout, prg_name);
+			exit(EXIT_SUCCESS);
+		default:
+			print_usage(stderr, prg_name);
+			exit(EXIT_FAILURE);
+		}
+	}
+
 	if ((r = getdns_context_create(&context, 1))) {
-		fprintf(stderr, "Create context failed: %d\n", (int)r);
+		fprintf(stderr, "Create context failed: %s\n",
+		        _getdns_strerror(r));
 		return r;
 	}
 	(void) getdns_context_set_logfunc(context, NULL,
 	    GETDNS_SYSTEM_DAEMON, GETDNS_LOG_DEBUG, stubby_log);
 
 	(void) parse_config(default_config);
-	fn_sz = snprintf( home_stubby_conf_fn_spc
-		        , sizeof(home_stubby_conf_fn_spc)
-		        , "%s/.stubby.conf"
-		        , getenv("HOME")
-		        );
+	if (custom_config_fn) {
+		if ((r = parse_config_file(custom_config_fn))) {
+			fprintf(stderr, "Could not parse config file "
+			        "\"%s\": \%s\n", custom_config_fn,
+			        _getdns_strerror(r));
+			return r;
+		}
+	} else {
+		fn_sz = snprintf( home_stubby_conf_fn_spc
+				, sizeof(home_stubby_conf_fn_spc)
+				, "%s/.stubby.conf"
+				, getenv("HOME")
+				);
 
-	if (fn_sz > 0 && fn_sz < (int)sizeof(home_stubby_conf_fn_spc))
-		home_stubby_conf_fn = home_stubby_conf_fn_spc;
+		if (fn_sz > 0 && fn_sz < (int)sizeof(home_stubby_conf_fn_spc))
+			home_stubby_conf_fn = home_stubby_conf_fn_spc;
 
-	else if (fn_sz > 0) {
-		if (!(home_stubby_conf_fn = malloc(fn_sz + 1)) ||
-		    snprintf( home_stubby_conf_fn, fn_sz
-		            , "%s/.stubby.conf", getenv("HOME")) != fn_sz) {
-			if (home_stubby_conf_fn) {
-				free(home_stubby_conf_fn);
-				home_stubby_conf_fn = NULL;
+		else if (fn_sz > 0) {
+			if (!(home_stubby_conf_fn = malloc(fn_sz + 1)) ||
+			    snprintf( home_stubby_conf_fn, fn_sz
+				    , "%s/.stubby.conf", getenv("HOME")) != fn_sz) {
+				if (home_stubby_conf_fn) {
+					free(home_stubby_conf_fn);
+					home_stubby_conf_fn = NULL;
+				}
 			}
 		}
+		if (home_stubby_conf_fn &&
+		    (r = parse_config_file(home_stubby_conf_fn))) {
+			if (r != GETDNS_RETURN_IO_ERROR)
+				fprintf( stderr, "Error parsing config file "
+				         "\"%s\": \%s\n", home_stubby_conf_fn
+				       , _getdns_strerror(r));
+			home_stubby_conf_fn = NULL;
+		}
+		if (!home_stubby_conf_fn &&
+		    (r = parse_config_file(STUBBYCONFDIR"/stubby.conf"))) {
+			fprintf( stderr, "Error parsing config file \"%s\": \%s\n"
+			       , STUBBYCONFDIR"/stubby.conf"
+			       , _getdns_strerror(r));
+		}
 	}
-	if (!home_stubby_conf_fn ||
-	    parse_config_file(home_stubby_conf_fn))
-		(void) parse_config_file(STUBBYCONFDIR"/stubby.conf");
-
+	
 	if (listen_count && (r = getdns_context_set_listen_addresses(
 	    context, listen_list, NULL, incoming_request_handler)))
 		perror("error: Could not bind on given addresses");
