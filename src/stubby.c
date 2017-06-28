@@ -34,6 +34,9 @@
 #ifndef STUBBY_ON_WINDOWS
 #include <unistd.h>
 #endif
+#include <signal.h>
+
+#define STUBBYPIDFILE RUNSTATEDIR"/stubby.pid"
 
 #ifdef STUBBY_ON_WINDOWS
 #define DEBUG_ON(...) do { \
@@ -618,18 +621,44 @@ main(int argc, char **argv)
 	else
 #ifndef STUBBY_ON_WINDOWS
 	     if (!run_in_foreground) {
-		pid_t pid = fork();
+		pid_t pid;
+		char pid_str[1024], *endptr;
+		FILE *fh = fopen(STUBBYPIDFILE, "r");
+		do {
+			pid_t running;
+
+			if (!fh || !fgets(pid_str, sizeof(pid_str), fh))
+				break;
+
+			running = strtol(pid_str, &endptr, 10);
+			if (endptr == pid_str)
+				break;
+
+			if (kill(running, 0) < 0 && errno == ESRCH)
+				break;
+
+			fprintf( stderr, "Not starting because a running "
+			        "stubby was found on pid: %d\n", running);
+			exit(EXIT_FAILURE);
+		} while(0);
+		if (fh)
+			(void) fclose(fh);
+
+		pid = fork();
 		if (pid == -1) {
 			perror("Could not fork of stubby daemon\n");
 			r = GETDNS_RETURN_GENERIC_ERROR;
 
 		} else if (pid) {
-			FILE *fh = fopen("/var/rub/stubby.pid", "w");
-			if (! fh)
-				fh = fopen("/tmp/stubby.pid", "w");
+			fh = fopen(STUBBYPIDFILE, "w");
 			if (fh) {
 				fprintf(fh, "%d", (int)pid);
 				fclose(fh);
+			} else {
+				fprintf(stderr, "Could not write pid to "
+				        "\"%s\": %s\n", STUBBYPIDFILE,
+				        strerror(errno));
+				exit(EXIT_FAILURE);
 			}
 		} else
 			getdns_context_run(context);
