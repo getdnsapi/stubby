@@ -613,7 +613,11 @@ main(int argc, char **argv)
 			       , _getdns_strerror(r));
 		}
 	}
-	
+	if ((r = getdns_context_set_resolution_type(context, GETDNS_RESOLUTION_STUB))) {
+		fprintf( stderr, "Error while trying to configure stubby for "
+		                 "stub resolution only: %s\n", _getdns_strerror(r));
+		exit(EXIT_FAILURE);
+	}
 	if (listen_count && (r = getdns_context_set_listen_addresses(
 	    context, listen_list, NULL, incoming_request_handler)))
 		perror("error: Could not bind on given addresses");
