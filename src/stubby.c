@@ -81,8 +81,10 @@ static const char *default_config =
 "                      , GETDNS_TRANSPORT_TCP ]"
 ", idle_timeout: 10000"
 ", listen_addresses: [ 127.0.0.1@53, 0::1@53 ]"
-", tls_query_padding_blocksize: 1"
+", tls_query_padding_blocksize: 256"
 ", edns_client_subnet_private : 1"
+", idle_timeout: 10000"
+", round_robin_upstreams: 1"
 "}";
 
 static getdns_context  *context = NULL;
@@ -100,8 +102,10 @@ print_usage(FILE *out, const char *progname)
 	fprintf(out, "\t\tRead settings from config file <filename>\n");
 	fprintf(out, "\t\tThe getdns context will be configured with these settings\n");
 	fprintf(out, "\t\tThe file must be in json dict format.\n");
-		fprintf(out, "\t\tBy default, configuration is first read from");
-		fprintf(out, "\n\t\t\"/etc/stubby.conf\" and then from \"$HOME/.stubby.conf\"\n");
+	fprintf(out, "\t\tBy default, the configuration file location is obtained in the following order:");
+	fprintf(out, "\n\t\t\"/etc/stubby.conf\n");
+	fprintf(out, "\n\t\t\"$HOME/.stubby.conf\"\n");
+	fprintf(out, "\n\t\t\"%s/stubby.conf\n", STUBBYCONFDIR);
 #ifndef STUBBY_ON_WINDOWS
 	fprintf(out, "\t-g\tRun stubby in background (default is foreground)\n");
 #endif
@@ -204,6 +208,8 @@ static getdns_return_t parse_config_file(const char *fn)
 	fclose(fh);
 	r = parse_config(config_file);
 	free(config_file);
+	if (r == GETDNS_RETURN_GOOD)
+		fprintf(stderr, "Read config from file %s\n", fn);
 	return r;
 }
 
@@ -608,9 +614,12 @@ main(int argc, char **argv)
 		}
 		if (!home_stubby_conf_fn &&
 		    (r = parse_config_file(STUBBYCONFDIR"/stubby.conf"))) {
-			fprintf( stderr, "Error parsing config file \"%s\": \%s\n"
-			       , STUBBYCONFDIR"/stubby.conf"
-			       , _getdns_strerror(r));
+			if (r != GETDNS_RETURN_IO_ERROR) {
+				fprintf( stderr, "Error parsing config file \"%s\": \%s\n"
+			            , STUBBYCONFDIR"/stubby.conf"
+			            , _getdns_strerror(r));
+			}
+			fprintf(stderr, "WARNING: No Stubby config file found... using minimal default config (Opportunistic Usage)\n");
 		}
 	}
 	if ((r = getdns_context_set_resolution_type(context, GETDNS_RESOLUTION_STUB))) {
