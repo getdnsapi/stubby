@@ -102,14 +102,16 @@ print_usage(FILE *out, const char *progname)
 	fprintf(out, "\t\tRead settings from config file <filename>\n");
 	fprintf(out, "\t\tThe getdns context will be configured with these settings\n");
 	fprintf(out, "\t\tThe file must be in json dict format.\n");
-	fprintf(out, "\t\tBy default, the configuration file location is obtained in the following order:");
-	fprintf(out, "\n\t\t\"/etc/stubby.conf\n");
-	fprintf(out, "\n\t\t\"$HOME/.stubby.conf\"\n");
-	fprintf(out, "\n\t\t\"%s/stubby.conf\n", STUBBYCONFDIR);
+	fprintf(out, "\t\tBy default, the configuration file location is obtained\n");
+	fprintf(out, "\t\tby looking for files in the following order:\n");
+	fprintf(out, "\t\t\t\"/etc/stubby.conf\"\n");
+	fprintf(out, "\t\t\t\"%s/.stubby.conf\"\n", getenv("HOME"));
+	fprintf(out, "\t\t\t\"%s/stubby.conf\"\n", STUBBYCONFDIR);
 #ifndef STUBBY_ON_WINDOWS
 	fprintf(out, "\t-g\tRun stubby in background (default is foreground)\n");
 #endif
 	fprintf(out, "\t-h\tPrint this help\n");
+	fprintf(out, "\t-i\tValidate and print the configuration only. Useful to validate config file contents.\n");
 }
 
 #define GETDNS_RETURN_IO_ERROR ((getdns_return_t) 3000)
@@ -209,7 +211,7 @@ static getdns_return_t parse_config_file(const char *fn)
 	r = parse_config(config_file);
 	free(config_file);
 	if (r == GETDNS_RETURN_GOOD)
-		fprintf(stderr, "Read config from file %s\n", fn);
+		fprintf(stdout, "Read config from file %s\n", fn);
 	return r;
 }
 
@@ -540,7 +542,7 @@ main(int argc, char **argv)
 {
 	char home_stubby_conf_fn_spc[1024], *home_stubby_conf_fn = NULL;
 	const char *custom_config_fn = NULL;
-	int fn_sz, n_chars;
+	int fn_sz, n_chars, print_api_info;
 	getdns_return_t r;
 	int opt;
 
@@ -551,7 +553,7 @@ main(int argc, char **argv)
 #endif
 	prg_name = prg_name ? prg_name + 1 : argv[0];
 
-	while ((opt = getopt(argc, argv, "C:gh")) != -1) {
+	while ((opt = getopt(argc, argv, "C:igh")) != -1) {
 		switch (opt) {
 		case 'C':
 			custom_config_fn = optarg;
@@ -562,6 +564,9 @@ main(int argc, char **argv)
 		case 'h':
 			print_usage(stdout, prg_name);
 			exit(EXIT_SUCCESS);
+		case 'i':
+			print_api_info = 1;
+			break;
 		default:
 			print_usage(stderr, prg_name);
 			exit(EXIT_FAILURE);
@@ -630,7 +635,32 @@ main(int argc, char **argv)
 	if (listen_count && (r = getdns_context_set_listen_addresses(
 	    context, listen_list, NULL, incoming_request_handler)))
 		perror("error: Could not bind on given addresses");
+	else if (print_api_info) {
+		getdns_dict *api_information = 
+		    getdns_context_get_api_information(context);
+		char *api_information_str;
+	       
+		if (listen_dict && !getdns_dict_get_list(
+		    listen_dict, "listen_list", &listen_list)) {
 
+			(void) getdns_dict_set_list(api_information,
+			    "listen_addresses", listen_list);
+		} else if (listen_list) {
+			(void) getdns_dict_set_list(api_information,
+			    "listen_addresses", listen_list);
+
+		} else if ((listen_list = getdns_list_create())) {
+			(void) getdns_dict_set_list(api_information,
+			    "listen_addresses", listen_list);
+			getdns_list_destroy(listen_list);
+			listen_list = NULL;
+		}
+		api_information_str =
+		    getdns_pretty_print_dict(api_information);
+		fprintf(stdout, "%s\n", api_information_str);
+		free(api_information_str);
+		getdns_dict_destroy(api_information);
+	}
 	else
 #ifndef STUBBY_ON_WINDOWS
 	     if (!run_in_foreground) {
