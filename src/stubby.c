@@ -568,7 +568,7 @@ main(int argc, char **argv)
 		return r;
 	}
 	(void) getdns_context_set_logfunc(context, NULL,
-	    GETDNS_SYSTEM_DAEMON, GETDNS_LOG_DEBUG, stubby_log);
+	    GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_DEBUG, stubby_log);
 
 	(void) parse_config(default_config);
 	if (custom_config_fn) {
