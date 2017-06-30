@@ -107,6 +107,8 @@ print_usage(FILE *out, const char *progname)
 	fprintf(out, "\t\t\t\"/etc/stubby.conf\"\n");
 	fprintf(out, "\t\t\t\"%s/.stubby.conf\"\n", getenv("HOME"));
 	fprintf(out, "\t\t\t\"%s/stubby.conf\"\n", STUBBYCONFDIR);
+	fprintf(out, "\t\tAn example file (Using Strict mode) is installed as\n");
+	fprintf(out, "\t\t\t\"%s/stubby.conf.example\"\n", STUBBYCONFDIR);
 #ifndef STUBBY_ON_WINDOWS
 	fprintf(out, "\t-g\tRun stubby in background (default is foreground)\n");
 #endif
