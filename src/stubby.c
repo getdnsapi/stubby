@@ -406,6 +406,7 @@ static void incoming_request_handler(getdns_context *context,
 	uint32_t n;
 	getdns_list *list;
 	getdns_transaction_t transaction_id = 0;
+	getdns_dict *qext = NULL;
 	dns_msg *msg = NULL;
 	getdns_dict *response = NULL;
 	size_t i, len;
@@ -416,7 +417,8 @@ static void incoming_request_handler(getdns_context *context,
 	(void)callback_type;
 	(void)userarg;
 
-	if (!(msg = malloc(sizeof(dns_msg))))
+	if (!(qext = getdns_dict_create_with_context(context)) ||
+	    !(msg = malloc(sizeof(dns_msg))))
 		goto error;
 
 	/* pass through the header and the OPT record */
@@ -449,28 +451,31 @@ static void incoming_request_handler(getdns_context *context,
 
 	if (msg->rt == GETDNS_RESOLUTION_STUB) {
 		(void)getdns_dict_set_int(
-		    request, "/add_opt_parameters/do_bit", msg->do_bit);
+		    qext , "/add_opt_parameters/do_bit", msg->do_bit);
+		if (!getdns_dict_get_dict(request, "header", &header))
+			(void)getdns_dict_set_dict(qext, "header", header);
+
 	}
 	if (msg->cd_bit)
-		getdns_dict_set_int(request, "dnssec_return_all_statuses",
+		getdns_dict_set_int(qext, "dnssec_return_all_statuses",
 		    GETDNS_EXTENSION_TRUE);
 
 	if (!getdns_dict_get_int(request, "/additional/0/extended_rcode",&n))
 		(void)getdns_dict_set_int(
-		    request, "/add_opt_parameters/extended_rcode", n);
+		    qext, "/add_opt_parameters/extended_rcode", n);
 
 	if (!getdns_dict_get_int(request, "/additional/0/version", &n))
 		(void)getdns_dict_set_int(
-		    request, "/add_opt_parameters/version", n);
+		    qext, "/add_opt_parameters/version", n);
 
 	if (!getdns_dict_get_int(
 	    request, "/additional/0/udp_payload_size", &n))
-		(void)getdns_dict_set_int(request,
+		(void)getdns_dict_set_int(qext,
 		    "/add_opt_parameters/maximum_udp_payload_size", n);
 
 	if (!getdns_dict_get_list(
 	    request, "/additional/0/rdata/options", &list))
-		(void)getdns_dict_set_list(request,
+		(void)getdns_dict_set_list(qext,
 		    "/add_opt_parameters/options", list);
 
 	if ((r = getdns_dict_get_bindata(request,"/question/qname",&qname)))
@@ -489,23 +494,26 @@ static void incoming_request_handler(getdns_context *context,
 		fprintf(stderr, "Could get qclass from query: %s\n",
 		    _getdns_strerror(r));
 
-	else if ((r = getdns_dict_set_int(request, "specify_class", qclass)))
+	else if ((r = getdns_dict_set_int(qext, "specify_class", qclass)))
 		fprintf(stderr, "Could set class from query: %s\n",
 		    _getdns_strerror(r));
 
 	else if ((r = getdns_general(context, qname_str, qtype,
-	    request, msg, &transaction_id, request_cb)))
+	    qext, msg, &transaction_id, request_cb)))
 		fprintf(stderr, "Could not schedule query: %s\n",
 		    _getdns_strerror(r));
 	else {
 		DEBUG_SERVER("scheduled: %p %"PRIu64" for %s %d\n",
 		    (void *)msg, transaction_id, qname_str, (int)qtype);
+		getdns_dict_destroy(qext);
 		free(qname_str);
 		return;
 	}
 error:
 	if (qname_str)
 		free(qname_str);
+	if (qext)
+		getdns_dict_destroy(qext);
 	servfail(msg, &response);
 #if defined(SERVER_DEBUG) && SERVER_DEBUG
 	do {
