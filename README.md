@@ -1,77 +1,46 @@
 # About Stubby
 
-Stubby is the name given to a mode of using [getdns](https://getdnsapi.net/) which enables it to act as a local **DNS Privacy stub resolver** (using DNS-over-TLS). Stubby encrypts DNS queries sent from a client machine (desktop or laptop) to a DNS Privacy resolver increasing end user privacy. Stubby is in the early stages of development but is suitable for technical/advanced users. A more generally user-friendly version is on the way!
+Stubby is an application that acts as a local **DNS Privacy stub resolver** (using DNS-over-TLS). Stubby encrypts DNS queries sent from a client machine (desktop or laptop) to a DNS Privacy resolver increasing end user privacy. Stubby is in the early stages of development but is suitable for technical/advanced users. A more generally user-friendly version is on the way!
 
-In this mode Stubby (getdns) does several things
+Stubby provides DNS Privacy by:
 
-* Runs as a daemon
-* By default obtains its configuration information from the configuration file at `/etc/stubby.conf`
-* Can be configured to listen on the loopback address and send all outgoing DNS queries received on that address out over TLS to a DNS Privacy server
-* Can be configured with authentication information for DNS Privacy servers and instructed to use either a 'Strict' or an 'Opportunistic' Profile as described in [Authentication and (D)TLS Profile for DNS-over-(D)TLS](https://datatracker.ietf.org/doc/draft-ietf-dprive-dtls-and-tls-profiles/)
+* Running as a daemon
+* Listening on the loopback address to send all outgoing DNS queries received on that address out over TLS
+* Using a default configuration which provides Strict Privacy and uses a subset
+of the available [DNS Privacy servers](https://dnsprivacy.org/wiki/x/E4AT)
 
-Stubby is available in the 1.1 release of getdns.  
+# Dependancies
+
+Stubby uses [getdns](https://getdnsapi.net/) and requires the 1.1.2 release of getdns or later.
 
 # Installing Using a Package Manager
 
-Check to see if the 1.1 release of getdns is available via a package manager. Details on Supported Platforms can be found in the 'Supported Platforms' section of the [README](https://getdnsapi.net/documentation/readme)  documentation. 
+Check to see if getdns and Stubby are available via a package manager.
 
-Note: a Homebrew package for Stubby is on the way. 
+Note: a Homebrew package for getdns exists, one for Stubby is on the way.
 
-# Building Stubby from Source
+If you need to install getdns from source, see the section [at the end of this document.](#building-getdns-from-source)
 
-## Dependencies
+# Build Stubby from source
 
-For Stubby, the only dependency is OpenSSL (version 1.0.2 or later is required for hostname authentication to be supported). If OpenSSL is installed in a non-standard location on your system use the `--with-ssl` option to `configure` below to specify where it is installed.
-
-### Linux
-
-It may be necessary to install [1.0.2 from source](https://openssl.org/source/openssl-1.0.2h.tar.gz) for most Linux distros.
-
-### OS X
-
-It is recommended to [install OpenSSL using homebrew](http://brewformulas.org/Openssl), in which case use the following in the `configure` line in the build step below:
-
-```sh
---with-ssl=/usr/local/opt/openssl/
+Get the code:
+```
+git clone https://github.com/getdnsapi/stubby.git
 ```
 
-## Download the getdns source
-
-Either clone the code:
-
-```sh
-> git clone https://github.com/getdnsapi/getdns.git
-> cd getdns
-> git checkout develop
+Build and install (assuming the getdns is installed in a standard location e.g. by homebrew)
 ```
-for the very latest version of getdns or grab a release tarball from this page: [Latest getdns releases](https://getdnsapi.net/releases/)
-
-## Build the code
-
-Note that on Mac OS X you will need the developer tools from Xcode to compile the code. And you may need to use brew to install libtool (and then use glibtoolize below), autoconf and automake.
-
-```sh
-> git submodule update --init
-> libtoolize -ci
-> autoreconf -fi
-> mkdir build
-> cd build
-> ../configure --prefix=<install_location> --without-libidn --enable-stub-only --enable-debug-daemon
-> make
-> sudo make install
-```
-
-Logging/debugging
-
-> **`--enable-debug-daemon`** If you don't want to see the connection statistics then remove the `--enable-debug-daemon` option in the `configure` line above.
-
-> **`--enable-debug-stub`**   If you do want to see very detailed debug information as messages are processed (including connection statistics) then add the `--enable-debug-stub` option to the `configure` line above.
+cd stubby
+libtoolize -ci
+autoreconf -vfi
+./configure CFLAGS="-g -I/usr/local/include" LDFLAGS="-L/usr/local/lib" --prefix="$HOME/local"
+make
+sudo make install
+````
 
 # Configure Stubby
 
-!! <span class="glyphicon glyphicon-info-sign"></span> It is recommended to use the default configuration file provided which will use 'Strict' privacy mode and spread the DNS queries among several of the current DNS Privacy test servers. Note that this file contains both IPv4 and IPv6 addresses. To use this file simply run: <pre>> sudo cp ../src/tools/stubby.conf /etc/stubby.conf</pre>
-
-Apologies, the config file was not included in the 1.1 release tarball, this will be fixed in the next release. The latest file can be downloaded from [here](https://github.com/getdnsapi/getdns/blob/develop/src/tools/stubby.conf).
+!! <span class="glyphicon glyphicon-info-sign"></span> It is recommended to use the default configuration file provided which will use 'Strict' privacy mode and spread the DNS queries among several of the current DNS Privacy test servers. Note that this file contains both IPv4 and IPv6 addresses. This file is installed on *nix systems as /usr/local/etc/stubby/stubby.conf</pre>
 
 ### Create Custom Configuration File
 
@@ -114,7 +83,7 @@ The config file below will configure Stubby in the following ways:
 }
 ```
 
-Additional privacy servers can be specified by adding more entries to the `upstream_recursive_servers` list above (note a separate entry must be made for the IPv4 and IPv6 addresses of a given server. More DNS Privacy test servers are listed [here](https://portal.sinodun.com/wiki/display/TDNS/DNS-over-TLS+test+servers).
+Additional privacy servers can be specified by adding more entries to the `upstream_recursive_servers` list above (note a separate entry must be made for the IPv4 and IPv6 addresses of a given server. More DNS Privacy test servers are listed [here](https://dnsprivacy.org/wiki/x/E4AT).
 
 A custom port can be specified by adding the `tls_port:` attribute to the `upstream_recursive_server` in the config file. 
 
@@ -130,8 +99,6 @@ Simply invoke Stubby on the command line. By default it runs in the foreground, 
 ```
 
 * The logging is currently crude and simply writes to stderr. (We are working on making this better!)
-   * If don't want to see any logging for some reason then include the following on the command line: `2>/dev/null`
-   * If you build with both stub and daemon logging and want to see only the daemon logging use: `2>&1 >/dev/null |  grep 'DAEMON' `
 * The pid file is /var/run/stubby.pid
 
 # Test Stubby
@@ -162,20 +129,19 @@ For Stubby to re-send outgoing DNS queries over TLS the recursive resolvers conf
 
 ## OS X
 
-From the command line you can do the following to set the local DNS servers on, for example, your 'Wi-Fi' interface (first line clears all servers, second line adds localhost):
+A script is provided with Stubby for easier configuration. From the command line you can do the following to switch all your queries to use Stubby
 
 ```sh
-> sudo networksetup -setdnsservers Wi-Fi Empty
-> sudo networksetup -setdnsservers Wi-Fi 127.0.0.1 ::1
+> sudo /usr/local/sbin/stubby-setdns-macos.sh
 ```
 
 If you want to reset, just use:
 
 ```sh
-> sudo networksetup -setdnsservers Wi-Fi Empty
+> sudo /usr/local/sbin/stubby-setdns-macos.sh -r
 ```
 
-which should pick up the default DHCP nameservers. Or use something similar to the first set of instructions if you want to specify particular namerservers.
+which should pick up the default DHCP nameservers.
 
 
 Or via the GUI:
@@ -190,5 +156,50 @@ Or via the GUI:
 
 * If you are using a DNS Privacy server that does not support concurrent processing of TLS queries, you may experience some issues due to timeouts causing subsequent queries on the same connection to fail.
 
-<p class="origin-reference">This post first appeared at <a href="https://portal.sinodun.com/wiki/display/TDNS/DNS+Privacy+daemon+-+Stubby">https://portal.sinodun.com/wiki/display/TDNS/DNS+Privacy+daemon+-+Stubby</a></p>
+# Building getdns from Source
 
+## Dependencies
+
+The most limited install of getdns that will work with Stubby requires only OpenSSL as a dependancy (version 1.0.2 or later is required for hostname authentication to be supported). If OpenSSL is installed in a non-standard location on your system use the `--with-ssl` option to `configure` below to specify where it is installed.
+
+### Linux
+
+It may be necessary to install [1.0.2 from source](https://openssl.org/source/openssl-1.0.2h.tar.gz) for most Linux distros.
+
+### OS X
+
+It is recommended to [install OpenSSL using homebrew](http://brewformulas.org/Openssl), in which case use the following in the `configure` line in the build step below:
+
+```sh
+--with-ssl=/usr/local/opt/openssl/
+```
+
+## Download the getdns source
+
+Either clone the code:
+
+```sh
+> git clone https://github.com/getdnsapi/getdns.git
+> cd getdns
+> git checkout develop
+```
+for the very latest version of getdns or grab a release tarball from this page: [Latest getdns releases](https://getdnsapi.net/releases/)
+
+## Build the code
+
+Note that on Mac OS X you will need the developer tools from Xcode to compile the code. And you may need to use brew to install libtool (and then use glibtoolize below), autoconf and automake.
+
+```sh
+> git submodule update --init
+> libtoolize -ci
+> autoreconf -fi
+> mkdir build
+> cd build
+> ../configure --prefix=<install_location> --without-libidn --enable-stub-only --enable-debug-daemon
+> make
+> sudo make install
+```
+
+Logging/debugging
+
+> **`--enable-debug-stub`**   If you do want to see _very_ detailed debug information as messages are processed then add the `--enable-debug-stub` option to the `configure` line above (not recommended for use with Stubby)

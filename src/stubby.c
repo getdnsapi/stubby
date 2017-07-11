@@ -93,6 +93,9 @@ static getdns_list *listen_list = NULL;
 static size_t listen_count = 0;
 static int run_in_foreground = 1;
 
+static void stubby_local_log(void *userarg, uint64_t system,
+	getdns_loglevel_type level, const char *fmt, ...);
+
 
 void
 print_usage(FILE *out, const char *progname)
@@ -107,8 +110,8 @@ print_usage(FILE *out, const char *progname)
 	fprintf(out, "\t\t\t\"/etc/stubby.conf\"\n");
 	fprintf(out, "\t\t\t\"%s/.stubby.conf\"\n", getenv("HOME"));
 	fprintf(out, "\t\t\t\"%s/stubby.conf\"\n", STUBBYCONFDIR);
-	fprintf(out, "\t\tAn example file (Using Strict mode) is installed as\n");
-	fprintf(out, "\t\t\t\"%s/stubby.conf.example\"\n", STUBBYCONFDIR);
+	fprintf(out, "\t\tAn default file (Using Strict mode) is installed as\n");
+	fprintf(out, "\t\t\t\"%s/stubby.conf\"\n", STUBBYCONFDIR);
 #ifndef STUBBY_ON_WINDOWS
 	fprintf(out, "\t-g\tRun stubby in background (default is foreground)\n");
 #endif
@@ -213,7 +216,8 @@ static getdns_return_t parse_config_file(const char *fn)
 	r = parse_config(config_file);
 	free(config_file);
 	if (r == GETDNS_RETURN_GOOD)
-		fprintf(stdout, "Read config from file %s\n", fn);
+		stubby_local_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_DEBUG,
+			       "Read config from file %s\n", fn);
 	return r;
 }
 
@@ -543,8 +547,32 @@ error:
 static void stubby_log(void *userarg, uint64_t system,
     getdns_loglevel_type level, const char *fmt, va_list ap)
 {
+	struct timeval tv;
+	struct tm tm;
+	char buf[10];
+#ifdef GETDNS_ON_WINDOWS
+	time_t tsec;
+
+	gettimeofday(&tv, NULL);
+	tsec = (time_t) tv.tv_sec;
+	gmtime_s(&tm, (const time_t *) &tsec);
+#else
+	gettimeofday(&tv, NULL);
+	gmtime_r(&tv.tv_sec, &tm);
+#endif
+	strftime(buf, 10, "%H:%M:%S", &tm);
 	(void)userarg; (void)system; (void)level;
+	(void) fprintf(stderr, "[%s.%.6d] STUBBY: ", buf, (int)tv.tv_usec);
 	(void) vfprintf(stderr, fmt, ap);
+}
+
+void stubby_local_log(void *userarg, uint64_t system,
+    getdns_loglevel_type level, const char *fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+	stubby_log(userarg, system, level, fmt, args);
+	va_end(args);
 }
 
 int
@@ -717,7 +745,11 @@ main(int argc, char **argv)
 			getdns_context_run(context);
 	} else
 #endif
-	getdns_context_run(context);
+	{
+		stubby_local_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_DEBUG,
+			       "Starting DAEMON....\n");
+		getdns_context_run(context);
+	}
 
 	getdns_context_destroy(context);
 
