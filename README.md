@@ -35,12 +35,12 @@ Get the code:
 git clone https://github.com/getdnsapi/stubby.git
 ```
 
-Build and install (assuming the getdns is installed in a standard location e.g. by homebrew)
+Build and install (the paths below assume that getdns is installed in a standard location e.g. by Homebrew in /usr/local/)
 ```
 cd stubby
 libtoolize -ci
 autoreconf -vfi
-./configure CFLAGS="-g -I/usr/local/include" LDFLAGS="-L/usr/local/lib" --prefix="$HOME/local"
+./configure CFLAGS="-I/usr/local/include" LDFLAGS="-L/usr/local/lib"
 make
 sudo make install
 ````
