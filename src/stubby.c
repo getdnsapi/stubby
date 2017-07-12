@@ -580,7 +580,8 @@ main(int argc, char **argv)
 {
 	char home_stubby_conf_fn_spc[1024], *home_stubby_conf_fn = NULL;
 	const char *custom_config_fn = NULL;
-	int fn_sz, n_chars, print_api_info;
+	int fn_sz, n_chars;
+	int print_api_info = 0;
 	getdns_return_t r;
 	int opt;
 
