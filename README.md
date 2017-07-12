@@ -9,6 +9,13 @@ Stubby provides DNS Privacy by:
 * Using a default configuration which provides Strict Privacy and uses a subset
 of the available [DNS Privacy servers](https://dnsprivacy.org/wiki/x/E4AT)
 
+# Documentation
+
+<!---
+Where should the 'official' Stubby homepage be?
+-->
+See [Stubby Homepage](https://getdnsapi.net/blog/dns-privacy-daemon-stubby/) for more details
+
 # Dependancies
 
 Stubby uses [getdns](https://getdnsapi.net/) and requires the 1.1.2 release of getdns or later.
@@ -143,6 +150,10 @@ If you want to reset, just use:
 
 which should pick up the default DHCP nameservers.
 
+You can add /usr/local/sbin to your path to avoid having to type it above by doing
+```
+export PATH=/usr/local/sbin:$PATH
+```
 
 Or via the GUI:
 
