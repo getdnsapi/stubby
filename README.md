@@ -38,7 +38,6 @@ git clone https://github.com/getdnsapi/stubby.git
 Build and install (the paths below assume that getdns is installed in a standard location e.g. by Homebrew in /usr/local/)
 ```
 cd stubby
-libtoolize -ci
 autoreconf -vfi
 ./configure CFLAGS="-I/usr/local/include" LDFLAGS="-L/usr/local/lib"
 make
@@ -198,11 +197,10 @@ for the very latest version of getdns or grab a release tarball from this page: 
 
 ## Build the code
 
-Note that on Mac OS X you will need the developer tools from Xcode to compile the code. And you may need to use brew to install libtool (and then use glibtoolize below), autoconf and automake.
+Note that on Mac OS X you will need the developer tools from Xcode to compile the code. And you may need to use brew to install getdns, autoconf, and automake.
 
 ```sh
 > git submodule update --init
-> libtoolize -ci
 > autoreconf -fi
 > mkdir build
 > cd build
