@@ -170,7 +170,7 @@ static getdns_return_t parse_config(const char *config_str)
 		(void) getdns_dict_remove_name(
 		    config_dict, "listen_addresses");
 	}
-	if ((r = getdns_context_config(context, config_dict))) {
+	if (!r && (r = getdns_context_config(context, config_dict))) {
 		fprintf(stderr, "Could not configure context with "
 		    "config dict: %s\n", _getdns_strerror(r));
 	}
@@ -580,7 +580,7 @@ main(int argc, char **argv)
 {
 	char home_stubby_conf_fn_spc[1024], *home_stubby_conf_fn = NULL;
 	const char *custom_config_fn = NULL;
-	int fn_sz, n_chars;
+	int fn_sz;
 	int print_api_info = 0;
 	getdns_return_t r;
 	int opt;
@@ -624,7 +624,7 @@ main(int argc, char **argv)
 	if (custom_config_fn) {
 		if ((r = parse_config_file(custom_config_fn))) {
 			fprintf(stderr, "Could not parse config file "
-			        "\"%s\": \%s\n", custom_config_fn,
+			        "\"%s\": %s\n", custom_config_fn,
 			        _getdns_strerror(r));
 			return r;
 		}
@@ -652,18 +652,24 @@ main(int argc, char **argv)
 		    (r = parse_config_file(home_stubby_conf_fn))) {
 			if (r != GETDNS_RETURN_IO_ERROR)
 				fprintf( stderr, "Error parsing config file "
-				         "\"%s\": \%s\n", home_stubby_conf_fn
+				         "\"%s\": %s\n", home_stubby_conf_fn
 				       , _getdns_strerror(r));
+			if (home_stubby_conf_fn != home_stubby_conf_fn_spc)
+				free(home_stubby_conf_fn);
 			home_stubby_conf_fn = NULL;
 		}
 		if (!home_stubby_conf_fn &&
 		    (r = parse_config_file(STUBBYCONFDIR"/stubby.conf"))) {
 			if (r != GETDNS_RETURN_IO_ERROR) {
-				fprintf( stderr, "Error parsing config file \"%s\": \%s\n"
+				fprintf( stderr, "Error parsing config file \"%s\": %s\n"
 			            , STUBBYCONFDIR"/stubby.conf"
 			            , _getdns_strerror(r));
 			}
 			fprintf(stderr, "WARNING: No Stubby config file found... using minimal default config (Opportunistic Usage)\n");
+		}
+		if (home_stubby_conf_fn &&
+		    home_stubby_conf_fn != home_stubby_conf_fn_spc) {
+			free(home_stubby_conf_fn);
 		}
 	}
 	if ((r = getdns_context_set_resolution_type(context, GETDNS_RESOLUTION_STUB))) {
