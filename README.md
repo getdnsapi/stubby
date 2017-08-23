@@ -46,7 +46,7 @@ sudo make install
 
 # Configure Stubby
 
-!! <span class="glyphicon glyphicon-info-sign"></span> It is recommended to use the default configuration file provided which will use 'Strict' privacy mode and spread the DNS queries among several of the current DNS Privacy test servers. Note that this file contains both IPv4 and IPv6 addresses. This file is installed on *nix systems as /usr/local/etc/stubby/stubby.conf</pre>
+_It is recommended to use the default configuration file provided which will use 'Strict' privacy mode and spread the DNS queries among several of the current DNS Privacy test servers. Note that this file contains both IPv4 and IPv6 addresses. This file is installed on *nix systems as /usr/local/etc/stubby/stubby.conf_
 
 ### Create Custom Configuration File
 
@@ -104,7 +104,7 @@ Simply invoke Stubby on the command line. By default it runs in the foreground, 
 > sudo stubby
 ```
 
-* The logging is currently crude and simply writes to stderr. (We are working on making this better!)
+* Enable connection logging by using the '-l' flag. The logging is currently simplistic and simply writes to stdout. (We are working on making this better!)
 * The pid file is /var/run/stubby.pid
 
 # Test Stubby
@@ -164,6 +164,7 @@ Or via the GUI:
 
 ## Notes:
 
+* If Stubby works for a while but you then see failures from Stubby such as "None of the configured upstreams could be used to send queries on the specified transports" try restarting Stubby.
 * If you are using a DNS Privacy server that does not support concurrent processing of TLS queries, you may experience some issues due to timeouts causing subsequent queries on the same connection to fail.
 
 # Building getdns from Source
@@ -197,7 +198,7 @@ for the very latest version of getdns or grab a release tarball from this page: 
 
 ## Build the code
 
-Note that on Mac OS X you will need the developer tools from Xcode to compile the code. And you may need to use brew to install getdns, autoconf, and automake.
+Note that on Mac OS X you will need the developer tools from Xcode to compile the code. And you may need to use brew to install libtool, autoconf, and automake.
 
 ```sh
 > git submodule update --init
