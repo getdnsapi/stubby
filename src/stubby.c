@@ -117,6 +117,7 @@ print_usage(FILE *out, const char *progname)
 #endif
 	fprintf(out, "\t-h\tPrint this help\n");
 	fprintf(out, "\t-i\tValidate and print the configuration only. Useful to validate config file contents.\n");
+	fprintf(out, "\t-l\tEnable logging of connection statistics\n");	
 }
 
 #define GETDNS_RETURN_IO_ERROR ((getdns_return_t) 3000)
@@ -562,8 +563,8 @@ static void stubby_log(void *userarg, uint64_t system,
 #endif
 	strftime(buf, 10, "%H:%M:%S", &tm);
 	(void)userarg; (void)system; (void)level;
-	(void) fprintf(stderr, "[%s.%.6d] STUBBY: ", buf, (int)tv.tv_usec);
-	(void) vfprintf(stderr, fmt, ap);
+	(void) fprintf(stdout, "[%s.%.6d] STUBBY: ", buf, (int)tv.tv_usec);
+	(void) vfprintf(stdout, fmt, ap);
 }
 
 void stubby_local_log(void *userarg, uint64_t system,
@@ -582,6 +583,7 @@ main(int argc, char **argv)
 	const char *custom_config_fn = NULL;
 	int fn_sz;
 	int print_api_info = 0;
+	int log_connections = 0;
 	getdns_return_t r;
 	int opt;
 
@@ -592,7 +594,7 @@ main(int argc, char **argv)
 #endif
 	prg_name = prg_name ? prg_name + 1 : argv[0];
 
-	while ((opt = getopt(argc, argv, "C:igh")) != -1) {
+	while ((opt = getopt(argc, argv, "C:ighl")) != -1) {
 		switch (opt) {
 		case 'C':
 			custom_config_fn = optarg;
@@ -606,6 +608,9 @@ main(int argc, char **argv)
 		case 'i':
 			print_api_info = 1;
 			break;
+		case 'l':
+			log_connections = 1;
+			break;
 		default:
 			print_usage(stderr, prg_name);
 			exit(EXIT_FAILURE);
@@ -617,8 +622,10 @@ main(int argc, char **argv)
 		        _getdns_strerror(r));
 		return r;
 	}
-	(void) getdns_context_set_logfunc(context, NULL,
-	    GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_DEBUG, stubby_log);
+	if (log_connections) {
+		(void) getdns_context_set_logfunc(context, NULL,
+	    	GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_DEBUG, stubby_log);
+	}
 
 	(void) parse_config(default_config);
 	if (custom_config_fn) {
