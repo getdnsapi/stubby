@@ -1,0 +1,11 @@
+* 2017-08-24: Version 0.1.2
+  * revert logging to stderr until we have good separation of logging and error
+    within the code
+
+* 2017-08-23: Version 0.1.1
+  * systemd folder has moved here from the getdns repo
+  * logging can now be controlled at runtime using the '-l' flag
+  * minor fixes from a static analysis
+
+* 2017-07-12: Version 0.1.0
+  * Initial release of stubby after break-out from getdns repository
