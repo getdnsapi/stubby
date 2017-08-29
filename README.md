@@ -26,7 +26,7 @@ Stubby uses [getdns](https://getdnsapi.net/) and requires the 1.1.2 release of g
 
 Check to see if getdns and Stubby are available via a package manager.
 
-Note: a Homebrew package for getdns exists, one for Stubby is on the way.
+UPDATE: August 2017 - A Homebrew package for stubby is now available (`brew install stubby`) !
 
 If you need to install getdns from source, see the section [at the end of this document.](#building-getdns-from-source)
 
