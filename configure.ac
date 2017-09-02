@@ -1,5 +1,5 @@
 AC_PREREQ([2.68])
-AC_INIT([Stubby], [0.1.1], [willem@nlnetlabs.nl])
+AC_INIT([Stubby], [0.1.2], [willem@nlnetlabs.nl])
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR([src/stubby.c])
 AC_CONFIG_HEADERS([config.h])

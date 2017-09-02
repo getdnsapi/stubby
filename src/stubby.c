@@ -83,7 +83,6 @@ static const char *default_config =
 ", listen_addresses: [ 127.0.0.1@53, 0::1@53 ]"
 ", tls_query_padding_blocksize: 256"
 ", edns_client_subnet_private : 1"
-", idle_timeout: 10000"
 ", round_robin_upstreams: 1"
 "}";
 
@@ -564,8 +563,8 @@ static void stubby_log(void *userarg, uint64_t system,
 #endif
 	strftime(buf, 10, "%H:%M:%S", &tm);
 	(void)userarg; (void)system; (void)level;
-	(void) fprintf(stdout, "[%s.%.6d] STUBBY: ", buf, (int)tv.tv_usec);
-	(void) vfprintf(stdout, fmt, ap);
+	(void) fprintf(stderr, "[%s.%.6d] STUBBY: ", buf, (int)tv.tv_usec);
+	(void) vfprintf(stderr, fmt, ap);
 }
 
 void stubby_local_log(void *userarg, uint64_t system,

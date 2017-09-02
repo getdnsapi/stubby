@@ -9,6 +9,8 @@ Stubby provides DNS Privacy by:
 * Using a default configuration which provides Strict Privacy and uses a subset
 of the available [DNS Privacy servers](https://dnsprivacy.org/wiki/x/E4AT)
 
+Stubby is developed by the getdns team.
+
 # Documentation
 
 <!---
@@ -24,7 +26,7 @@ Stubby uses [getdns](https://getdnsapi.net/) and requires the 1.1.2 release of g
 
 Check to see if getdns and Stubby are available via a package manager.
 
-Note: a Homebrew package for getdns exists, one for Stubby is on the way.
+UPDATE: August 2017 - A Homebrew package for stubby is now available (`brew install stubby`) !
 
 If you need to install getdns from source, see the section [at the end of this document.](#building-getdns-from-source)
 
@@ -104,7 +106,7 @@ Simply invoke Stubby on the command line. By default it runs in the foreground, 
 > sudo stubby
 ```
 
-* Enable connection logging by using the '-l' flag. The logging is currently simplistic and simply writes to stdout. (We are working on making this better!)
+* Enable connection logging by using the `-l` flag. The logging is currently simplistic and simply writes to stdout. (We are working on making this better!)
 * The pid file is /var/run/stubby.pid
 
 # Test Stubby
@@ -169,6 +171,9 @@ Or via the GUI:
 
 # Building getdns from Source
 
+Note that from getdns 1.1.3 stubby is included in the getdns code as a git submodule. Therefore stubby and getdns can be built together by following the
+instructions below but adding the ``--with-stubby`` flag to the `configure` step.
+
 ## Dependencies
 
 The most limited install of getdns that will work with Stubby requires only OpenSSL as a dependancy (version 1.0.2 or later is required for hostname authentication to be supported). If OpenSSL is installed in a non-standard location on your system use the `--with-ssl` option to `configure` below to specify where it is installed.
@@ -205,7 +210,7 @@ Note that on Mac OS X you will need the developer tools from Xcode to compile th
 > autoreconf -fi
 > mkdir build
 > cd build
-> ../configure --prefix=<install_location> --without-libidn --enable-stub-only --enable-debug-daemon
+> ../configure --prefix=<install_location> --without-libidn --enable-stub-only
 > make
 > sudo make install
 ```
