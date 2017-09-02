@@ -210,6 +210,7 @@ static getdns_return_t parse_config_file(const char *fn)
 		fprintf( stderr, "An error occurred while reading \"%s\": %s\n"
 		       , fn, strerror(errno));
 		fclose(fh);
+		free(config_file);
 		return GETDNS_RETURN_IO_ERROR;
 	}
 	config_file[config_file_sz] = 0;
