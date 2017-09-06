@@ -6,6 +6,7 @@
 , listen_addresses: [ 127.0.0.1, 0::1 ]
 , idle_timeout: 10000
 , round_robin_upstreams: 1
+, tls_backoff_time: 5
 , upstream_recursive_servers:
   [ { address_data: 145.100.185.15
     , tls_auth_name: "dnsovertls.sinodun.com"
