@@ -103,7 +103,7 @@ print_usage(FILE *out, const char *progname)
 	fprintf(out, "\t-C\t<filename>\n");
 	fprintf(out, "\t\tRead settings from config file <filename>\n");
 	fprintf(out, "\t\tThe getdns context will be configured with these settings\n");
-	fprintf(out, "\t\tThe file must be in json dict format.\n");
+	fprintf(out, "\t\tThe file must be in JSON or YAML dict format.\n");
 	fprintf(out, "\t\tBy default, the configuration file location is obtained\n");
 	fprintf(out, "\t\tby looking for files in the following order:\n");
 	fprintf(out, "\t\t\t\"/etc/stubby.conf\"\n");
@@ -127,17 +127,20 @@ static const char *_getdns_strerror(getdns_return_t r)
 	                                   : getdns_get_errorstr_by_id(r);
 }
 
-static getdns_return_t parse_config(const char *config_str)
+static getdns_return_t parse_config(const char *config_str, int yaml_config)
 {
 	getdns_dict *config_dict;
 	getdns_list *list;
 	getdns_return_t r;
 
-	if ((r = getdns_str2dict(config_str, &config_dict))) {
+	if (yaml_config)
+		r = getdns_yaml2dict(config_str, &config_dict);
+	else
+		r = getdns_str2dict(config_str, &config_dict);
+	if (r) {
 		fprintf(stderr, "Could not parse config file %s, \"%s\"\n",
 		    config_str, _getdns_strerror(r));
 		return r;
-
 	}
 	if (!(r = getdns_dict_get_list(
 	    config_dict, "listen_addresses", &list))) {
@@ -214,7 +217,7 @@ static getdns_return_t parse_config_file(const char *fn)
 	}
 	config_file[config_file_sz] = 0;
 	fclose(fh);
-	r = parse_config(config_file);
+	r = parse_config(config_file, strstr(fn, ".yaml") != NULL);
 	free(config_file);
 	if (r == GETDNS_RETURN_GOOD)
 		stubby_local_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_DEBUG,
@@ -627,7 +630,7 @@ main(int argc, char **argv)
 	    	GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_DEBUG, stubby_log);
 	}
 
-	(void) parse_config(default_config);
+	(void) parse_config(default_config, 0);
 	if (custom_config_fn) {
 		if ((r = parse_config_file(custom_config_fn))) {
 			fprintf(stderr, "Could not parse config file "
