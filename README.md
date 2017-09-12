@@ -20,7 +20,7 @@ See [Stubby Homepage](https://getdnsapi.net/blog/dns-privacy-daemon-stubby/) for
 
 # Dependancies
 
-Stubby uses [getdns](https://getdnsapi.net/) and requires the 1.1.2 release of getdns or later.
+Stubby uses [getdns](https://getdnsapi.net/) and requires the 1.2 release of getdns or later compile with support for YAML.
 
 # Installing Using a Package Manager
 
@@ -48,13 +48,21 @@ sudo make install
 
 # Configure Stubby
 
-_It is recommended to use the default configuration file provided which will use 'Strict' privacy mode and spread the DNS queries among several of the current DNS Privacy test servers. Note that this file contains both IPv4 and IPv6 addresses. This file is installed on *nix systems as /usr/local/etc/stubby/stubby.conf_
+_It is recommended to use the default configuration file provided which will use 'Strict' privacy mode and spread the DNS 
+queries among several of the current DNS Privacy test servers. Note that this file contains both IPv4 and IPv6 addresses. 
+This file is installed on *nix systems as /usr/local/etc/stubby/stubby.yaml_
 
-### Create Custom Configuration File
+The configuration file format is a YAML like format and the name of the file must have an extension of .yaml. Essentially the 
+configuration options available are the same as the options that can be set on a getdns `context` - Doxygen documentation for 
+which is available [here](https://getdnsapi.net/doxygen/group__getdns__context.html). To aid with creating a custom configuration file, an example is given below.
+
+NOTE: As of the 0.1.3 release of Stubby the YAML format replaces the JSON like format used in earlier versions of the configuration file for getdns/stubby. The YAML format is 
+more human readable and supports comments allowing options to be easily enabled and disabled. The JSON format is that which is used internally in getdns
+(it is the same as the output returned by `stubby -i`) and is still available by directly specifying a file with the name 'stubby.conf' on the command line using the -C option.
+
+## Create Custom Configuration File
 
 Alternatively the configuration file location can be specified on the command line using the `-C` flag. Changes to the configuration file require a restart of Stubby.
-
-The configuration file format is a JSON like format used internally in getdns and is the same as the output returned by `stubby -i`. For example, this output can be used as a configuration file directly, but a less verbose form is also accepted. Essentially the options available are the same as the options that can be set on a getdns `context` - Doxygen documentation for which is available [here](https://getdnsapi.net/doxygen/group__getdns__context.html). To aid with creating a custom configuration file, an example is given below. 
 
 The config file below will configure Stubby in the following ways:
 
@@ -64,39 +72,39 @@ The config file below will configure Stubby in the following ways:
   * If Opportunistic mode is desired, simply remove the `tls_authentication: GETDNS_AUTHENTICATION_REQUIRED` field. In Opportunistic mode authentication of the nameserver is not required and fallback to clear text transports is permitted if they are in the `dns_transport_list`.
 *  `tls_query_padding_blocksize`: Use the EDNS0 padding option to pad DNS queries to hide their size
 *  `edns_client_subnet_private`: Use EDNS0 Client Subnet privacy so the client subnet is not sent to authoritative servers
-*  `listen_address`: have the Stubbby daemon listen on IPv4 and IPv6 on port 53 on the loopback address
 * ` idle_timeout`:  Use an EDNS0 Keepalive idle timeout of 10s unless overridden by the server. This keeps idle TLS connections open to avoid the overhead of opening a new connection for every query.
+*  `listen_address`: have the Stubbby daemon listen on IPv4 and IPv6 on port 53 on the loopback address
 *   `round_robin_upstreams`: Round robin queries across all the configured upstream servers. Without this option Stubby will use each upstream server sequentially until it becomes unavailable and then move on to use the next. 
 *  `upstream_recursive_servers`: Use the NLnet labs test DNS Privacy Server for outgoing queries. In Strict Privacy mode, at least one of the following is required for each nameserver:
   *  `tls_auth_name`: This is the authentication domain name that will be verified against the presented certificate. 
   * `tls_pubkey_pinset`: The sha256 SPKI pinset for the server. This is also verified against the presented certificate. 
 
 ```
-{ resolution_type: GETDNS_RESOLUTION_STUB
-, dns_transport_list: [ GETDNS_TRANSPORT_TLS ]
-, tls_authentication: GETDNS_AUTHENTICATION_REQUIRED
-, tls_query_padding_blocksize: 256
-, edns_client_subnet_private : 1
-, listen_addresses: [ 127.0.0.1, 0::1 ]
-, idle_timeout: 10000
-, round_robin_upstreams: 1
-, upstream_recursive_servers:
-  [ { address_data: 185.49.141.38
-    , tls_auth_name: "getdnsapi.net"
-    , tls_pubkey_pinset:
-      [ { digest: "sha256"
-        , value: foxZRnIh9gZpWnl+zEiKa0EJ2rdCGroMWm02gaxSc9Q=
-      } ]
-   } ]
-}
+resolution_type: GETDNS_RESOLUTION_STUB
+dns_transport_list: 
+  - GETDNS_TRANSPORT_TLS
+tls_authentication: GETDNS_AUTHENTICATION_REQUIRED
+tls_query_padding_blocksize: 256
+edns_client_subnet_private : 1
+idle_timeout: 10000
+listen_addresses:
+  - 127.0.0.1
+  -  0::1
+round_robin_upstreams: 1
+upstream_recursive_servers:
+  - address_data: 185.49.141.38
+    tls_auth_name: "getdnsapi.net"
+    tls_pubkey_pinset:
+      digest: "sha256"
+       value: foxZRnIh9gZpWnl+zEiKa0EJ2rdCGroMWm02gaxSc9Q=
 ```
 
 Additional privacy servers can be specified by adding more entries to the `upstream_recursive_servers` list above (note a separate entry must be made for the IPv4 and IPv6 addresses of a given server. More DNS Privacy test servers are listed [here](https://dnsprivacy.org/wiki/x/E4AT).
 
 A custom port can be specified by adding the `tls_port:` attribute to the `upstream_recursive_server` in the config file. 
 
+More details can be found in the comments in the default configuration file and at https://dnsprivacy.org/wiki/display/DP/Configuring+Stubby
 
- 
 # Run Stubby
 
 
