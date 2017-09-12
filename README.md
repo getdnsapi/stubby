@@ -16,7 +16,7 @@ Stubby is developed by the getdns team.
 <!---
 Where should the 'official' Stubby homepage be?
 -->
-See [Stubby Homepage](https://getdnsapi.net/blog/dns-privacy-daemon-stubby/) for more details
+See [Stubby Homepage](https://dnsprivacy.org/wiki/x/JYAT) for more details
 
 # Dependancies
 
