@@ -106,7 +106,6 @@ print_usage(FILE *out, const char *progname)
 	fprintf(out, "\t\tThe file must be in YAML (or JSON dict) format.\n");
 	fprintf(out, "\t\tBy default, the configuration file location is obtained\n");
 	fprintf(out, "\t\tby looking for YAML files in the following order:\n");
-	fprintf(out, "\t\t\t\"/etc/stubby.yaml\"\n");
 	fprintf(out, "\t\t\t\"%s/.stubby.yaml\"\n", getenv("HOME"));
 	fprintf(out, "\t\t\t\"%s/stubby.yaml\"\n", STUBBYCONFDIR);
 	fprintf(out, "\t\tAn default file (Using Strict mode) is installed as\n");
@@ -134,14 +133,17 @@ static getdns_return_t parse_config(const char *config_str, int yaml_config)
 	getdns_return_t r;
 
 	if (yaml_config) {
-#ifdef USE_YAML_CONFIG
 		r = getdns_yaml2dict(config_str, &config_dict);
-#else
-		/* TODO: We should check this support properly in configure.ac */
-		fprintf(stderr, "Support for YAML configuration files not available because
-		                 the version of getdns used was not compiled with YAML support.\n");
-		return;
-#endif
+		if (r == GETDNS_RETURN_NOT_IMPLEMENTED) {
+			/* If this fails then YAML is really not supported. Check this at 
+			   runtime because it could change under us..... */
+			r = getdns_yaml2dict(config_str, NULL);
+			if (r == GETDNS_RETURN_NOT_IMPLEMENTED) {
+				fprintf(stderr, "Support for YAML configuration files not available because\n");
+				fprintf(stderr, "the version of getdns used was not compiled with YAML support.\n");
+				return GETDNS_RETURN_NOT_IMPLEMENTED;
+			}
+		}
 	} else {
 		r = getdns_str2dict(config_str, &config_dict);
 	}
