@@ -103,14 +103,13 @@ print_usage(FILE *out, const char *progname)
 	fprintf(out, "\t-C\t<filename>\n");
 	fprintf(out, "\t\tRead settings from config file <filename>\n");
 	fprintf(out, "\t\tThe getdns context will be configured with these settings\n");
-	fprintf(out, "\t\tThe file must be in JSON or YAML dict format.\n");
+	fprintf(out, "\t\tThe file must be in YAML (or JSON dict) format.\n");
 	fprintf(out, "\t\tBy default, the configuration file location is obtained\n");
-	fprintf(out, "\t\tby looking for files in the following order:\n");
-	fprintf(out, "\t\t\t\"/etc/stubby.conf\"\n");
-	fprintf(out, "\t\t\t\"%s/.stubby.conf\"\n", getenv("HOME"));
-	fprintf(out, "\t\t\t\"%s/stubby.conf\"\n", STUBBYCONFDIR);
+	fprintf(out, "\t\tby looking for YAML files in the following order:\n");
+	fprintf(out, "\t\t\t\"%s/.stubby.yaml\"\n", getenv("HOME"));
+	fprintf(out, "\t\t\t\"%s/stubby.yaml\"\n", STUBBYCONFDIR);
 	fprintf(out, "\t\tAn default file (Using Strict mode) is installed as\n");
-	fprintf(out, "\t\t\t\"%s/stubby.conf\"\n", STUBBYCONFDIR);
+	fprintf(out, "\t\t\t\"%s/stubby.yaml\"\n", STUBBYCONFDIR);
 #ifndef STUBBY_ON_WINDOWS
 	fprintf(out, "\t-g\tRun stubby in background (default is foreground)\n");
 #endif
@@ -133,10 +132,21 @@ static getdns_return_t parse_config(const char *config_str, int yaml_config)
 	getdns_list *list;
 	getdns_return_t r;
 
-	if (yaml_config)
+	if (yaml_config) {
 		r = getdns_yaml2dict(config_str, &config_dict);
-	else
+		if (r == GETDNS_RETURN_NOT_IMPLEMENTED) {
+			/* If this fails then YAML is really not supported. Check this at 
+			   runtime because it could change under us..... */
+			r = getdns_yaml2dict(config_str, NULL);
+			if (r == GETDNS_RETURN_NOT_IMPLEMENTED) {
+				fprintf(stderr, "Support for YAML configuration files not available because\n");
+				fprintf(stderr, "the version of getdns used was not compiled with YAML support.\n");
+				return GETDNS_RETURN_NOT_IMPLEMENTED;
+			}
+		}
+	} else {
 		r = getdns_str2dict(config_str, &config_dict);
+	}
 	if (r) {
 		fprintf(stderr, "Could not parse config file %s, \"%s\"\n",
 		    config_str, _getdns_strerror(r));
@@ -641,7 +651,7 @@ main(int argc, char **argv)
 	} else {
 		fn_sz = snprintf( home_stubby_conf_fn_spc
 				, sizeof(home_stubby_conf_fn_spc)
-				, "%s/.stubby.conf"
+				, "%s/.stubby.yaml"
 				, getenv("HOME")
 				);
 
@@ -651,7 +661,7 @@ main(int argc, char **argv)
 		else if (fn_sz > 0) {
 			if (!(home_stubby_conf_fn = malloc(fn_sz + 1)) ||
 			    snprintf( home_stubby_conf_fn, fn_sz
-				    , "%s/.stubby.conf", getenv("HOME")) != fn_sz) {
+				    , "%s/.stubby.yaml", getenv("HOME")) != fn_sz) {
 				if (home_stubby_conf_fn) {
 					free(home_stubby_conf_fn);
 					home_stubby_conf_fn = NULL;
@@ -669,10 +679,10 @@ main(int argc, char **argv)
 			home_stubby_conf_fn = NULL;
 		}
 		if (!home_stubby_conf_fn &&
-		    (r = parse_config_file(STUBBYCONFDIR"/stubby.conf"))) {
+		    (r = parse_config_file(STUBBYCONFDIR"/stubby.yaml"))) {
 			if (r != GETDNS_RETURN_IO_ERROR) {
 				fprintf( stderr, "Error parsing config file \"%s\": %s\n"
-			            , STUBBYCONFDIR"/stubby.conf"
+			            , STUBBYCONFDIR"/stubby.yaml"
 			            , _getdns_strerror(r));
 			}
 			fprintf(stderr, "WARNING: No Stubby config file found... using minimal default config (Opportunistic Usage)\n");
