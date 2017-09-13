@@ -115,7 +115,16 @@ print_usage(FILE *out, const char *progname)
 #endif
 	fprintf(out, "\t-h\tPrint this help\n");
 	fprintf(out, "\t-i\tValidate and print the configuration only. Useful to validate config file contents.\n");
-	fprintf(out, "\t-l\tEnable logging of connection statistics\n");	
+	fprintf(out, "\t-l\tEnable logging of all logs (same as -v 7)\n");
+	fprintf(out, "\t-v\tSpecify logging level (overrides -l option). Values are\n");
+	fprintf(out, "\t\t\t0: EMERG  - %s\n", GETDNS_LOG_EMERG_TEXT);
+	fprintf(out, "\t\t\t1: ALERT  - %s\n", GETDNS_LOG_ALERT_TEXT);
+	fprintf(out, "\t\t\t2: CRIT   - %s\n", GETDNS_LOG_CRIT_TEXT);
+	fprintf(out, "\t\t\t3: ERROR  - %s\n", GETDNS_LOG_ERR_TEXT);
+	fprintf(out, "\t\t\t4: WARN   - %s\n", GETDNS_LOG_WARNING_TEXT);
+	fprintf(out, "\t\t\t5: NOTICE - %s\n", GETDNS_LOG_NOTICE_TEXT);
+	fprintf(out, "\t\t\t6: INFO   - %s\n", GETDNS_LOG_INFO_TEXT);
+	fprintf(out, "\t\t\t7: DEBUG  - %s\n", GETDNS_LOG_DEBUG_TEXT);
 }
 
 #define GETDNS_RETURN_IO_ERROR ((getdns_return_t) 3000)
@@ -599,6 +608,8 @@ main(int argc, char **argv)
 	int log_connections = 0;
 	getdns_return_t r;
 	int opt;
+	long log_level = 7; 
+	char *ep;
 
 #ifndef USE_WINSOCK
 	char *prg_name = strrchr(argv[0], '/');
@@ -607,7 +618,7 @@ main(int argc, char **argv)
 #endif
 	prg_name = prg_name ? prg_name + 1 : argv[0];
 
-	while ((opt = getopt(argc, argv, "C:ighl")) != -1) {
+	while ((opt = getopt(argc, argv, "C:ighlv:")) != -1) {
 		switch (opt) {
 		case 'C':
 			custom_config_fn = optarg;
@@ -624,6 +635,17 @@ main(int argc, char **argv)
 		case 'l':
 			log_connections = 1;
 			break;
+		case 'v':
+			log_connections = 1;
+			errno = 0;
+			log_level = strtol(optarg, &ep, 10);
+			if (log_level < 0 ||  log_level > 7 || *ep != '\0' || 
+			    (errno == ERANGE &&
+			    (log_level == LONG_MAX || log_level == LONG_MIN)) ) {
+				fprintf(stderr, "Log level '%s' is invalid or out of range (0-7)\n", optarg);
+				exit(EXIT_FAILURE);
+			}
+			break;
 		default:
 			print_usage(stderr, prg_name);
 			exit(EXIT_FAILURE);
@@ -637,7 +659,7 @@ main(int argc, char **argv)
 	}
 	if (log_connections) {
 		(void) getdns_context_set_logfunc(context, NULL,
-	    	GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_DEBUG, stubby_log);
+	    	GETDNS_LOG_UPSTREAM_STATS, (int)log_level, stubby_log);
 	}
 
 	(void) parse_config(default_config, 0);
