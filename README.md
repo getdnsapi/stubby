@@ -50,9 +50,9 @@ sudo make install
 
 _It is recommended to use the default configuration file provided which will use 'Strict' privacy mode and spread the DNS 
 queries among several of the current DNS Privacy test servers. Note that this file contains both IPv4 and IPv6 addresses. 
-This file is installed on *nix systems as /usr/local/etc/stubby/stubby.yaml_
+This file is installed on *nix systems as /usr/local/etc/stubby/stubby.yml_
 
-The configuration file format is a YAML like format and the name of the file must have an extension of .yaml. Essentially the 
+The configuration file format is a YAML like format and the name of the file must have an extension of .yml. Essentially the 
 configuration options available are the same as the options that can be set on a getdns `context` - Doxygen documentation for 
 which is available [here](https://getdnsapi.net/doxygen/group__getdns__context.html). To aid with creating a custom configuration file, an example is given below.
 

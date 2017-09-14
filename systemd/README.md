@@ -12,5 +12,5 @@ running daemon to that user as closely as possible.
 
 Normally, a downstream distributor will install them as:
 
-    /usr/lib/tmpfiles.d/stubby.yaml
+    /usr/lib/tmpfiles.d/stubby.yml
     /lib/systemd/system/stubby.service
