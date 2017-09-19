@@ -77,7 +77,7 @@ if [[ $LIST -eq 1 ]]; then
     exit 1
 fi
 
-if [ "$USER" != "root" ]; then
+if [ $EUID -ne 0 ]; then
     echo "Must be root to update system resolvers. Retry using 'sudo stubby-setdns'"
     exit 1
 fi
