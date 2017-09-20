@@ -30,16 +30,15 @@
 #include <getdns/getdns_extra.h>
 #include <string.h>
 #include <errno.h>
-#include <limits.h>
 #include <assert.h>
-#ifndef STUBBY_ON_WINDOWS
+#if !defined(STUBBY_ON_WINDOWS) && !defined(GETDNS_ON_WINDOWS)
 #include <unistd.h>
 #endif
 #include <signal.h>
 
 #define STUBBYPIDFILE RUNSTATEDIR"/stubby.pid"
 
-#ifdef STUBBY_ON_WINDOWS
+#if defined(STUBBY_ON_WINDOWS) || defined(GETDNS_ON_WINDOWS)
 #define DEBUG_ON(...) do { \
 	                struct timeval tv; \
 	                struct tm tm; \
@@ -112,7 +111,7 @@ print_usage(FILE *out, const char *progname)
 	fprintf(out, "\t\t\t\"%s/stubby.conf\"\n", STUBBYCONFDIR);
 	fprintf(out, "\t\tAn default file (Using Strict mode) is installed as\n");
 	fprintf(out, "\t\t\t\"%s/stubby.conf\"\n", STUBBYCONFDIR);
-#ifndef STUBBY_ON_WINDOWS
+#if !defined(STUBBY_ON_WINDOWS) && !defined(GETDNS_ON_WINDOWS)
 	fprintf(out, "\t-g\tRun stubby in background (default is foreground)\n");
 #endif
 	fprintf(out, "\t-h\tPrint this help\n");
@@ -561,7 +560,7 @@ static void stubby_log(void *userarg, uint64_t system,
 	struct timeval tv;
 	struct tm tm;
 	char buf[10];
-#ifdef GETDNS_ON_WINDOWS
+#if defined(STUBBY_ON_WINDOWS) || defined(GETDNS_ON_WINDOWS)
 	time_t tsec;
 
 	gettimeofday(&tv, NULL);
@@ -737,7 +736,7 @@ main(int argc, char **argv)
 		getdns_dict_destroy(api_information);
 	}
 	else
-#ifndef STUBBY_ON_WINDOWS
+#if !defined(STUBBY_ON_WINDOWS) && !defined(GETDNS_ON_WINDOWS)
 	     if (!run_in_foreground) {
 		pid_t pid;
 		char pid_str[1024], *endptr;
