@@ -1,5 +1,5 @@
 /**
- * stubby_ui_helper [-auth auth_key] (start|stop|list|dns_stubby|dns_default|dns_list)
+ * stubby_ui_helper [-auth auth_key] [-config <config file path>] (start|stop|list|dns_stubby|dns_default|dns_list|check_config)
  *
  * A setuid application to accompany Stubby UI and do all the work that
  * requires privileges.
@@ -16,6 +16,8 @@
 
 static const char LAUNCHCTL[] = "/bin/launchctl";
 static const char STUBBY_SETDNS[] = "/usr/local/sbin/stubby-setdns-macos.sh";
+static const char STUBBY[] = "/usr/local/bin/stubby";
+static const char DEFAULT_CONFIG_FILE[] = "/usr/local/etc/stubby/stubby.yml";
 
 void check_auth(const char *auth)
 {
@@ -24,7 +26,7 @@ void check_auth(const char *auth)
 
 void usage()
 {
-        fprintf(stderr, "Usage: stubby_ui_helper [-auth <auth_key>] (start|stop|list|dns_stubby|dns_default|dns_list)");
+        fprintf(stderr, "Usage: stubby_ui_helper [-auth <auth_key>] [-config <config file>] (start|stop|list|dns_stubby|dns_default|dns_list|check_config)\n");
         exit(1);
 }
 
@@ -89,21 +91,41 @@ void dns_list()
                 fail_with_errno("dns_list");
 }
 
+void check_config(const char *config_file)
+{
+        os_log(OS_LOG_DEFAULT, "Check configuration.");
+
+        int err = execl(STUBBY, STUBBY, "-C", config_file, "-i", NULL);
+        if (err == -1)
+                fail_with_errno("check_config");
+}
+
 int main(int ac, char *av[])
 {
         const char *auth = NULL;
         const char *cmd = NULL;
+        const char *config_file = DEFAULT_CONFIG_FILE;
 
-        if (ac == 4) {
-                if (strcmp(av[1], "-auth") != 0)
+        ac--;
+        av++;
+
+        for (;;) {
+                if (ac < 2)
+                        break;
+
+                if (strcmp(av[0], "-auth") == 0)
+                        auth = av[1];
+                else if (strcmp(av[0], "-config") == 0)
+                        config_file = av[1];
+                else
                         usage();
-                auth = av[2];
                 av += 2;
                 ac -= 2;
         }
-        if (ac != 2)
+
+        if (ac != 1)
                 usage();
-        cmd = av[1];
+        cmd = av[0];
 
         if (setuid(0) == -1)
                 fail_with_errno("setuid");
@@ -128,6 +150,8 @@ int main(int ac, char *av[])
         }
         else if (strcmp(cmd, "dns_list") == 0)
                 dns_list();
+        else if (strcmp(cmd, "check_config") == 0)
+                check_config(config_file);
 
         /* If we get here, there's a problem... */
         usage();
