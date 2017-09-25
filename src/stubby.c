@@ -103,7 +103,7 @@ print_usage(FILE *out, const char *progname)
 	fprintf(out, "\t-C\t<filename>\n");
 	fprintf(out, "\t\tRead settings from config file <filename>\n");
 	fprintf(out, "\t\tThe getdns context will be configured with these settings\n");
-	fprintf(out, "\t\tThe file should be in YAML format with an extention of .yml.\n");
+	fprintf(out, "\t\tThe file should be in YAML format with an extension of .yml.\n");
 	fprintf(out, "\t\t(The old JSON dict format (.conf) is also still supported when\n");
 	fprintf(out, "\t\tspecified on the command line.)\n");
 	fprintf(out, "\t\tBy default, the configuration file location is obtained\n");
