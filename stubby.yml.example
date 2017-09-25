@@ -6,15 +6,15 @@
 # https://dnsprivacy.org/wiki/display/DP/Configuring+Stubby
 #
 # This format does not fully support all yaml features - the restrictions are:
-#     - the outer-most data structure must be a yaml mapping
-#     - mapping keys must be yaml scalars
-#     - plain scalars will be converted to json unchanged
-#     - non-plain scalars (quoted, double-quoted, wrapped) will be interpreted 
-#       as json strings, i.e. double quoted
-#     - yaml tags are not supported
+#   - the outer-most data structure must be a yaml mapping
+#   - mapping keys must be yaml scalars
+#   - plain scalars will be converted to json unchanged
+#   - non-plain scalars (quoted, double-quoted, wrapped) will be interpreted
+#     as json strings, i.e. double quoted
+#   - yaml tags are not supported
 #
 
-# Logging is currently configured at runtime using command line arguments. See 
+# Logging is currently configured at runtime using command line arguments. See
 # > stubby -h
 # for details.
 
@@ -26,16 +26,16 @@ resolution_type: GETDNS_RESOLUTION_STUB
 # GETDNS_TRANSPORT_UDP, GETDNS_TRANSPORT_TCP or GETDNS_TRANSPORT_TLS
 # If only one transport value is specified it will be the only transport used. 
 # Should it not be available basic resolution will fail.
-# Fallback transport options are specified by including multiple values in the list.
-# Strict mode (see below) should use only GETDNS_TRANSPORT_TLS.
+# Fallback transport options are specified by including multiple values in the
+# list.  Strict mode (see below) should use only GETDNS_TRANSPORT_TLS.
 dns_transport_list:
   - GETDNS_TRANSPORT_TLS
 
 # Selects Strict or Opportunistic Usage profile as described in
 # https://datatracker.ietf.org/doc/draft-ietf-dprive-dtls-and-tls-profiles/
 # Strict mode requires that authentication information for the upstreams is
-# specified below. Opportunistic may fallback to clear text DNS if UDP or TCP is
-# included in the transport list above.
+# specified below. Opportunistic may fallback to clear text DNS if UDP or TCP
+# is included in the transport list above.
 # For Strict use        GETDNS_AUTHENTICATION_REQUIRED
 # For Opportunistic use GETDNS_AUTHENTICATION_NONE
 tls_authentication: GETDNS_AUTHENTICATION_REQUIRED
@@ -62,23 +62,26 @@ listen_addresses:
   -  0::1
 
 # Instructs stubby to distribute queries across all available name servers. 
-# Set to 0 to treat the upstreams below as an ordered list and use a single upstream
-# until it becomes unavailable, then use the next one.
+# Set to 0 to treat the upstreams below as an ordered list and use a single
+# upstream until it becomes unavailable, then use the next one.
 round_robin_upstreams: 1
 
 # Specify the list of upstream recursive name servers to send queries to
 # In Strict mode upstreams need either a tls_auth_name or a tls_pubkey_pinset
 # so the upstream can be authenticated.
-# The list below includes some of the available test servers. If you don't have
-# IPv6 then comment out the 
+# The list below includes some of the available test servers. If you don't
+# have IPv6 then comment then out.
 # In Opportunistic mode they only require an IP address in address_data.
 # The information for an upstream can include the following:
-#   address_data: IPv4 or IPv6 address of the upstream
+# - address_data: IPv4 or IPv6 address of the upstream
 #   port: Port for UDP/TCP (default is 53)
-#   tls_auth_name: Authentication domain name checked against the server certificate
-#   tls_pubkey_pinset: An SPKI pinset verified against the keys in the server certificate
-#     digest: Only "sha256" is currently supported
-#     value: Base64 encoded value of the sha256 fingerprint of the public key
+#   tls_auth_name: Authentication domain name checked against the server
+#                  certificate
+#   tls_pubkey_pinset: An SPKI pinset verified against the keys in the server
+#                      certificate
+#     - digest: Only "sha256" is currently supported
+#       value: Base64 encoded value of the sha256 fingerprint of the public
+#              key
 #   tls_port: Port for TLS (default is 853)
 upstream_recursive_servers:
 # IPv4 addresses
@@ -126,21 +129,22 @@ upstream_recursive_servers:
 
 # Require DNSSEC validation. For releases earlier than 1.2 a trust anchor must
 # be configured configured manually. This can be done with unbound-anchor.
-#dnssec_return_status: GETDNS_EXTENSION_TRUE
+# dnssec_return_status: GETDNS_EXTENSION_TRUE
 
 #Specify the location of the installed trust anchor file
-#dnssec_trust_anchors: /etc/unbound/getdns-root.key
+# dnssec_trust_anchors: "/etc/unbound/getdns-root.key"
 
-# Control the maximum number of connection failures that will be permitted before
-# Stubby backs-off from using an individual upstream (default 2)
+# Control the maximum number of connection failures that will be permitted
+# before Stubby backs-off from using an individual upstream (default 2)
 # tls_connection_retries: 5
 
-# Control the maximum time in seconds Stubby will back-off from using an individual upstream
-# after failures under normal circumstances (default 3600)
+# Control the maximum time in seconds Stubby will back-off from using an
+# individual upstream after failures under normal circumstances (default 3600)
 # tls_backoff_time: 300
 
 # Limit the total number of outstanding queries permitted
 # limit_outstanding_queries: 100
 
-# Specify the timeout on getting a response to an individual request (default 5s)
+# Specify the timeout on getting a response to an individual request
+# (default 5s)
 # timeout: 1
