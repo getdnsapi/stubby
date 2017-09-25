@@ -30,6 +30,7 @@
 #include <getdns/getdns_extra.h>
 #include <string.h>
 #include <errno.h>
+#include <limits.h>
 #include <assert.h>
 #if !defined(STUBBY_ON_WINDOWS) && !defined(GETDNS_ON_WINDOWS)
 #include <unistd.h>
