@@ -4,8 +4,8 @@ endif
 SUBDIRS = src $(MAYBE_MAC)
 
 stubbyconfdir = $(sysconfdir)/stubby
-dist_stubbyconf_DATA = stubby.conf.example
+dist_stubbyconf_DATA = stubby.yml.example
 
 install-data-hook:
-	test -f ${stubbyconfdir}/stubby.conf || \
-		${INSTALL_DATA} ${srcdir}/stubby.conf.example ${stubbyconfdir}/stubby.conf
+	test -f ${stubbyconfdir}/stubby.yml || \
+		${INSTALL_DATA} ${srcdir}/stubby.yml.example ${stubbyconfdir}/stubby.yml
