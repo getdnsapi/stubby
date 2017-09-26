@@ -35,6 +35,29 @@
 #include <unistd.h>
 #endif
 #include <signal.h>
+#include <limits.h>
+
+#ifndef HAVE_GETDNS_YAML2DICT
+# include "convert_yaml_to_json.h"
+# define getdns_yaml2dict stubby_yaml2dict
+getdns_return_t
+getdns_yaml2dict(const char *str, getdns_dict **dict)
+{
+	char *jsonstr;
+	
+	if (!str || !dict)
+		return GETDNS_RETURN_INVALID_PARAMETER;
+
+	jsonstr = yaml_string_to_json_string(str);
+	if (jsonstr) {
+		getdns_return_t res = getdns_str2dict(jsonstr, dict);
+		free(jsonstr);
+		return res;
+	} else {
+		return GETDNS_RETURN_GENERIC_ERROR;
+	}       
+}
+#endif
 
 #define STUBBYPIDFILE RUNSTATEDIR"/stubby.pid"
 
