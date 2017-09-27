@@ -31,12 +31,10 @@
 
 #include "config.h"
 
-#ifdef USE_YAML_CONFIG
-
 #include <yaml.h>
 
 #ifndef yaml_string_to_json_string
-#include "../gldns/gbuffer.h"
+#include "gldns/gbuffer.h"
 #else
 #include "sldns/sbuffer.h"
 #endif
@@ -550,5 +548,3 @@ event_type_string(yaml_event_type_t type)
 	}
 	return NULL;
 }
-
-#endif /* USE_YAML_CONFIG */
