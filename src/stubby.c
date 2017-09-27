@@ -37,7 +37,9 @@
 #include <signal.h>
 #include <limits.h>
 
-#ifndef HAVE_GETDNS_YAML2DICT
+#ifdef HAVE_GETDNS_YAML2DICT
+getdns_return_t getdns_yaml2dict(const char *str, getdns_dict **dict);
+#else
 # include "yaml/convert_yaml_to_json.h"
 # define getdns_yaml2dict stubby_yaml2dict
 getdns_return_t
