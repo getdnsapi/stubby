@@ -8,9 +8,9 @@ AC_PROG_CC([clang gcc])
 
 AC_CHECK_LIB([getdns], [getdns_context_set_trust_anchors_url],,
     [AC_MSG_ERROR([Missing dependency: getdns >= 1.2.0 ])],)
-AC_CHECK_HEADER([getdns/getdns_extra.h],,
-    [AC_MSG_ERROR([Missing dependency: getdns >= 1.2.0 ])],)
-AC_CHECK_FUNC([getdns_yaml2dict],, [
+AC_CHECK_HEADERS([getdns/getdns_extra.h],,
+    [AC_MSG_ERROR([Missing dependency getdns development headers])],)
+AC_CHECK_FUNCS([getdns_yaml2dict],, [
 	AC_CHECK_LIB([yaml], [yaml_parser_parse],,
 	    [AC_MSG_ERROR([Missing dependency: libyaml])])
 ])
