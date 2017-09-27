@@ -1,5 +1,9 @@
-AUTOMAKE_OPTIONS = subdir-objects
-LDADD = $(LIBOBJS) $(ALLOCA)
-AM_CPPFLAGS = -DSTUBBYCONFDIR=\"$(sysconfdir)/stubby\" -DRUNSTATEDIR=\"$(runstatedir)\"
 bin_PROGRAMS = stubby
-stubby_SOURCE = stubby.c
+
+AUTOMAKE_OPTIONS = subdir-objects
+if WITH_YAML
+stubby_SOURCES = stubby.c yaml/convert_yaml_to_json.c sldns/sbuffer.c
+else
+stubby_SOURCES = stubby.c
+endif
+AM_CPPFLAGS = -DSTUBBYCONFDIR=\"$(sysconfdir)/stubby\" -DRUNSTATEDIR=\"$(runstatedir)\"

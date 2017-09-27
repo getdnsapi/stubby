@@ -38,7 +38,7 @@
 #include <limits.h>
 
 #ifndef HAVE_GETDNS_YAML2DICT
-# include "convert_yaml_to_json.h"
+# include "yaml/convert_yaml_to_json.h"
 # define getdns_yaml2dict stubby_yaml2dict
 getdns_return_t
 getdns_yaml2dict(const char *str, getdns_dict **dict)
@@ -63,28 +63,28 @@ getdns_yaml2dict(const char *str, getdns_dict **dict)
 
 #if defined(STUBBY_ON_WINDOWS) || defined(GETDNS_ON_WINDOWS)
 #define DEBUG_ON(...) do { \
-	                struct timeval tv; \
-	                struct tm tm; \
-	                char buf[10]; \
-	                time_t tsec; \
+	                struct timeval tv_dEbUgSyM; \
+	                struct tm tm_dEbUgSyM; \
+	                char buf_dEbUgSyM[10]; \
+	                time_t tsec_dEbUgSyM; \
 	                \
-	                gettimeofday(&tv, NULL); \
-	                tsec = (time_t) tv.tv_sec; \
-	                gmtime_s(&tm, (const time_t *) &tsec); \
-	                strftime(buf, 10, "%H:%M:%S", &tm); \
-	                fprintf(stderr, "[%s.%.6d] ", buf, (int)tv.tv_usec); \
+	                gettimeofday(&tv_dEbUgSyM, NULL); \
+	                tsec_dEbUgSyM = (time_t) tv_dEbUgSyM.tv_sec; \
+	                gmtime_s(&tm_dEbUgSyM, (const time_t *) &tsec_dEbUgSyM); \
+	                strftime(buf_dEbUgSyM, 10, "%H:%M:%S", &tm_dEbUgSyM); \
+	                fprintf(stderr, "[%s.%.6d] ", buf_dEbUgSyM, (int)tv_dEbUgSyM.tv_usec); \
 	                fprintf(stderr, __VA_ARGS__); \
 	        } while (0)
 #else
 #define DEBUG_ON(...) do { \
-	                struct timeval tv; \
-	                struct tm tm; \
-	                char buf[10]; \
+	                struct timeval tv_dEbUgSyM; \
+	                struct tm tm_dEbUgSyM; \
+	                char buf_dEbUgSyM[10]; \
 	                \
-	                gettimeofday(&tv, NULL); \
-	                gmtime_r(&tv.tv_sec, &tm); \
-	                strftime(buf, 10, "%H:%M:%S", &tm); \
-	                fprintf(stderr, "[%s.%.6d] ", buf, (int)tv.tv_usec); \
+	                gettimeofday(&tv_dEbUgSyM, NULL); \
+	                gmtime_r(&tv_dEbUgSyM.tv_sec, &tm_dEbUgSyM); \
+	                strftime(buf_dEbUgSyM, 10, "%H:%M:%S", &tm_dEbUgSyM); \
+	                fprintf(stderr, "[%s.%.6d] ", buf_dEbUgSyM, (int)tv_dEbUgSyM.tv_usec); \
 	                fprintf(stderr, __VA_ARGS__); \
 	        } while (0)
 #endif

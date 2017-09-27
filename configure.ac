@@ -10,42 +10,48 @@ AC_CHECK_LIB([getdns], [getdns_context_set_trust_anchors_url],,
     [AC_MSG_ERROR([Missing dependency: getdns >= 1.2.0 ])],)
 AC_CHECK_HEADER([getdns/getdns_extra.h],,
     [AC_MSG_ERROR([Missing dependency: getdns >= 1.2.0 ])],)
-AC_CHECK_FUNCS([getdns_yaml2dict],, [
-	AC_LIBOBJ(convert_yaml_to_json)
-	AC_LIBOBJ(sbuffer)
+AC_CHECK_FUNC([getdns_yaml2dict],, [
 	AC_CHECK_LIB([yaml], [yaml_parser_parse],,
 	    [AC_MSG_ERROR([Missing dependency: libyaml])])
 ])
+AM_CONDITIONAL([WITH_YAML], [test "x$ac_cv_func_getdns_yaml2dict" = xno])
 AC_CHECK_HEADERS([assert.h stdio.h stdarg.h])
 
 AC_MSG_CHECKING(whether the C compiler (${CC-cc}) accepts the "format" attribute)
-AC_CACHE_VAL(ac_cv_c_format_attribute, [
-	ac_cv_c_format_attribute=no
-	AC_TRY_COMPILE([
-		#include <stdio.h>
-		void f (char *format, ...)
-		    __attribute__ ((format (printf, 1, 2)));
-		void (*pf) (char *format, ...)
-		    __attribute__ ((format (printf, 1, 2)));
-	], [f ("%s", "str");],
-	[ac_cv_c_format_attribute="yes"],
-	[ac_cv_c_format_attribute="no"])
-])
-AC_MSG_RESULT($ac_cv_c_format_attribute)
-if test $ac_cv_c_format_attribute = yes; then
+AC_TRY_COMPILE([
+	#include <stdio.h>
+	void f (char *format, ...) __attribute__ ((format (printf, 1, 2)));
+	void (*pf) (char *format, ...) __attribute__ ((format (printf, 1, 2)));
+], [f ("%s", "str");], [
+	AC_MSG_RESULT(yes)
 	AC_DEFINE(HAVE_ATTR_FORMAT, 1,
 	    [Whether the C compiler accepts the "format" attribute])
-fi
+], [
+	AC_MSG_RESULT(no)
+])
+
+AC_MSG_CHECKING(whether the C compiler (${CC-cc}) accepts the "unused" attribute)
+AC_TRY_COMPILE([
+	#include <stdio.h>
+	void f (char *u __attribute__((unused)));
+], [f ("x");], [
+	AC_MSG_RESULT(yes)
+	AC_DEFINE(HAVE_ATTR_UNUSED, 1,
+	    [Whether the C compiler accepts the "unused" attribute])
+], [
+	AC_MSG_RESULT(no)
+])
 
 AC_CANONICAL_HOST
 case "${host_is}" in
-	cygwin*|mingw*)
-		AC_DEFINE(STUBBY_ON_WINDOWS, 1, [Whether the build target is Windows])
-		;;
+cygwin*|mingw*)
+	AC_DEFINE(STUBBY_ON_WINDOWS, 1, [Whether the build target is Windows])
+	;;
 esac
 
 AC_CONFIG_FILES([Makefile
                  src/Makefile])
+
 AH_BOTTOM([
 #ifdef HAVE_STDINT_H
 #include <stdint.h>
@@ -91,6 +97,14 @@ AH_BOTTOM([
 #else /* !HAVE_ATTR_FORMAT */
 # define ATTR_FORMAT(archetype, string_index, first_to_check) /* empty */
 #endif /* !HAVE_ATTR_FORMAT */
+
+#if defined(__cplusplus)
+#  define ATTR_UNUSED(x)
+#elif defined(HAVE_ATTR_UNUSED)
+#  define ATTR_UNUSED(x)  x __attribute__((unused))
+#else /* !HAVE_ATTR_UNUSED */
+#  define ATTR_UNUSED(x)  x
+#endif /* !HAVE_ATTR_UNUSED */
 
 #ifndef HAVE_GETDNS_YAML2DICT
 # define USE_YAML_CONFIG 1
