@@ -11,7 +11,7 @@ endif
 SUBDIRS=src
 
 stubby.yml.windows: ${srcdir}/stubby.yml.example
-	sed 's/$$'"/`echo \\\r`/" $< > $@
+	awk "{sub(/$/,\"\r\")}1" $< > $@
 
 install-data-hook: $(CONFIG_FILE)
 	test -f ${stubbyconfdir}/stubby.yml || \
