@@ -232,6 +232,7 @@ static getdns_return_t parse_config_file(const char *fn)
 	FILE *fh;
 	char *config_file = NULL;
 	long config_file_sz;
+	size_t read_sz;
 	getdns_return_t r;
 
 	if (!(fh = fopen(fn, "r")))
@@ -254,14 +255,15 @@ static getdns_return_t parse_config_file(const char *fn)
 		return GETDNS_RETURN_MEMORY_ERROR;
 	}
 	rewind(fh);
-	if (fread(config_file, 1, config_file_sz, fh) != (size_t)config_file_sz) {
+	read_sz = fread(config_file, 1, config_file_sz + 1, fh);
+	if (read_sz > config_file_sz || ferror(fh) || !feof(fh)) {
 		fprintf( stderr, "An error occurred while reading \"%s\": %s\n"
 		       , fn, strerror(errno));
 		fclose(fh);
 		free(config_file);
 		return GETDNS_RETURN_IO_ERROR;
 	}
-	config_file[config_file_sz] = 0;
+	config_file[read_sz] = 0;
 	fclose(fh);
 	r = parse_config(config_file, strstr(fn, ".yml") != NULL);
 	free(config_file);
