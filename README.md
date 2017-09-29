@@ -9,22 +9,21 @@ Stubby provides DNS Privacy by:
 * Using a default configuration which provides Strict Privacy and uses a subset
 of the available [DNS Privacy servers](https://dnsprivacy.org/wiki/x/E4AT)
 
+Stubby is developed by the getdns team.
+
 # Documentation
 
-<!---
-Where should the 'official' Stubby homepage be?
--->
-See [Stubby Homepage](https://getdnsapi.net/blog/dns-privacy-daemon-stubby/) for more details
+See [Stubby Homepage](https://dnsprivacy.org/wiki/x/JYAT) for more details
 
 # Dependancies
 
-Stubby uses [getdns](https://getdnsapi.net/) and requires the 1.1.2 release of getdns or later.
+Stubby uses [getdns](https://getdnsapi.net/) and requires the 1.2 release of getdns or later.
 
 # Installing Using a Package Manager
 
 Check to see if getdns and Stubby are available via a package manager.
 
-Note: a Homebrew package for getdns exists, one for Stubby is on the way.
+UPDATE: August 2017 - A Homebrew package for stubby is now available (`brew install stubby`) !
 
 If you need to install getdns from source, see the section [at the end of this document.](#building-getdns-from-source)
 
@@ -38,7 +37,6 @@ git clone https://github.com/getdnsapi/stubby.git
 Build and install (the paths below assume that getdns is installed in a standard location e.g. by Homebrew in /usr/local/)
 ```
 cd stubby
-libtoolize -ci
 autoreconf -vfi
 ./configure CFLAGS="-I/usr/local/include" LDFLAGS="-L/usr/local/lib"
 make
@@ -47,13 +45,21 @@ sudo make install
 
 # Configure Stubby
 
-!! <span class="glyphicon glyphicon-info-sign"></span> It is recommended to use the default configuration file provided which will use 'Strict' privacy mode and spread the DNS queries among several of the current DNS Privacy test servers. Note that this file contains both IPv4 and IPv6 addresses. This file is installed on *nix systems as /usr/local/etc/stubby/stubby.conf</pre>
+_It is recommended to use the default configuration file provided which will use 'Strict' privacy mode and spread the DNS 
+queries among several of the current DNS Privacy test servers. Note that this file contains both IPv4 and IPv6 addresses. 
+This file is installed on *nix systems as /usr/local/etc/stubby/stubby.yml_
 
-### Create Custom Configuration File
+The configuration file format is a YAML like format and the name of the file must have an extension of .yml. Essentially the 
+configuration options available are the same as the options that can be set on a getdns `context` - Doxygen documentation for 
+which is available [here](https://getdnsapi.net/doxygen/group__getdns__context.html). To aid with creating a custom configuration file, an example is given below.
+
+NOTE: As of the 0.1.3 release of Stubby the YAML format replaces the JSON like format used in earlier versions of the configuration file for getdns/stubby. The YAML format is 
+more human readable and supports comments allowing options to be easily enabled and disabled. The JSON format is that which is used internally in getdns
+(it is the same as the output returned by `stubby -i`) and is still available by directly specifying a file with the name 'stubby.conf' on the command line using the -C option.
+
+## Create Custom Configuration File
 
 Alternatively the configuration file location can be specified on the command line using the `-C` flag. Changes to the configuration file require a restart of Stubby.
-
-The configuration file format is a JSON like format used internally in getdns and is the same as the output returned by `stubby -i`. For example, this output can be used as a configuration file directly, but a less verbose form is also accepted. Essentially the options available are the same as the options that can be set on a getdns `context` - Doxygen documentation for which is available [here](https://getdnsapi.net/doxygen/group__getdns__context.html). To aid with creating a custom configuration file, an example is given below. 
 
 The config file below will configure Stubby in the following ways:
 
@@ -63,39 +69,39 @@ The config file below will configure Stubby in the following ways:
   * If Opportunistic mode is desired, simply remove the `tls_authentication: GETDNS_AUTHENTICATION_REQUIRED` field. In Opportunistic mode authentication of the nameserver is not required and fallback to clear text transports is permitted if they are in the `dns_transport_list`.
 *  `tls_query_padding_blocksize`: Use the EDNS0 padding option to pad DNS queries to hide their size
 *  `edns_client_subnet_private`: Use EDNS0 Client Subnet privacy so the client subnet is not sent to authoritative servers
-*  `listen_address`: have the Stubbby daemon listen on IPv4 and IPv6 on port 53 on the loopback address
 * ` idle_timeout`:  Use an EDNS0 Keepalive idle timeout of 10s unless overridden by the server. This keeps idle TLS connections open to avoid the overhead of opening a new connection for every query.
+*  `listen_address`: have the Stubbby daemon listen on IPv4 and IPv6 on port 53 on the loopback address
 *   `round_robin_upstreams`: Round robin queries across all the configured upstream servers. Without this option Stubby will use each upstream server sequentially until it becomes unavailable and then move on to use the next. 
 *  `upstream_recursive_servers`: Use the NLnet labs test DNS Privacy Server for outgoing queries. In Strict Privacy mode, at least one of the following is required for each nameserver:
   *  `tls_auth_name`: This is the authentication domain name that will be verified against the presented certificate. 
   * `tls_pubkey_pinset`: The sha256 SPKI pinset for the server. This is also verified against the presented certificate. 
 
 ```
-{ resolution_type: GETDNS_RESOLUTION_STUB
-, dns_transport_list: [ GETDNS_TRANSPORT_TLS ]
-, tls_authentication: GETDNS_AUTHENTICATION_REQUIRED
-, tls_query_padding_blocksize: 256
-, edns_client_subnet_private : 1
-, listen_addresses: [ 127.0.0.1, 0::1 ]
-, idle_timeout: 10000
-, round_robin_upstreams: 1
-, upstream_recursive_servers:
-  [ { address_data: 185.49.141.38
-    , tls_auth_name: "getdnsapi.net"
-    , tls_pubkey_pinset:
-      [ { digest: "sha256"
-        , value: foxZRnIh9gZpWnl+zEiKa0EJ2rdCGroMWm02gaxSc9Q=
-      } ]
-   } ]
-}
+resolution_type: GETDNS_RESOLUTION_STUB
+dns_transport_list: 
+  - GETDNS_TRANSPORT_TLS
+tls_authentication: GETDNS_AUTHENTICATION_REQUIRED
+tls_query_padding_blocksize: 256
+edns_client_subnet_private : 1
+idle_timeout: 10000
+listen_addresses:
+  - 127.0.0.1
+  -  0::1
+round_robin_upstreams: 1
+upstream_recursive_servers:
+  - address_data: 185.49.141.38
+    tls_auth_name: "getdnsapi.net"
+    tls_pubkey_pinset:
+      digest: "sha256"
+       value: foxZRnIh9gZpWnl+zEiKa0EJ2rdCGroMWm02gaxSc9Q=
 ```
 
 Additional privacy servers can be specified by adding more entries to the `upstream_recursive_servers` list above (note a separate entry must be made for the IPv4 and IPv6 addresses of a given server. More DNS Privacy test servers are listed [here](https://dnsprivacy.org/wiki/x/E4AT).
 
 A custom port can be specified by adding the `tls_port:` attribute to the `upstream_recursive_server` in the config file. 
 
+More details can be found in the comments in the default configuration file and at https://dnsprivacy.org/wiki/display/DP/Configuring+Stubby
 
- 
 # Run Stubby
 
 
@@ -105,7 +111,7 @@ Simply invoke Stubby on the command line. By default it runs in the foreground, 
 > sudo stubby
 ```
 
-* The logging is currently crude and simply writes to stderr. (We are working on making this better!)
+* Enable connection logging by using the `-l` flag. The logging is currently simplistic and simply writes to stdout. (We are working on making this better!)
 * The pid file is /var/run/stubby.pid
 
 # Test Stubby
@@ -121,7 +127,7 @@ A quick test can be done by using dig (or your favourite DNS tool) on the loopba
 !!! <span class="glyphicon glyphicon-warning-sign"></span> Once this change is made your DNS queries will be re-directed to Stubby and sent over TLS! <br>
 (You may need to restart some applications to have them pick up the network settings). <p>You can monitor the traffic using Wireshark watching on port 853.</p>
 
-For Stubby to re-send outgoing DNS queries over TLS the recursive resolvers configured on your machine must be changed to send all the local queries to the loopback interface on which Stubby is listening. This depends on the operating system being run. It is useful to note your existing default nameservers before making this change!
+For Stubby to re-send outgoing DNS queries over TLS the system stub resolvers on your machine must be changed to send all the local queries to the loopback interface on which Stubby is listening. This depends on the operating system being run. It is useful to note your existing default nameservers before making this change!
 
 
 ## Linux/Unix systems
@@ -165,9 +171,13 @@ Or via the GUI:
 
 ## Notes:
 
+* If Stubby works for a while but you then see failures from Stubby such as "None of the configured upstreams could be used to send queries on the specified transports" try restarting Stubby.
 * If you are using a DNS Privacy server that does not support concurrent processing of TLS queries, you may experience some issues due to timeouts causing subsequent queries on the same connection to fail.
 
 # Building getdns from Source
+
+Note that from getdns 1.1.3 stubby is included in the getdns code as a git submodule. Therefore stubby and getdns can be built together by following the
+instructions below but adding the ``--with-stubby`` flag to the `configure` step.
 
 ## Dependencies
 
@@ -198,15 +208,14 @@ for the very latest version of getdns or grab a release tarball from this page: 
 
 ## Build the code
 
-Note that on Mac OS X you will need the developer tools from Xcode to compile the code. And you may need to use brew to install libtool (and then use glibtoolize below), autoconf and automake.
+Note that on Mac OS X you will need the developer tools from Xcode to compile the code. And you may need to use brew to install libtool, autoconf, and automake.
 
 ```sh
 > git submodule update --init
-> libtoolize -ci
 > autoreconf -fi
 > mkdir build
 > cd build
-> ../configure --prefix=<install_location> --without-libidn --enable-stub-only --enable-debug-daemon
+> ../configure --prefix=<install_location> --without-libidn --enable-stub-only
 > make
 > sudo make install
 ```
