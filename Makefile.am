@@ -1,11 +1,20 @@
-if BUILD_MAC
-    MAYBE_MAC = osx
+if TARGET_MACOS
+    OPTIONAL_BUILD_SUBDIR = osx
 endif
-SUBDIRS = src $(MAYBE_MAC)
+SUBDIRS = src $(OPTIONAL_BUILD_SUBDIR)
 
 stubbyconfdir = $(sysconfdir)/stubby
 dist_stubbyconf_DATA = stubby.yml.example
 
-install-data-hook:
+if TARGET_WINDOWS
+CONFIG_FILE = stubby.yml.windows
+else
+CONFIG_FILE = ${srcdir}/stubby.yml.example
+endif
+
+stubby.yml.windows: ${srcdir}/stubby.yml.example
+	awk "{sub(/$$/,\"\r\")}1" $< > $@
+
+install-data-hook: $(CONFIG_FILE)
 	test -f ${stubbyconfdir}/stubby.yml || \
-		${INSTALL_DATA} ${srcdir}/stubby.yml.example ${stubbyconfdir}/stubby.yml
+		${INSTALL_DATA} $(CONFIG_FILE) ${stubbyconfdir}/stubby.yml

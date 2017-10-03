@@ -13,14 +13,11 @@ Stubby is developed by the getdns team.
 
 # Documentation
 
-<!---
-Where should the 'official' Stubby homepage be?
--->
 See [Stubby Homepage](https://dnsprivacy.org/wiki/x/JYAT) for more details
 
 # Dependancies
 
-Stubby uses [getdns](https://getdnsapi.net/) and requires the 1.2 release of getdns or later compile with support for YAML.
+Stubby uses [getdns](https://getdnsapi.net/) and requires the 1.2 release of getdns or later.
 
 # Installing Using a Package Manager
 
@@ -130,7 +127,7 @@ A quick test can be done by using dig (or your favourite DNS tool) on the loopba
 !!! <span class="glyphicon glyphicon-warning-sign"></span> Once this change is made your DNS queries will be re-directed to Stubby and sent over TLS! <br>
 (You may need to restart some applications to have them pick up the network settings). <p>You can monitor the traffic using Wireshark watching on port 853.</p>
 
-For Stubby to re-send outgoing DNS queries over TLS the recursive resolvers configured on your machine must be changed to send all the local queries to the loopback interface on which Stubby is listening. This depends on the operating system being run. It is useful to note your existing default nameservers before making this change!
+For Stubby to re-send outgoing DNS queries over TLS the system stub resolvers on your machine must be changed to send all the local queries to the loopback interface on which Stubby is listening. This depends on the operating system being run. It is useful to note your existing default nameservers before making this change!
 
 
 ## Linux/Unix systems
