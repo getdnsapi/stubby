@@ -138,7 +138,7 @@ print_usage(FILE *out, const char *progname)
 	fprintf(out, "\t\t\t\"%s/stubby.yml\"\n", STUBBYCONFDIR);
 	fprintf(out, "\t\tAn default file (Using Strict mode) is installed as\n");
 	fprintf(out, "\t\t\t\"%s/stubby.yml\"\n", STUBBYCONFDIR);
-#if !defined(STUBBY_ON_WINDOWS) && !defined(GETDNS_ON_WIND9OWS)
+#if !defined(STUBBY_ON_WINDOWS) && !defined(GETDNS_ON_WINDOWS)
 	fprintf(out, "\t-g\tRun stubby in background (default is foreground)\n");
 #endif
 	fprintf(out, "\t-h\tPrint this help\n");
