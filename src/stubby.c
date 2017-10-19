@@ -141,7 +141,8 @@ print_usage(FILE *out, const char *progname)
 	fprintf(out, "\t-g\tRun stubby in background (default is foreground)\n");
 #endif
 	fprintf(out, "\t-h\tPrint this help\n");
-	fprintf(out, "\t-i\tValidate and print the configuration only. Useful to validate config file contents.\n");
+	fprintf(out, "\t-i\tValidate and print the configuration only. Useful to validate config file\n");
+	fprintf(out, "\t\t\tcontents. Note: does not attempt to bind to the listen addresses.\n");
 	fprintf(out, "\t-l\tEnable logging of all logs (same as -v 7)\n");
 	fprintf(out, "\t-v\tSpecify logging level (overrides -l option). Values are\n");
 	fprintf(out, "\t\t\t0: EMERG  - %s\n", GETDNS_LOG_EMERG_TEXT);
@@ -748,10 +749,7 @@ main(int argc, char **argv)
 		                 "stub resolution only: %s\n", _getdns_strerror(r));
 		exit(EXIT_FAILURE);
 	}
-	if (listen_count && (r = getdns_context_set_listen_addresses(
-	    context, listen_list, NULL, incoming_request_handler)))
-		perror("error: Could not bind on given addresses");
-	else if (print_api_info) {
+	if (print_api_info) {
 		getdns_dict *api_information = 
 		    getdns_context_get_api_information(context);
 		char *api_information_str;
@@ -776,7 +774,10 @@ main(int argc, char **argv)
 		fprintf(stdout, "%s\n", api_information_str);
 		free(api_information_str);
 		getdns_dict_destroy(api_information);
-	}
+		fprintf(stderr, "Config file syntax valid\n");
+	} else if (listen_count && (r = getdns_context_set_listen_addresses(
+	    context, listen_list, NULL, incoming_request_handler)))
+		perror("error: Could not bind on given addresses");
 	else
 #if !defined(STUBBY_ON_WINDOWS) && !defined(GETDNS_ON_WINDOWS)
 	     if (!run_in_foreground) {
