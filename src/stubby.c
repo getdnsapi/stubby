@@ -774,7 +774,7 @@ main(int argc, char **argv)
 		fprintf(stdout, "%s\n", api_information_str);
 		free(api_information_str);
 		getdns_dict_destroy(api_information);
-		fprintf(stderr, "Config file syntax valid\n");
+		fprintf(stderr, "Result: Config file syntax is valid.\n");
 	} else if (listen_count && (r = getdns_context_set_listen_addresses(
 	    context, listen_list, NULL, incoming_request_handler)))
 		perror("error: Could not bind on given addresses");
