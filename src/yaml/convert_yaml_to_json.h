@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, NLNet Labs, Verisign, Inc.
+ * Copyright (c) 2017, Sinodun Internet Technologies Ltd.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,7 @@
 
 /**
  * read yaml-syntax data from the string and convert to json-syntax
- * yaml syntax resitrictions imposed for getdns:
+ * yaml syntax restrictions imposed for getdns:
  *    the outer-most data structure must be a yaml mapping
  *    mapping keys must be yaml scalars
  *    plain scalars are output to the json string unchanged

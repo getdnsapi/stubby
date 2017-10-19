@@ -1,8 +1,15 @@
-* 2017-09: Version 0.1.3
-* Change the default configuration file format to be YAML. A default file 
-  'stubby.yml' will be installed. The JSON dict format is still supported when
-   specifying a custom configuration file on the command line.
-* Add a -v flag to let users specify the logging level they want to see
+Version 0.1.4
+ *  Fix incorrect IP addresses for some servers in the config file. Add note that
+    IPv6 addresses ending in :: are not supported (must use ::0). Also add 
+    example of using a specific port in a listen address.
+ *  Fixes for Windows support
+
+
+* 2017-09-29: Version 0.1.3
+  * Change the default configuration file format to be YAML. A default file 
+    'stubby.yml' will be installed. The JSON dict format is still supported when
+    specifying a custom configuration file on the command line.
+  * Add a -v flag to let users specify the logging level they want to see
 
 * 2017-08-24: Version 0.1.2
   * revert logging to stderr until we have good separation of logging and error
