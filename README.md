@@ -19,9 +19,14 @@ See [Stubby Homepage](https://dnsprivacy.org/wiki/x/JYAT) for more details
 
 Stubby uses [getdns](https://getdnsapi.net/) and requires the 1.2 release of getdns or later.
 
+It also requires that either
+* getdns was compiled with yaml support (using the --with-libyaml configure option)
+* or stubby is compiled with libyaml as a dependancy. 
+
+
 # Installing Using a Package Manager
 
-Check to see if getdns and Stubby are available via a package manager.
+Check to see if getdns, libyaml and Stubby are available via a package manager for your system.
 
 UPDATE: August 2017 - A Homebrew package for stubby is now available (`brew install stubby`) !
 
@@ -34,7 +39,7 @@ Get the code:
 git clone https://github.com/getdnsapi/stubby.git
 ```
 
-Build and install (the paths below assume that getdns is installed in a standard location e.g. by Homebrew in /usr/local/)
+Build and install (the paths below assume that getdns and libyaml are installed in a standard location e.g. by Homebrew in /usr/local/)
 ```
 cd stubby
 autoreconf -vfi

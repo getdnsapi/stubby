@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, NLNet Labs, Verisign, Inc.
+ * Copyright (c) 2017, Sinodun Internet Technologies Ltd.
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without

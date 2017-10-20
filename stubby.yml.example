@@ -10,9 +10,9 @@
 #   - mapping keys must be yaml scalars
 #   - plain scalars will be converted to json unchanged
 #   - non-plain scalars (quoted, double-quoted, wrapped) will be interpreted
-#     as json strings, i.e. double quoted
+#     as json strings, i.e. double quoted. 
 #   - yaml tags are not supported
-#   - IPv6 addresses ending in :: are not yet supported (explicit address required)
+#   - IPv6 addresses ending in :: are not yet supported (use ::0)
 #
 
 # Logging is currently configured at runtime using command line arguments. See
@@ -126,7 +126,7 @@ upstream_recursive_servers:
       - digest: "sha256"
         value: foxZRnIh9gZpWnl+zEiKa0EJ2rdCGroMWm02gaxSc9Q=
 # The uncensored DNS server (no SPKI available)
-  - address_data: 2a01:3a0:53:53:0:0:0:0
+  - address_data: 2a01:3a0:53:53::0
     tls_auth_name: "unicast.censurfridns.dk"
 
 # Require DNSSEC validation. For releases earlier than 1.2 a trust anchor must
