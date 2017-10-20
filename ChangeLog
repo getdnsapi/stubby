@@ -1,4 +1,7 @@
-Version 0.1.4
+* 2017-10-20: Version 0.1.4
+ *  '-i' option of stubby no longer tries to bind to the listen addresses so
+    it can be run without requiring root privileges. Makes it easier to validate
+    the configuration file syntax. 
  *  Fix incorrect IP addresses for some servers in the config file. Add note that
     IPv6 addresses ending in :: are not supported (must use ::0). Also add 
     example of using a specific port in a listen address.
