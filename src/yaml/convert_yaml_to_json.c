@@ -463,10 +463,10 @@ void report_parser_error(yaml_parser_t *parser)
 
 	case YAML_READER_ERROR:
 		if (parser->problem_value != -1) {
-			fprintf(stderr, "Reader error: %s: #%X at %zu\n", parser->problem,
+			fprintf(stderr, "Reader error: %s: #%X at %"PRIsz"\n", parser->problem,
 					parser->problem_value, parser->problem_offset);
 		} else {
-			fprintf(stderr, "Reader error: %s at %zu\n", parser->problem,
+			fprintf(stderr, "Reader error: %s at %"PRIsz"\n", parser->problem,
 					parser->problem_offset);
 		}
 		break;
