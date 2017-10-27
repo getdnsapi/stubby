@@ -6,7 +6,7 @@
     <ProductVersion>3.10</ProductVersion>
     <ProjectGuid>9e7edd0f-8fae-4a89-9b7a-78c8694bf740</ProjectGuid>
     <SchemaVersion>2.0</SchemaVersion>
-    <OutputName>StubbyPkg</OutputName>
+    <OutputName>Stubby</OutputName>
     <OutputType>Package</OutputType>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">

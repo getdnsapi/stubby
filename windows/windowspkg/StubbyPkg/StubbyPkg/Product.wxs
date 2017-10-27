@@ -28,7 +28,7 @@
         <File Id="getdns_query.exe" Source="/msys64/usr/bin/getdns_query.exe"  KeyPath="yes" Checksum="yes"/>
       </Component>
       <Component Id="stubby.yml" Win64="yes">
-        <File Id="stubbby.yml" Source="/msys64/usr/etc/stubby.yml"  KeyPath="yes" Checksum="yes"/>
+        <File Id="stubbby.yml" Source="/msys64/usr/etc/stubby/stubby.yml"  KeyPath="yes" Checksum="yes"/>
       </Component>
       <Component Id="README.txt" Win64="yes">
         <File Id="README.txt" Source="../../../README.txt"  KeyPath="yes" Checksum="yes"/>
