@@ -104,9 +104,12 @@ upstream_recursive_servers:
     tls_pubkey_pinset:
       - digest: "sha256"
         value: foxZRnIh9gZpWnl+zEiKa0EJ2rdCGroMWm02gaxSc9Q=
-# The uncensored DNS servers (no SPKI available)
+# The uncensored DNS servers
   - address_data: 89.233.43.71
     tls_auth_name: "unicast.censurfridns.dk"
+    tls_pubkey_pinset:
+      - digest: "sha256"
+        value: wikE3jYAA6jQmXYTr/rbHeEPmC78dQwZbQp6WdrseEs=
 # IPv6 addresses
 # The Surfnet/Sinodun servers
   - address_data: 2001:610:1:40ba:145:100:185:15
@@ -125,9 +128,12 @@ upstream_recursive_servers:
     tls_pubkey_pinset:
       - digest: "sha256"
         value: foxZRnIh9gZpWnl+zEiKa0EJ2rdCGroMWm02gaxSc9Q=
-# The uncensored DNS server (no SPKI available)
+# The uncensored DNS server
   - address_data: 2a01:3a0:53:53::0
     tls_auth_name: "unicast.censurfridns.dk"
+    tls_pubkey_pinset:
+      - digest: "sha256"
+        value: wikE3jYAA6jQmXYTr/rbHeEPmC78dQwZbQp6WdrseEs=
 
 # Require DNSSEC validation. For releases earlier than 1.2 a trust anchor must
 # be configured configured manually. This can be done with unbound-anchor.
