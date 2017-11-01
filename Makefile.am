@@ -14,6 +14,5 @@ stubby.yml.windows: ${srcdir}/stubby.yml.example
 	awk "{sub(/$$/,\"\r\")}1" $< > $@
 
 install-data-hook: $(CONFIG_FILE)
-	$(INSTALL) -m 755 -d $(DESTDIR)$(stubbyconfdir)
 	test -f $(DESTDIR)${stubbyconfdir}/stubby.yml || \
 		${INSTALL_DATA} $(CONFIG_FILE) $(DESTDIR)${stubbyconfdir}/stubby.yml
