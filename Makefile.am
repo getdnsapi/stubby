@@ -1,4 +1,4 @@
-stubbyconfdir = $(sysconfdir)/stubby
+stubbyconfdir = $(DESTDIR)/$(sysconfdir)/stubby
 dist_stubbyconf_DATA = stubby.yml.example
 if ON_MACOS
 dist_sbin_SCRIPTS = stubby-setdns-macos.sh
