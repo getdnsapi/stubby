@@ -68,11 +68,37 @@ listen_addresses:
 # upstream until it becomes unavailable, then use the next one.
 round_robin_upstreams: 1
 
+# Require DNSSEC validation. For releases earlier than 1.2 a trust anchor must
+# be configured configured manually. This can be done with unbound-anchor.
+# dnssec_return_status: GETDNS_EXTENSION_TRUE
+
+# Specify the location of the installed trust anchor file (leave commented out
+# for zero configuration DNSSEC)
+# dnssec_trust_anchors: "/etc/unbound/getdns-root.key"
+
+# Control the maximum number of connection failures that will be permitted
+# before Stubby backs-off from using an individual upstream (default 2)
+# tls_connection_retries: 5
+
+# Control the maximum time in seconds Stubby will back-off from using an
+# individual upstream after failures under normal circumstances (default 3600)
+# tls_backoff_time: 300
+
+# Limit the total number of outstanding queries permitted
+# limit_outstanding_queries: 100
+
+# Specify the timeout on getting a response to an individual request
+# (default 5s)
+# timeout: 1
+
 # Specify the list of upstream recursive name servers to send queries to
 # In Strict mode upstreams need either a tls_auth_name or a tls_pubkey_pinset
 # so the upstream can be authenticated.
-# The list below includes some of the available test servers. If you don't
-# have IPv6 then comment then out.
+# The list below includes all the available test servers but only has the subset
+# operated the stubby/getdns developers enabled. You can enable any of the
+# others you want to use by uncommenting the relevant section. See:
+# https://dnsprivacy.org/wiki/display/DP/DNS+Privacy+Test+Servers
+# If you don't have IPv6 then comment then out those upstreams.
 # In Opportunistic mode they only require an IP address in address_data.
 # The information for an upstream can include the following:
 # - address_data: IPv4 or IPv6 address of the upstream
@@ -104,12 +130,6 @@ upstream_recursive_servers:
     tls_pubkey_pinset:
       - digest: "sha256"
         value: foxZRnIh9gZpWnl+zEiKa0EJ2rdCGroMWm02gaxSc9Q=
-# The uncensored DNS servers
-  - address_data: 89.233.43.71
-    tls_auth_name: "unicast.censurfridns.dk"
-    tls_pubkey_pinset:
-      - digest: "sha256"
-        value: wikE3jYAA6jQmXYTr/rbHeEPmC78dQwZbQp6WdrseEs=
 # IPv6 addresses
 # The Surfnet/Sinodun servers
   - address_data: 2001:610:1:40ba:145:100:185:15
@@ -128,31 +148,150 @@ upstream_recursive_servers:
     tls_pubkey_pinset:
       - digest: "sha256"
         value: foxZRnIh9gZpWnl+zEiKa0EJ2rdCGroMWm02gaxSc9Q=
-# The uncensored DNS server
-  - address_data: 2a01:3a0:53:53::0
-    tls_auth_name: "unicast.censurfridns.dk"
-    tls_pubkey_pinset:
-      - digest: "sha256"
-        value: wikE3jYAA6jQmXYTr/rbHeEPmC78dQwZbQp6WdrseEs=
 
-# Require DNSSEC validation. For releases earlier than 1.2 a trust anchor must
-# be configured configured manually. This can be done with unbound-anchor.
-# dnssec_return_status: GETDNS_EXTENSION_TRUE
+# Additional servers
+# IPv4 addresses
+# # The Uncensored DNS servers
+#   - address_data: 89.233.43.71
+#     tls_auth_name: "unicast.censurfridns.dk"
+#     tls_pubkey_pinset:
+#       - digest: "sha256"
+#         value: wikE3jYAA6jQmXYTr/rbHeEPmC78dQwZbQp6WdrseEs=
+# # A Surfnet/Sinodun server using Knot resolver. Warning - has issue when used for
+# # DNSSEC
+#   - address_data: 145.100.185.17
+#     tls_auth_name: "dnsovertls2.sinodun.com"
+#     tls_pubkey_pinset:
+#       - digest: "sha256"
+#         value: NAXBESvpjZMnPWQcrxa2KFIkHV/pDEIjRkA3hLWogSg=
+# # dns.cmrg.net server using Knot resolver. Warning - has issue when used for
+# # DNSSEC. (This also listens on port 443)
+#   - address_data: 199.58.81.218
+#     tls_auth_name: "dns.cmrg.net"
+#     tls_pubkey_pinset:
+#       - digest: "sha256"
+#         value: 3IOHSS48KOc/zlkKGtI46a9TY9PPKDVGhE3W2ZS4JZo=
+#       - digest: "sha256"
+#         value: 5zFN3smRPuHIlM/8L+hANt99LW26T97RFHqHv90awjo=
+# # dns1.darkmoon.is
+#   - address_data: 51.15.70.167
+#     tls_auth_name: "dns1.darkmoon.is"
+#     tls_pubkey_pinset:
+#       - digest: "sha256"
+#         value: 8sx8niFUiJvMM3C1qLE9cH79TuQQztzMVDtbKjpD/IQ=
+# # securedns.eu
+#   - address_data: 146.185.167.43
+#     tls_auth_name: "securedns.eu"
+#     tls_pubkey_pinset:
+#       - digest: "sha256"
+#         value: 2EfbwDyk2zSnAbBJSpCSWZKKGUD+a6p/yg2bxdC+x2A=
+# # dns-tls.bitwiseshift.net
+#   - address_data: 81.187.221.24
+#     tls_auth_name: "dns-tls.bitwiseshift.net"
+#     tls_pubkey_pinset:
+#       - digest: "sha256"
+#         value: YmcYWZU5dd2EoblZHNf1jTUPVS+uK3280YYCdz4l4wo=
+# # ns1.dnsprivacy.at
+#   - address_data: 194.130.110.185
+#     tls_auth_name: "ns1.dnsprivacy.at"
+#     tls_pubkey_pinset:
+#       - digest: "sha256"
+#         value: vqVQ9TcoR9RDY3TpO0MTXw1YQLjF44zdN3/4PkLwtEY=
+# # ns2.dnsprivacy.at
+#   - address_data: 94.130.110.178
+#     tls_auth_name: "ns2.dnsprivacy.at"
+#     tls_pubkey_pinset:
+#       - digest: "sha256"
+#         value: s5Em89o0kigwfBF1gcXWd8zlATSWVXsJ6ecZfmBDTKg=
+# # Lorraine Data Network  (self-signed cert)
+#   - address_data: 80.67.188.188
+#     tls_pubkey_pinset:
+#       - digest: "sha256"
+#         value: WaG0kHUS5N/ny0labz85HZg+v+f0b/UQ73IZjFep0nM=
+# # NIC Chile (self-signed cert)
+#   - address_data: 200.1.123.46
+#     tls_pubkey_pinset:
+#       - digest: "sha256"
+#         value: sG6kj+XJToXwt1M6+9BeCz1SOj/1/mdZn56OZvCyZZc=
+# # # OARC. Note: this server currently doesn't support strict mode!
+# #   - address_data: 184.105.193.78
+# #     tls_auth_name: "tls-dns-u.odvr.dns-oarc.net"
+# #     tls_pubkey_pinset:
+# #       - digest: "sha256"
+# #         value: pOXrpUt9kgPgbWxBFFcBTbRH2heo2wHwXp1fd4AEVXI=
+# IPv6 addresses
+# # The Uncensored DNS server
+#   - address_data: 2a01:3a0:53:53::0
+#     tls_auth_name: "unicast.censurfridns.dk"
+#     tls_pubkey_pinset:
+#       - digest: "sha256"
+#         value: wikE3jYAA6jQmXYTr/rbHeEPmC78dQwZbQp6WdrseEs=
+# # A Surfnet/Sinodun server using Knot resolver. Warning - has issue when used for
+# # DNSSEC
+#   - address_data: 2001:610:1:40ba:145:100:185:17
+#     tls_auth_name: "dnsovertls2.sinodun.com"
+#     tls_pubkey_pinset:
+#       - digest: "sha256"
+#         value: NAXBESvpjZMnPWQcrxa2KFIkHV/pDEIjRkA3hLWogSg=
+# # dns.cmrg.net server using Knot resolver. Warning - has issue when used for
+# # DNSSEC. (This also listens on port 443)
+#   - address_data: 2001:470:1c:76d::53
+#     tls_auth_name: "dns.cmrg.net"
+#     tls_pubkey_pinset:
+#       - digest: "sha256"
+#         value: 3IOHSS48KOc/zlkKGtI46a9TY9PPKDVGhE3W2ZS4JZo=
+#       - digest: "sha256"
+#         value: 5zFN3smRPuHIlM/8L+hANt99LW26T97RFHqHv90awjo=
+# # securedns.eu
+#   - address_data: 2a03:b0c0:0:1010::e9a:3001
+#     tls_auth_name: "securedns.eu"
+#     tls_pubkey_pinset:
+#       - digest: "sha256"
+#         value: 2EfbwDyk2zSnAbBJSpCSWZKKGUD+a6p/yg2bxdC+x2A=
+# # dns-tls.bitwiseshift.net
+#   - address_data: 2001:8b0:24:24::24
+#     tls_auth_name: "dns-tls.bitwiseshift.net"
+#     tls_pubkey_pinset:
+#       - digest: "sha256"
+#         value: YmcYWZU5dd2EoblZHNf1jTUPVS+uK3280YYCdz4l4wo=
+# # ns1.dnsprivacy.at
+#   - address_data: 2a01:4f8:c0c:3c03::2
+#     tls_auth_name: "ns1.dnsprivacy.at"
+#     tls_pubkey_pinset:
+#       - digest: "sha256"
+#         value: vqVQ9TcoR9RDY3TpO0MTXw1YQLjF44zdN3/4PkLwtEY=
+# # ns2.dnsprivacy.at
+#   - address_data: 2a01:4f8:c0c:3bfc::2
+#     tls_auth_name: "ns2.dnsprivacy.at"
+#     tls_pubkey_pinset:
+#       - digest: "sha256"
+#         value: s5Em89o0kigwfBF1gcXWd8zlATSWVXsJ6ecZfmBDTKg=
+# # Go6Lab
+#   - address_data: 2001:67c:27e4::35
+#     tls_auth_name: "privacydns.go6lab.si"
+#     tls_pubkey_pinset:
+#       - digest: "sha256"
+#         value: g5lqtwHia/plKqWU/Fe2Woh4+7MO3d0JYqYJpj/iYAw=
+# # Lorraine Data Network  (self-signed cert)
+#   - address_data: 2001:913::8
+#     tls_pubkey_pinset:
+#       - digest: "sha256"
+#         value: WaG0kHUS5N/ny0labz85HZg+v+f0b/UQ73IZjFep0nM=
+# # NIC Chile (self-signed cert)
+#   - address_data: 2001:1398:1:0:200:1:123:46
+#     tls_pubkey_pinset:
+#       - digest: "sha256"
+#         value: sG6kj+XJToXwt1M6+9BeCz1SOj/1/mdZn56OZvCyZZc=
+# # Yeti. Note the servers use a different root trust anchor for DNSSEC!
+#   - address_data: 2001:4b98:dc2:43:216:3eff:fea9:41a
+#     tls_auth_name: "dns-resolver.yeti.eu.org"
+#     tls_pubkey_pinset:
+#       - digest: "sha256"
+#         value: YxtXAorQNSo+333ko1ctuXcnpMcplPaOI/GCM+YeMQk=
+# # # OARC. Note: this server currently doesn't support strict mode!
+# #   - address_data: 2620:ff:c000:0:1::64:25
+# #     tls_auth_name: "tls-dns-u.odvr.dns-oarc.net"
+# #     tls_pubkey_pinset:
+# #       - digest: "sha256"
+# #         value: pOXrpUt9kgPgbWxBFFcBTbRH2heo2wHwXp1fd4AEVXI=
 
-#Specify the location of the installed trust anchor file
-# dnssec_trust_anchors: "/etc/unbound/getdns-root.key"
-
-# Control the maximum number of connection failures that will be permitted
-# before Stubby backs-off from using an individual upstream (default 2)
-# tls_connection_retries: 5
-
-# Control the maximum time in seconds Stubby will back-off from using an
-# individual upstream after failures under normal circumstances (default 3600)
-# tls_backoff_time: 300
-
-# Limit the total number of outstanding queries permitted
-# limit_outstanding_queries: 100
-
-# Specify the timeout on getting a response to an individual request
-# (default 5s)
-# timeout: 1
