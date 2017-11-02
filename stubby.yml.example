@@ -203,7 +203,7 @@ upstream_recursive_servers:
 #     tls_pubkey_pinset:
 #       - digest: "sha256"
 #         value: s5Em89o0kigwfBF1gcXWd8zlATSWVXsJ6ecZfmBDTKg=
-# # Lorraine Data Network  (self-signed cert)
+# # Lorraine Data Network  (self-signed cert). Also listens on port 443.
 #   - address_data: 80.67.188.188
 #     tls_pubkey_pinset:
 #       - digest: "sha256"
@@ -272,7 +272,7 @@ upstream_recursive_servers:
 #     tls_pubkey_pinset:
 #       - digest: "sha256"
 #         value: g5lqtwHia/plKqWU/Fe2Woh4+7MO3d0JYqYJpj/iYAw=
-# # Lorraine Data Network  (self-signed cert)
+# # Lorraine Data Network  (self-signed cert). Also listens on port 443.
 #   - address_data: 2001:913::8
 #     tls_pubkey_pinset:
 #       - digest: "sha256"
