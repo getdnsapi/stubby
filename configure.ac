@@ -42,20 +42,20 @@ AC_TRY_COMPILE([
 	AC_MSG_RESULT(no)
 ])
 
-build_on_windows = 0
-build_on_macos = 0
-build_on_unix = 0
+build_on_windows="0"
+build_on_macos="0"
+build_on_unix="0"
 AC_CANONICAL_HOST
 case "${host_os}" in
 cygwin*|mingw*)
 	AC_DEFINE(STUBBY_ON_WINDOWS, 1, [Whether the build target is Windows])
-	build_on_windows = 1
+	build_on_windows="1"
 	;;
 darwin*)
-	build_on_macos = 1
+	build_on_macos="1"
 	;;
 *)
-	build_on_unix = 1
+	build_on_unix="1"
 	;;
 esac
 AM_CONDITIONAL([ON_WINDOWS], [test $build_on_windows -eq 1])
