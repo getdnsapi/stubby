@@ -5,6 +5,17 @@ AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR([src/stubby.c])
 AC_CONFIG_HEADERS([config.h])
 
+# Autoconf 2.70 will have set up runstatedir. 2.69 is frequently (Debian)
+# patched to do the same, but frequently (MacOS) not. So add a with option
+# for pid file location, and default it to runstatedir if present.
+default_piddir=${runstatedir:-"${localstatedir}/run"}
+AC_ARG_WITH([piddir],
+  [AS_HELP_STRING([--with-piddir=DIR],
+                  [directory for pid files @<:@default=RUNSTATEDIR or LOCALSTATEDIR/run@:>@])],
+  [],
+  [with_piddir=${default_piddir}])
+AC_SUBST([runstatedir], [$with_piddir])
+
 AC_PROG_CC([clang gcc])
 
 AC_CHECK_LIB([getdns], [getdns_context_set_trust_anchors_url],,
@@ -43,24 +54,25 @@ AC_TRY_COMPILE([
 	AC_MSG_RESULT(no)
 ])
 
-target_windows=""
-target_macos=""
-target_unix=""
-case "${target_os}" in
+build_on_windows="0"
+build_on_macos="0"
+build_on_unix="0"
+AC_CANONICAL_HOST
+case "${host_os}" in
 cygwin*|mingw*)
 	AC_DEFINE(STUBBY_ON_WINDOWS, 1, [Whether the build target is Windows])
-	target_windows="yes"
+	build_on_windows="1"
 	;;
 darwin*)
-	target_macos="yes"
+	build_on_macos="1"
 	;;
 *)
-	target_unix="yes"
+	build_on_unix="1"
 	;;
 esac
-AM_CONDITIONAL([TARGET_WINDOWS], [test $target_windows])
-AM_CONDITIONAL([TARGET_MACOS], [test $target_macos])
-AM_CONDITIONAL([TARGET_UNIX], [test $target_unix])
+AM_CONDITIONAL([ON_WINDOWS], [test $build_on_windows -eq 1])
+AM_CONDITIONAL([ON_MACOS], [test $build_on_macos -eq 1])
+AM_CONDITIONAL([ON_UNIX], [test $build_on_unix -eq 1])
 
 AC_CONFIG_FILES([Makefile src/Makefile osx/Makefile])
 
