@@ -1,3 +1,13 @@
+* 2017-11-03: Version 0.1.5
+ * Add Windows installer package. Installer available at dnsprivacy.org
+ * Fix to systemd file names (thanks ArchangeGabriel)
+ * Add SPKI for Uncensored DNS (thanks woopstar)
+ * Fix installation of stubby.yml file (thanks ArchangeGabriel)
+ * Fix detection of platform for standalone build
+ * Fix location of pid file installation
+ * Update the stubby.yml file to contain details of all available servers. Only
+   a small subset are enabled by default.
+
 * 2017-10-20: Version 0.1.4
  *  '-i' option of stubby no longer tries to bind to the listen addresses so
     it can be run without requiring root privileges. Makes it easier to validate
