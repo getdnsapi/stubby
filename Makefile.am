@@ -1,4 +1,4 @@
-if TARGET_MACOS
+if ON_MACOS
     OPTIONAL_BUILD_SUBDIR = osx
 endif
 SUBDIRS = src $(OPTIONAL_BUILD_SUBDIR)
@@ -6,7 +6,7 @@ SUBDIRS = src $(OPTIONAL_BUILD_SUBDIR)
 stubbyconfdir = $(sysconfdir)/stubby
 dist_stubbyconf_DATA = stubby.yml.example
 
-if TARGET_WINDOWS
+if ON_WINDOWS
 CONFIG_FILE = stubby.yml.windows
 else
 CONFIG_FILE = ${srcdir}/stubby.yml.example
