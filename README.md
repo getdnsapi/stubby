@@ -1,6 +1,8 @@
 # About Stubby
 
-Stubby is an application that acts as a local **DNS Privacy stub resolver** (using DNS-over-TLS). Stubby encrypts DNS queries sent from a client machine (desktop or laptop) to a DNS Privacy resolver increasing end user privacy. Stubby is in the early stages of development but is suitable for technical/advanced users. A more generally user-friendly version is on the way!
+Stubby is an application that acts as a local **DNS Privacy stub resolver** (using DNS-over-TLS). Stubby encrypts DNS queries sent 
+from a client machine (desktop or laptop) to a DNS Privacy resolver increasing end user privacy. Stubby is in the early stages 
+of development but is suitable for technical/advanced users. A more generally user-friendly version is on the way!
 
 Stubby provides DNS Privacy by:
 
@@ -20,7 +22,7 @@ See [Stubby Homepage](https://dnsprivacy.org/wiki/x/JYAT) for more details
 Stubby uses [getdns](https://getdnsapi.net/) and requires the 1.2 release of getdns or later.
 
 It also requires that either
-* getdns was compiled with yaml support (using the --with-libyaml configure option)
+* getdns was compiled with [yaml](http://pyyaml.org/wiki/LibYAML) support (using the --with-libyaml configure option)
 * or stubby is compiled with libyaml as a dependancy. 
 
 
@@ -28,7 +30,8 @@ It also requires that either
 
 Check to see if getdns, libyaml and Stubby are available via a package manager for your system.
 
-UPDATE: August 2017 - A Homebrew package for stubby is now available (`brew install stubby`) !
+* A [Windows Installer](https://dnsprivacy.org/wiki/x/CoBn) is now available for Stubby.
+* A Homebrew package for stubby is now available (`brew install stubby`).
 
 If you need to install getdns from source, see the section [at the end of this document.](#building-getdns-from-source)
 
@@ -117,7 +120,8 @@ Simply invoke Stubby on the command line. By default it runs in the foreground, 
 ```
 
 * Enable connection logging by using the `-l` flag. The logging is currently simplistic and simply writes to stdout. (We are working on making this better!)
-* The pid file is /var/run/stubby.pid
+* A custom configuration file can be specified using the -C flag.
+* The pid file is /usr/local/var/run/stubby.pid
 
 # Test Stubby
 
@@ -125,6 +129,10 @@ A quick test can be done by using dig (or your favourite DNS tool) on the loopba
 
 ```sh
 > dig @127.0.0.1 www.example.com
+```
+
+```sh
+> getdns_query -s @127.0.0.1 www.example.com
 ```
 
 # Modify your upstream resolvers
@@ -172,6 +180,11 @@ Or via the GUI:
 * Use the '-' button to remove the existing nameservers
 * Use the '+' button to add `127.0.0.1` and `::1` (only add the IPv4 address if you don't have IPv6)
 * Hit 'OK' in the *DNS* pane and then 'Apply' on the *Network* pane
+
+## Windows 8 and later
+
+Powershell scripts are provided in the the windows directory of the source code that can be used to update the system resolvers. 
+Instructions for how to update the resolvers manually are provided are also provided - see https://dnsprivacy.org/wiki/display/DP/Windows+installer+for+Stubby 
 
 
 ## Notes:
