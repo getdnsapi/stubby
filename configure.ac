@@ -1,8 +1,19 @@
 AC_PREREQ([2.68])
-AC_INIT([Stubby], [0.1.3], [sara@sinodun.com])
+AC_INIT([Stubby], [0.1.5], [sara@sinodun.com])
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR([src/stubby.c])
 AC_CONFIG_HEADERS([config.h])
+
+# Autoconf 2.70 will have set up runstatedir. 2.69 is frequently (Debian)
+# patched to do the same, but frequently (MacOS) not. So add a with option
+# for pid file location, and default it to runstatedir if present.
+default_piddir=${runstatedir:-"${localstatedir}/run"}
+AC_ARG_WITH([piddir],
+  [AS_HELP_STRING([--with-piddir=DIR],
+                  [directory for pid files @<:@default=RUNSTATEDIR or LOCALSTATEDIR/run@:>@])],
+  [],
+  [with_piddir=${default_piddir}])
+AC_SUBST([runstatedir], [$with_piddir])
 
 AC_PROG_CC([clang gcc])
 
@@ -42,20 +53,20 @@ AC_TRY_COMPILE([
 	AC_MSG_RESULT(no)
 ])
 
-build_on_windows = 0
-build_on_macos = 0
-build_on_unix = 0
+build_on_windows="0"
+build_on_macos="0"
+build_on_unix="0"
 AC_CANONICAL_HOST
 case "${host_os}" in
 cygwin*|mingw*)
 	AC_DEFINE(STUBBY_ON_WINDOWS, 1, [Whether the build target is Windows])
-	build_on_windows = 1
+	build_on_windows="1"
 	;;
 darwin*)
-	build_on_macos = 1
+	build_on_macos="1"
 	;;
 *)
-	build_on_unix = 1
+	build_on_unix="1"
 	;;
 esac
 AM_CONDITIONAL([ON_WINDOWS], [test $build_on_windows -eq 1])
