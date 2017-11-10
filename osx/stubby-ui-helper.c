@@ -15,6 +15,7 @@
 #include <Security/Authorization.h>
 #include <os/log.h>
 
+static const char CP[] = "/bin/cp";
 static const char LAUNCHCTL[] = "/bin/launchctl";
 static const char STUBBY_SETDNS[] = "/usr/local/sbin/stubby-setdns-macos.sh";
 static const char STUBBY[] = "/usr/local/bin/stubby";
@@ -82,13 +83,13 @@ void check_auth(const char *auth, const char *right)
 
 void usage()
 {
-        fprintf(stderr, "Usage: stubby_ui_helper [-auth <auth_key>] [-config <config file>] (start|stop|list|dns_stubby|dns_default|dns_list|check_config)\n");
+        fprintf(stderr, "Usage: stubby_ui_helper [-auth <auth_key>] [-config <config file>] (start|stop|list|dns_stubby|dns_default|dns_list|check_config|write_config)\n");
         exit(1);
 }
 
 void fail_with_errno(const char *op)
 {
-        fprintf(stderr, "%s failed: %s.", op, strerror(errno));
+        fprintf(stderr, "%s failed: %s.\n", op, strerror(errno));
         os_log(OS_LOG_DEFAULT, "%s failed: %s.", op, strerror(errno));
         exit(1);
 }
@@ -156,6 +157,16 @@ void check_config(const char *config_file)
                 fail_with_errno("check_config");
 }
 
+void write_config(const char *config_file)
+{
+        os_log(OS_LOG_DEFAULT, "Write configuration.");
+
+        int err = execl(CP, CP, config_file, DEFAULT_CONFIG_FILE, NULL);
+        if (err == -1)
+                fail_with_errno("write_config");
+}
+
+
 int main(int ac, char *av[])
 {
         const char *auth = NULL;
@@ -207,7 +218,9 @@ int main(int ac, char *av[])
         else if (strcmp(cmd, "dns_list") == 0)
                 dns_list();
         else if (strcmp(cmd, "check_config") == 0)
-                check_config(config_file);
+               check_config(config_file);
+        else if (strcmp(cmd, "write_config") == 0)
+                write_config(config_file);
 
         /* If we get here, there's a problem... */
         usage();
