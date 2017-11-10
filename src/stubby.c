@@ -821,13 +821,20 @@ main(int argc, char **argv)
 				        strerror(errno));
 				exit(EXIT_FAILURE);
 			}
-		} else
+		} else {
+#ifdef SIGPIPE
+			(void)signal(SIGPIPE, SIG_IGN);
+#endif
 			getdns_context_run(context);
+		}
 	} else
 #endif
 	{
 		stubby_local_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_DEBUG,
 			       "Starting DAEMON....\n");
+#ifdef SIGPIPE
+		(void)signal(SIGPIPE, SIG_IGN);
+#endif
 		getdns_context_run(context);
 	}
 
