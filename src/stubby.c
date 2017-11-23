@@ -267,7 +267,8 @@ static getdns_return_t parse_config_file(const char *fn)
 	}
 	config_file[read_sz] = 0;
 	fclose(fh);
-	r = parse_config(config_file, strstr(fn, ".yml") != NULL);
+	r = parse_config(config_file, strstr(fn, ".yml") != NULL
+	                           || strstr(fn, ".yaml") != NULL);
 	free(config_file);
 	if (r == GETDNS_RETURN_GOOD)
 		stubby_local_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_DEBUG,

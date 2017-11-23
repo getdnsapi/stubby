@@ -1,3 +1,8 @@
+* 201?-??-??: Version 0.1.?
+  * Bugfix getdnsapi/getdns#358: Parse config files given with the
+    -C option that have an .yaml extension as YAML not JSON.
+    Thanks Ollivier Robert
+
 * 2017-11-03: Version 0.1.5
  * Add Windows installer package. Installer available at dnsprivacy.org
  * Fix to systemd file names (thanks ArchangeGabriel)
