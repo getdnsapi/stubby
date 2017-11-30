@@ -385,7 +385,7 @@ static void request_cb(
 
 	if (callback_type != GETDNS_CALLBACK_COMPLETE)
 		SERVFAIL("Callback type not complete",
-		    callback_type, msg, &response);
+		    (int)callback_type, msg, &response);
 
 	else if (!response)
 		SERVFAIL("Missing response", 0, msg, &response);

@@ -26,7 +26,7 @@ AC_CHECK_FUNCS([getdns_yaml2dict],, [
 	    [AC_MSG_ERROR([Missing dependency: libyaml])])
 ])
 AM_CONDITIONAL([WITH_YAML], [test "x$ac_cv_func_getdns_yaml2dict" = xno])
-AC_CHECK_HEADERS([assert.h stdio.h stdarg.h])
+AC_CHECK_HEADERS([assert.h stdio.h stdarg.h inttypes.h])
 
 AC_MSG_CHECKING(whether the C compiler (${CC-cc}) accepts the "format" attribute)
 AC_TRY_COMPILE([
@@ -99,6 +99,10 @@ AH_BOTTOM([
 
 #ifdef HAVE_STDARG_H
 #include <stdarg.h>
+#endif
+
+#ifdef HAVE_INTTYPES_H
+#include <inttypes.h>
 #endif
 
 #ifdef STUBBY_ON_WINDOWS
