@@ -172,16 +172,27 @@ int main(int ac, char *av[])
         const char *auth = NULL;
         const char *cmd = NULL;
         const char *config_file = DEFAULT_CONFIG_FILE;
+        char authbuf[80];
 
         ac--;
         av++;
 
-        for (;;) {
+        while (ac > 0) {
+                if (strcmp(av[0], "-h") == 0 || strcmp(av[0], "--help") == 0)
+                        usage();
+
                 if (ac < 2)
                         break;
 
-                if (strcmp(av[0], "-auth") == 0)
-                        auth = av[1];
+                if (strcmp(av[0], "-auth") == 0) {
+                        if (strcmp(av[1], "-") == 0) {
+                                int n = fread(authbuf, 1, sizeof(authbuf) - 1, stdin);
+                                authbuf[n] = '\0';
+                                auth = authbuf;
+                        }
+                        else
+                                auth = av[1];
+                }
                 else if (strcmp(av[0], "-config") == 0)
                         config_file = av[1];
                 else
