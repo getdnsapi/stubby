@@ -1,5 +1,19 @@
-﻿Get-NetAdapter -Physical | ForEach-Object {
-   $ifname = $_.Name
-   Write-Host "Setting DNS servers on interface $ifname to use local resolver - the system will use Stubby if it is running"
-   set-dnsclientserveraddress $ifname -ServerAddresses ("127.0.0.1","0::1")
+#Requires -RunAsAdministrator
+#Requires -Version 2
+
+#Set Stubby Address
+$StubbyDNS = '127.0.0.1','1::0'
+
+#Get enabled/connected adapters (same as 'Get-NetAdapter -Physical')
+$NetworkAdapters = Get-WmiObject -Class 'Win32_NetworkAdapterConfiguration' -Filter {IPEnabled = 1}
+
+#Verbose output so the user gets to know the current configuration
+Write-Output -InputObject 'Found Adapters:'
+Write-Output -InputObject $NetworkAdapters | Format-Table -Property IPAddress,DefaultIPGateway,DNSServerSearchOrder,Description
+
+Write-Output -InputObject 'Setting DNS entries to use Stubby for the found Network Adapters...'
+
+#Change the DNS entry for each found network adapter
+foreach ($NetworkAdapter in $NetworkAdapters) {
+  $null = $NetworkAdapter.SetDNSServerSearchOrder($StubbyDNS)
 }
