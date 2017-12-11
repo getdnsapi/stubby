@@ -156,7 +156,9 @@ print_usage(FILE *out, const char *progname)
 	fprintf(out, "\t\t\t7: DEBUG  - %s\n", GETDNS_LOG_DEBUG_TEXT);
 }
 
+#ifndef GETDNS_RETURN_IO_ERROR
 #define GETDNS_RETURN_IO_ERROR ((getdns_return_t) 3000)
+#endif
 
 static const char *_getdns_strerror(getdns_return_t r)
 {
