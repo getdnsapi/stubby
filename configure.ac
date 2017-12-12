@@ -74,7 +74,7 @@ AM_CONDITIONAL([ON_WINDOWS], [test $build_on_windows -eq 1])
 AM_CONDITIONAL([ON_MACOS], [test $build_on_macos -eq 1])
 AM_CONDITIONAL([ON_UNIX], [test $build_on_unix -eq 1])
 
-AC_CONFIG_FILES([Makefile src/Makefile osx/Makefile])
+AC_CONFIG_FILES([Makefile src/Makefile macos/Makefile])
 
 AH_BOTTOM([
 #ifdef HAVE_STDINT_H
