@@ -1,10 +1,11 @@
-* 201?-??-??: Version 0.1.?
-  * Bugfix #48: Do not do native DNSSEC validation when cd bit was
-    received (for example from an unbound forwarder), but DNSSEC
-    validation was not enabled in the first place.
-  * Bugfix getdnsapi/getdns#358: Parse config files given with the
-    -C option that have an .yaml extension as YAML not JSON.
-    Thanks Ollivier Robert
+* 2017-12-?: Version 0.2.0
+ * Add files to support a separate macOS GUI application to manage stubby
+ * Bugfix #48: Do not do native DNSSEC validation when cd bit was
+   received (for example from an unbound forwarder), but DNSSEC
+   validation was not enabled in the first place.
+ * Bugfix getdnsapi/getdns#358: Parse config files given with the
+   -C option that have an .yaml extension as YAML not JSON.
+   Thanks Ollivier Robert
 
 * 2017-11-03: Version 0.1.5
  * Add Windows installer package. Installer available at dnsprivacy.org

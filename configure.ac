@@ -1,5 +1,6 @@
 AC_PREREQ([2.68])
 AC_INIT([Stubby], [0.1.5], [sara@sinodun.com])
+AC_CANONICAL_TARGET
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR([src/stubby.c])
 AC_CONFIG_HEADERS([config.h])
@@ -73,8 +74,7 @@ AM_CONDITIONAL([ON_WINDOWS], [test $build_on_windows -eq 1])
 AM_CONDITIONAL([ON_MACOS], [test $build_on_macos -eq 1])
 AM_CONDITIONAL([ON_UNIX], [test $build_on_unix -eq 1])
 
-AC_CONFIG_FILES([Makefile
-                 src/Makefile])
+AC_CONFIG_FILES([Makefile src/Makefile macos/Makefile])
 
 AH_BOTTOM([
 #ifdef HAVE_STDINT_H
