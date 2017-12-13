@@ -1,3 +1,6 @@
+* 2017-12-?: Version 0.2.0
+ * Add files to support a separate macOS GUI application to manage stubby
+
 * 2017-11-03: Version 0.1.5
  * Add Windows installer package. Installer available at dnsprivacy.org
  * Fix to systemd file names (thanks ArchangeGabriel)
