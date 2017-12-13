@@ -156,7 +156,9 @@ print_usage(FILE *out, const char *progname)
 	fprintf(out, "\t\t\t7: DEBUG  - %s\n", GETDNS_LOG_DEBUG_TEXT);
 }
 
+#ifndef GETDNS_RETURN_IO_ERROR
 #define GETDNS_RETURN_IO_ERROR ((getdns_return_t) 3000)
+#endif
 
 static const char *_getdns_strerror(getdns_return_t r)
 {
@@ -267,7 +269,8 @@ static getdns_return_t parse_config_file(const char *fn)
 	}
 	config_file[read_sz] = 0;
 	fclose(fh);
-	r = parse_config(config_file, strstr(fn, ".yml") != NULL);
+	r = parse_config(config_file, strstr(fn, ".yml") != NULL
+	                           || strstr(fn, ".yaml") != NULL);
 	free(config_file);
 	if (r == GETDNS_RETURN_GOOD)
 		stubby_local_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_DEBUG,
@@ -384,7 +387,7 @@ static void request_cb(
 
 	if (callback_type != GETDNS_CALLBACK_COMPLETE)
 		SERVFAIL("Callback type not complete",
-		    callback_type, msg, &response);
+		    (int)callback_type, msg, &response);
 
 	else if (!response)
 		SERVFAIL("Missing response", 0, msg, &response);
@@ -821,13 +824,20 @@ main(int argc, char **argv)
 				        strerror(errno));
 				exit(EXIT_FAILURE);
 			}
-		} else
+		} else {
+#ifdef SIGPIPE
+			(void)signal(SIGPIPE, SIG_IGN);
+#endif
 			getdns_context_run(context);
+		}
 	} else
 #endif
 	{
 		stubby_local_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_DEBUG,
 			       "Starting DAEMON....\n");
+#ifdef SIGPIPE
+		(void)signal(SIGPIPE, SIG_IGN);
+#endif
 		getdns_context_run(context);
 	}
 

@@ -151,6 +151,9 @@ upstream_recursive_servers:
 
 # Additional servers
 # IPv4 addresses
+# # Quad 9 service
+#   - address_data: 9.9.9.9
+#     tls_auth_name: "dns.quad9.net"
 # # The Uncensored DNS servers
 #   - address_data: 89.233.43.71
 #     tls_auth_name: "unicast.censurfridns.dk"

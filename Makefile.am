@@ -18,4 +18,4 @@ stubby.yml.windows: ${srcdir}/stubby.yml.example
 install-data-hook: $(CONFIG_FILE)
 	test -f $(DESTDIR)${stubbyconfdir}/stubby.yml || \
 		${INSTALL_DATA} $(CONFIG_FILE) $(DESTDIR)${stubbyconfdir}/stubby.yml
-	$(INSTALL) -m 755 -d $(runstatedir)
+	$(INSTALL) -m 755 -d $(DESTDIR)$(runstatedir)
