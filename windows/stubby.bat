@@ -1,0 +1,1 @@
+"C:\Program Files\Stubby\stubby.exe" -C "C:\Program Files\Stubby\stubby.yml" -l

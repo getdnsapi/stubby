@@ -99,6 +99,14 @@ WARNING: These scripts can only update DNS servers on the IPv4 service. IPv6
 will still use the default DNS servers, sending queries in clear text so one
 option is to disable IPv6.
 
+Create a Scheduled Task
+----------------------
+If you want Stubby to always start when you boot your system, you can create
+a Scheduled task for this. A template for the task is provided: to create the
+task just run
+
+schtasks /create /tn Stubby /XML "C:\Program Files\Stubby\stubby.xml" /RU <you_user_name>
+
 
 Known Issues
 --------------------
