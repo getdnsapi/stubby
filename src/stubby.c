@@ -117,6 +117,7 @@ static getdns_dict *listen_dict = NULL;
 static getdns_list *listen_list = NULL;
 static size_t listen_count = 0;
 static int run_in_foreground = 1;
+static int dnssec_validation = 0;
 
 static void stubby_local_log(void *userarg, uint64_t system,
 	getdns_loglevel_type level, const char *fmt, ...);
@@ -364,7 +365,7 @@ static void request_cb(
 	dns_msg *msg = (dns_msg *)userarg;
 	uint32_t qid;
 	getdns_return_t r = GETDNS_RETURN_GOOD;
-	uint32_t n, rcode, dnssec_status;
+	uint32_t n, rcode, dnssec_status = GETDNS_DNSSEC_INDETERMINATE;
 
 #if defined(SERVER_DEBUG) && SERVER_DEBUG
 	getdns_bindata *qname;
@@ -400,7 +401,7 @@ static void request_cb(
 	    response, "/replies_tree/0/header/rcode", &rcode))
 		SERVFAIL("No reply in replies tree", 0, msg, &response);
 
-	/* ansers when CD or not BOGUS */
+	/* answers when CD or not BOGUS */
 	else if (!msg->cd_bit && !getdns_dict_get_int(
 	    response, "/replies_tree/0/dnssec_status", &dnssec_status)
 	    && dnssec_status == GETDNS_DNSSEC_BOGUS)
@@ -418,8 +419,9 @@ static void request_cb(
 	    (r = _handle_edns0(response, msg->has_edns0)))
 		SERVFAIL("Could not handle EDNS0", r, msg, &response);
 
-	/* AD when (DO or AD) and SECURE */
-	else if ((r = getdns_dict_set_int(response,"/replies_tree/0/header/ad",
+	/* AD when (DO or AD) and SECURE (But only when we perform validation natively) */
+	else if (dnssec_validation &&
+	    (r = getdns_dict_set_int(response,"/replies_tree/0/header/ad",
 	    ((msg->do_bit || msg->ad_bit)
 	    && (  (!msg->cd_bit && dnssec_status == GETDNS_DNSSEC_SECURE)
 	       || ( msg->cd_bit && !getdns_dict_get_int(response,
@@ -427,13 +429,14 @@ static void request_cb(
 	          && dnssec_status == GETDNS_DNSSEC_SECURE ))) ? 1 : 0)))
 		SERVFAIL("Could not set AD bit", r, msg, &response);
 
-	else if (msg->rt == GETDNS_RESOLUTION_STUB)
-		; /* following checks are for RESOLUTION_RECURSING only */
-	
-	else if ((r =  getdns_dict_set_int(
+	else if ((dnssec_validation || msg->rt == GETDNS_RESOLUTION_RECURSING)
+	    && (r =  getdns_dict_set_int(
 	    response, "/replies_tree/0/header/cd", msg->cd_bit)))
 		SERVFAIL("Could not copy CD bit", r, msg, &response);
 
+	else if (msg->rt == GETDNS_RESOLUTION_STUB)
+		; /* following checks are for RESOLUTION_RECURSING only */
+	
 	else if ((r = getdns_dict_get_int(
 	    response, "/replies_tree/0/header/ra", &n)))
 		SERVFAIL("Could not get RA bit from reply", r, msg, &response);
@@ -517,7 +520,7 @@ static void incoming_request_handler(getdns_context *context,
 			(void)getdns_dict_set_dict(qext, "header", header);
 
 	}
-	if (msg->cd_bit)
+	if (msg->cd_bit && dnssec_validation)
 		getdns_dict_set_int(qext, "dnssec_return_all_statuses",
 		    GETDNS_EXTENSION_TRUE);
 
@@ -644,6 +647,9 @@ main(int argc, char **argv)
 	int opt;
 	long log_level = 7; 
 	char *ep;
+	getdns_dict *api_information = NULL;
+	getdns_list *api_info_keys = NULL;
+	getdns_bindata *api_info_key = NULL;
 
 #ifndef USE_WINSOCK
 	char *prg_name = strrchr(argv[0], '/');
@@ -753,9 +759,38 @@ main(int argc, char **argv)
 		                 "stub resolution only: %s\n", _getdns_strerror(r));
 		exit(EXIT_FAILURE);
 	}
+	if ((api_information = getdns_context_get_api_information(context))
+	    && !dnssec_validation
+	    && !getdns_dict_get_names(api_information, &api_info_keys)) {
+		size_t i;
+		uint32_t value;
+		getdns_dict *all_context;
+
+		for ( i = 0
+		    ; !dnssec_validation &&
+		      !getdns_list_get_bindata(api_info_keys, i, &api_info_key)
+		    ; i++) {
+			if (!strncmp((const char *)api_info_key->data, "dnssec_", 7)
+			   && !getdns_dict_get_int(api_information, (const char *)api_info_key->data, &value)
+			   && value == GETDNS_EXTENSION_TRUE)
+				dnssec_validation = 1;
+		}
+		if (   !dnssec_validation
+		    && !getdns_dict_get_dict(api_information, "all_context"
+		                                            , &all_context)
+		    && !getdns_dict_get_names(all_context, &api_info_keys)) {
+			for ( i = 0
+			    ; !dnssec_validation &&
+			      !getdns_list_get_bindata(api_info_keys, i, &api_info_key)
+			    ; i++) {
+				if (!strncmp((const char *)api_info_key->data, "dnssec_", 7)
+				   && !getdns_dict_get_int(all_context, (const char *)api_info_key->data, &value)
+				   && value == GETDNS_EXTENSION_TRUE)
+					dnssec_validation = 1;
+			}
+		}
+	}
 	if (print_api_info) {
-		getdns_dict *api_information = 
-		    getdns_context_get_api_information(context);
 		char *api_information_str;
 	       
 		if (listen_dict && !getdns_dict_get_list(
@@ -777,7 +812,6 @@ main(int argc, char **argv)
 		    getdns_pretty_print_dict(api_information);
 		fprintf(stdout, "%s\n", api_information_str);
 		free(api_information_str);
-		getdns_dict_destroy(api_information);
 		fprintf(stderr, "Result: Config file syntax is valid.\n");
 	} else if (listen_count && (r = getdns_context_set_listen_addresses(
 	    context, listen_list, NULL, incoming_request_handler)))
@@ -841,6 +875,7 @@ main(int argc, char **argv)
 		getdns_context_run(context);
 	}
 
+	getdns_dict_destroy(api_information);
 	getdns_context_destroy(context);
 
 	if (listen_list)
