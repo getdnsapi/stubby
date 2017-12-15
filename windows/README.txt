@@ -1,8 +1,9 @@
 Stubby for Windows
 --------------------
 We consider Windows support for Stubby to be Beta at this time. It has been 
-tested on Windows 10 and Windows 8. User testing reports, bug reports and 
-patches/pull requests are all welcomed via github!
+tested on Windows 10 and Windows 8. There is limited support for Windows 7 
+(see below). User testing reports, bug reports and patches/pull requests are all
+welcomed via github!
 https://github.com/getdnsapi/stubby
 
 Installation
@@ -57,7 +58,7 @@ You should see a status of GETDNS_RESPSTATUS_GOOD and and rcode of
 GETDNS_RCODE_NOERROR in the getdns_query output. You should also see a 
 connection being made in the stubby logs.
 
-Modify your upstream resolvers
+Modify your upstream resolvers (Windows 8 and 10)
 ----------------------------------------
 *Once this change is made all your DNS queries will be re-directed to Stubby and 
 sent over TLS!*
@@ -86,6 +87,26 @@ the default DNS nameservers.
 You can monitor the DNS traffic using Wireshark watching on port 853.
 If you encounter problems reverse this change to restore your default settings 
 (no DNS Privacy).
+
+Modify your upstream resolvers (Windows 7)
+----------------------------------------
+Follow the procedure above, but use the scripts:
+
+* C:\Program Files\Stubby\stubby_setdns_windows7.ps1 and
+* C:\Program Files\Stubby\stubby_resetdns_windows7.ps1
+
+WARNING: These scripts can only update DNS servers on the IPv4 service. IPv6
+will still use the default DNS servers, sending queries in clear text so one
+option is to disable IPv6.
+
+Create a Scheduled Task
+----------------------
+If you want Stubby to always start when you boot your system, you can create
+a Scheduled task for this. A template for the task is provided: to create the
+task just run
+
+schtasks /create /tn Stubby /XML "C:\Program Files\Stubby\stubby.xml" /RU <you_user_name>
+
 
 Known Issues
 --------------------
