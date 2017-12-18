@@ -29,9 +29,11 @@ It also requires that either
 # Installing Using a Package Manager
 
 Check to see if getdns, libyaml and Stubby are available via a package manager for your system.
+https://repology.org/metapackage/stubby/versions
 
 * A [Windows Installer](https://dnsprivacy.org/wiki/x/CoBn) is now available for Stubby.
 * A Homebrew package for stubby is now available (`brew install stubby`).
+* A [GUI for macOS](https://dnsprivacy.org/wiki/x/CIBn) is also available for testing
 
 If you need to install getdns from source, see the section [at the end of this document.](#building-getdns-from-source)
 

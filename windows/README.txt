@@ -18,10 +18,19 @@ This installs the following files in C:\Program Files\Stubby:
 * Powershell scripts for modifying system resolvers:
   * stubby_setdns_windows.ps1
   * stubby_resetdns_windows.ps1
+  * Windows 7 versions of Powershell scripts
+    * stubby_setdns_windows7.ps1
+    * stubby_resetdns_windows7.ps1
+* Scripts to enable Stubby to be configured as a Scheduled Task
+  * stubby.bat
+  * stubby.xml
 
-This version of the installer is built from:
-getdns commit: 12272dda368e81b519c7b192d8ee98dcd39d9720
-stubby version: 0.1.4
+
+Version
+--------
+This version of the installer is version 0.0.2. It is built from:
+getdns version: 1.2.1rc-1 (with minor fixes)
+stubby version: 0.2.0
 
 Configuration
 --------------------
@@ -114,7 +123,8 @@ Known Issues
 must be restarted to work correctly.
 * The help command of stubby.exe shows the wrong path for the installed 
 configuration file. An issue has been opened for this.
-
+* The installer currently overwrites the stubby.yml file so if changes have been
+made a backup should be created before upgrading
 
 
 Building the Windows Installer
