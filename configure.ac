@@ -1,5 +1,6 @@
 AC_PREREQ([2.68])
-AC_INIT([Stubby], [0.1.5], [sara@sinodun.com])
+AC_INIT([Stubby], [0.2.0], [sara@sinodun.com])
+AC_CANONICAL_TARGET
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR([src/stubby.c])
 AC_CONFIG_HEADERS([config.h])
@@ -26,7 +27,7 @@ AC_CHECK_FUNCS([getdns_yaml2dict],, [
 	    [AC_MSG_ERROR([Missing dependency: libyaml])])
 ])
 AM_CONDITIONAL([WITH_YAML], [test "x$ac_cv_func_getdns_yaml2dict" = xno])
-AC_CHECK_HEADERS([assert.h stdio.h stdarg.h])
+AC_CHECK_HEADERS([assert.h stdio.h stdarg.h inttypes.h])
 
 AC_MSG_CHECKING(whether the C compiler (${CC-cc}) accepts the "format" attribute)
 AC_TRY_COMPILE([
@@ -73,8 +74,7 @@ AM_CONDITIONAL([ON_WINDOWS], [test $build_on_windows -eq 1])
 AM_CONDITIONAL([ON_MACOS], [test $build_on_macos -eq 1])
 AM_CONDITIONAL([ON_UNIX], [test $build_on_unix -eq 1])
 
-AC_CONFIG_FILES([Makefile
-                 src/Makefile])
+AC_CONFIG_FILES([Makefile src/Makefile macos/Makefile])
 
 AH_BOTTOM([
 #ifdef HAVE_STDINT_H
@@ -99,6 +99,10 @@ AH_BOTTOM([
 
 #ifdef HAVE_STDARG_H
 #include <stdarg.h>
+#endif
+
+#ifdef HAVE_INTTYPES_H
+#include <inttypes.h>
 #endif
 
 #ifdef STUBBY_ON_WINDOWS
