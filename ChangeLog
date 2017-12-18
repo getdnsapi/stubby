@@ -1,5 +1,9 @@
-* 2017-12-?: Version 0.2.0
+* 2017-12-18: Version 0.2.0
+ * Add Powershell scripts for Windows 7 that will update the IPv4 DNS resolvers.
+ * Add Windows scripts to enable a Scheduled task for stubby
  * Add files to support a separate macOS GUI application to manage stubby
+   https://dnsprivacy.org/wiki/x/CIBn
+ * Add Quad9 details to the configuration file
  * Bugfix #48: Do not do native DNSSEC validation when cd bit was
    received (for example from an unbound forwarder), but DNSSEC
    validation was not enabled in the first place.

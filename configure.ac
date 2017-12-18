@@ -1,5 +1,5 @@
 AC_PREREQ([2.68])
-AC_INIT([Stubby], [0.1.5], [sara@sinodun.com])
+AC_INIT([Stubby], [0.2.0], [sara@sinodun.com])
 AC_CANONICAL_TARGET
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR([src/stubby.c])
