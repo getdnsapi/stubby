@@ -5,6 +5,7 @@
  * requires privileges.
  */
 
+#include "config.h"
 #include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
@@ -13,7 +14,9 @@
 #include <unistd.h>
 
 #include <Security/Authorization.h>
+#ifdef HAVE_OS_LOG_H
 #include <os/log.h>
+#endif
 
 static const char CP[] = "/bin/cp";
 static const char LAUNCHCTL[] = "/bin/launchctl";
@@ -24,11 +27,25 @@ static const char DEFAULT_CONFIG_FILE[] = "/usr/local/etc/stubby/stubby.yml";
 static const char RIGHT_DAEMON_RUN[] = "net.getdnsapi.stubby.daemon.run";
 static const char RIGHT_DNS_LOCAL[] = "net.getdnsapi.stubby.dns.local";
 
+static void log_failure(const char *log_message)
+{
+        fprintf(stderr, "failed: %s\n", log_message);
+#ifdef HAVE_OS_LOG_H
+        os_log(OS_LOG_DEFAULT, "failed: %s", log_message);
+#endif
+}
+
+#ifdef HAVE_OS_LOG_H
+static void log_action(const char *log_message)
+{
+        os_log(OS_LOG_DEFAULT, "%s", log_message);
+}
+#endif
+
 void check_auth(const char *auth, const char *right)
 {
         if (!auth) {
-                fprintf(stderr, "Authorization required.");
-                os_log(OS_LOG_DEFAULT, "Required authorization not supplied.");
+                log_failure("Authorization required.");
                 exit(1);
         }
 
@@ -48,8 +65,7 @@ void check_auth(const char *auth, const char *right)
                                 continue;
                         }
                 }
-                fprintf(stderr, "Invalid authorization key text.");
-                os_log(OS_LOG_DEFAULT, "Invalid authorization key test.");
+                log_failure("Invalid authorization key text.");
                 exit(1);
         }
 
@@ -58,8 +74,7 @@ void check_auth(const char *auth, const char *right)
 
         oss = AuthorizationCreateFromExternalForm(&auth_ext_form, &auth_ref);
         if (oss != errAuthorizationSuccess) {
-                fprintf(stderr, "Bad authorization key form.");
-                os_log(OS_LOG_DEFAULT, "Authorization key is of wrong form.");
+                log_failure("Bad authorization key form.");
                 exit(1);
         }
 
@@ -73,8 +88,7 @@ void check_auth(const char *auth, const char *right)
                 kAuthorizationFlagExtendRights | kAuthorizationFlagInteractionAllowed,
                 NULL);
         if (oss != errAuthorizationSuccess) {
-                fprintf(stderr, "Authorization declined.");
-                os_log(OS_LOG_DEFAULT, "Authorization declined.");
+                log_failure("Authorization declined.");
                 exit(1);
         }
 
@@ -89,15 +103,15 @@ void usage()
 
 void fail_with_errno(const char *op)
 {
-        fprintf(stderr, "%s failed: %s.\n", op, strerror(errno));
-        os_log(OS_LOG_DEFAULT, "%s failed: %s.", op, strerror(errno));
+        log_failure(strerror(errno));
         exit(1);
 }
 
 void start()
 {
-        os_log(OS_LOG_DEFAULT, "Starting Stubby.");
-
+#ifdef HAVE_OS_LOG_H
+        log_action("Starting Stubby.");
+#endif
         int err = execl(LAUNCHCTL, LAUNCHCTL, "load", "/Library/LaunchDaemons/org.getdns.stubby.plist", NULL);
         if (err == -1)
                 fail_with_errno("start");
@@ -105,8 +119,9 @@ void start()
 
 void stop()
 {
-        os_log(OS_LOG_DEFAULT, "Stopping Stubby.");
-
+#ifdef HAVE_OS_LOG_H
+        log_action("Stopping Stubby.");
+#endif
         int err = execl(LAUNCHCTL, LAUNCHCTL, "unload", "/Library/LaunchDaemons/org.getdns.stubby.plist", NULL);
         if (err == -1)
                 fail_with_errno("stop");
@@ -114,8 +129,9 @@ void stop()
 
 void list()
 {
-        os_log(OS_LOG_DEFAULT, "Checking Stubby.");
-
+#ifdef HAVE_OS_LOG_H
+        log_action("Checking Stubby.");
+#endif
         int err = execl(LAUNCHCTL, LAUNCHCTL, "list", "org.getdns.stubby", NULL);
         if (err == -1)
                 fail_with_errno("stop");
@@ -123,8 +139,9 @@ void list()
 
 void dns_stubby()
 {
-        os_log(OS_LOG_DEFAULT, "DNS resolving via Stubby.");
-
+#ifdef HAVE_OS_LOG_H
+        log_action("DNS resolving via Stubby.");
+#endif
         int err = execl(STUBBY_SETDNS, STUBBY_SETDNS, NULL);
         if (err == -1)
                 fail_with_errno("dns_stubby");
@@ -132,8 +149,9 @@ void dns_stubby()
 
 void dns_default()
 {
-        os_log(OS_LOG_DEFAULT, "DNS resolving via defaults.");
-
+#ifdef HAVE_OS_LOG_H
+        log_action("DNS resolving via defaults.");
+#endif
         int err = execl(STUBBY_SETDNS, STUBBY_SETDNS, "-r", NULL);
         if (err == -1)
                 fail_with_errno("dns_default");
@@ -141,8 +159,9 @@ void dns_default()
 
 void dns_list()
 {
-        os_log(OS_LOG_DEFAULT, "List DNS resolver.");
-
+#ifdef HAVE_OS_LOG_H
+        log_action("List DNS resolver.");
+#endif
         int err = execl(STUBBY_SETDNS, STUBBY_SETDNS, "-l", NULL);
         if (err == -1)
                 fail_with_errno("dns_list");
@@ -150,8 +169,9 @@ void dns_list()
 
 void check_config(const char *config_file)
 {
-        os_log(OS_LOG_DEFAULT, "Check configuration.");
-
+#ifdef HAVE_OS_LOG_H
+        log_action("Check configuration.");
+#endif
         int err = execl(STUBBY, STUBBY, "-C", config_file, "-i", NULL);
         if (err == -1)
                 fail_with_errno("check_config");
@@ -159,8 +179,9 @@ void check_config(const char *config_file)
 
 void write_config(const char *config_file)
 {
-        os_log(OS_LOG_DEFAULT, "Write configuration.");
-
+#ifdef HAVE_OS_LOG_H
+        log_action("Write configuration.");
+#endif
         int err = execl(CP, CP, config_file, DEFAULT_CONFIG_FILE, NULL);
         if (err == -1)
                 fail_with_errno("write_config");

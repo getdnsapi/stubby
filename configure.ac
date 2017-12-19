@@ -1,5 +1,5 @@
 AC_PREREQ([2.68])
-AC_INIT([Stubby], [0.2.0], [sara@sinodun.com])
+AC_INIT([Stubby], [0.2.1], [sara@sinodun.com])
 AC_CANONICAL_TARGET
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR([src/stubby.c])
@@ -53,6 +53,8 @@ AC_TRY_COMPILE([
 ], [
 	AC_MSG_RESULT(no)
 ])
+
+AC_CHECK_HEADERS([os/log.h])
 
 build_on_windows="0"
 build_on_macos="0"
