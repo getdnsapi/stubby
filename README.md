@@ -1,7 +1,7 @@
 # About Stubby
 
 Stubby is an application that acts as a local **DNS Privacy stub resolver** (using DNS-over-TLS). Stubby encrypts DNS queries sent 
-from a client machine (desktop or laptop) to a DNS Privacy resolver increasing end user privacy. Stubby is in the early stages 
+from a client machine (desktop or laptop) to a DNS Privacy resolver(s) increasing end user privacy. Stubby is in the early stages 
 of development but is suitable for technical/advanced users. A more generally user-friendly version is on the way!
 
 Stubby provides DNS Privacy by:
@@ -69,7 +69,11 @@ more human readable and supports comments allowing options to be easily enabled 
 
 ## Create Custom Configuration File
 
-Alternatively the configuration file location can be specified on the command line using the `-C` flag. Changes to the configuration file require a restart of Stubby.
+Alternatively the configuration file location can be specified on the command line using the `-C` flag. Changes to the configuration file require a restart of Stubby, for example on macOS:
+
+```sh
+> sudo launchctl kickstart -k -p system/homebrew.mxcl.stubby
+```
 
 The config file below will configure Stubby in the following ways:
 
