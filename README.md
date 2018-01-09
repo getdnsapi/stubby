@@ -7,7 +7,7 @@ of development but is suitable for technical/advanced users. A more generally us
 Stubby provides DNS Privacy by:
 
 * Running as a daemon
-* Listening on the loopback address to send all outgoing DNS queries received on that address out over TLS
+* Listening on the loopback address to send all outgoing DNS queries received on that address out over TLS (1.2 or 1.3)
 * Using a default configuration which provides Strict Privacy and uses a subset
 of the available [DNS Privacy servers](https://dnsprivacy.org/wiki/x/E4AT)
 
@@ -73,6 +73,11 @@ Alternatively the configuration file location can be specified on the command li
 
 ```sh
 > sudo launchctl kickstart -k -p system/homebrew.mxcl.stubby
+```
+or 
+
+```sh
+> brew services restart stubby
 ```
 
 The config file below will configure Stubby in the following ways:
@@ -159,7 +164,7 @@ For Stubby to re-send outgoing DNS queries over TLS the system stub resolvers on
   nameserver ::1
   ```
 
-## OS X
+## macOS
 
 A script is provided with Stubby for easier configuration. From the command line you can do the following to switch all your queries to use Stubby
 
@@ -211,7 +216,7 @@ The most limited install of getdns that will work with Stubby requires only Open
 
 It may be necessary to install [1.0.2 from source](https://openssl.org/source/openssl-1.0.2h.tar.gz) for most Linux distros.
 
-### OS X
+### macOS
 
 It is recommended to [install OpenSSL using homebrew](http://brewformulas.org/Openssl), in which case use the following in the `configure` line in the build step below:
 
