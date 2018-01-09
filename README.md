@@ -11,6 +11,8 @@ Stubby provides DNS Privacy by:
 * Using a default configuration which provides Strict Privacy and uses a subset
 of the available [DNS Privacy servers](https://dnsprivacy.org/wiki/x/E4AT)
 
+Note: resolution of DNS queries using TLS is several times slower than standard UDP based DNS.
+
 Stubby is developed by the getdns team.
 
 # Documentation
