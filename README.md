@@ -168,7 +168,7 @@ For Stubby to re-send outgoing DNS queries over TLS the system stub resolvers on
 
 ## macOS
 
-A script is provided with Stubby for easier configuration. From the command line you can do the following to switch all your queries to use Stubby
+A script is provided with Stubby for easier configuration. From the command line you can do the following to configure all available network interfaces to send their DNS queries to Stubby
 
 ```sh
 > sudo /usr/local/sbin/stubby-setdns-macos.sh
