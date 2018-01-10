@@ -1,15 +1,17 @@
 # About Stubby
 
 Stubby is an application that acts as a local **DNS Privacy stub resolver** (using DNS-over-TLS). Stubby encrypts DNS queries sent 
-from a client machine (desktop or laptop) to a DNS Privacy resolver increasing end user privacy. Stubby is in the early stages 
+from a client machine (desktop or laptop) to a DNS Privacy resolver(s) increasing end user privacy. Stubby is in the early stages 
 of development but is suitable for technical/advanced users. A more generally user-friendly version is on the way!
 
 Stubby provides DNS Privacy by:
 
 * Running as a daemon
-* Listening on the loopback address to send all outgoing DNS queries received on that address out over TLS
+* Listening on the loopback address to send all outgoing DNS queries received on that address out over TLS (1.2 or 1.3)
 * Using a default configuration which provides Strict Privacy and uses a subset
 of the available [DNS Privacy servers](https://dnsprivacy.org/wiki/x/E4AT)
+
+Note: Resolution of DNS queries using TLS is typically several times slower than standard UDP based DNS, this may (but not necessarily) make a noticable difference to system performance.
 
 Stubby is developed by the getdns team.
 
@@ -69,7 +71,16 @@ more human readable and supports comments allowing options to be easily enabled 
 
 ## Create Custom Configuration File
 
-Alternatively the configuration file location can be specified on the command line using the `-C` flag. Changes to the configuration file require a restart of Stubby.
+Alternatively the configuration file location can be specified on the command line using the `-C` flag. Changes to the configuration file require a restart of Stubby, for example on macOS:
+
+```sh
+> sudo launchctl kickstart -k -p system/homebrew.mxcl.stubby
+```
+or 
+
+```sh
+> brew services restart stubby
+```
 
 The config file below will configure Stubby in the following ways:
 
@@ -155,9 +166,9 @@ For Stubby to re-send outgoing DNS queries over TLS the system stub resolvers on
   nameserver ::1
   ```
 
-## OS X
+## macOS
 
-A script is provided with Stubby for easier configuration. From the command line you can do the following to switch all your queries to use Stubby
+A script is provided with Stubby for easier configuration. From the command line you can do the following to configure all available network interfaces to send their DNS queries to Stubby
 
 ```sh
 > sudo /usr/local/sbin/stubby-setdns-macos.sh
@@ -207,7 +218,7 @@ The most limited install of getdns that will work with Stubby requires only Open
 
 It may be necessary to install [1.0.2 from source](https://openssl.org/source/openssl-1.0.2h.tar.gz) for most Linux distros.
 
-### OS X
+### macOS
 
 It is recommended to [install OpenSSL using homebrew](http://brewformulas.org/Openssl), in which case use the following in the `configure` line in the build step below:
 
