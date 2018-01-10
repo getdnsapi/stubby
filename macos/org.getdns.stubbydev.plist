@@ -13,8 +13,6 @@
       <string>/usr/local/bin/stubby</string>
       <string>-l</string>
     </array>
-    <key>UserName</key>
-    <string>root</string>
     <key>StandardErrorPath</key>
     <string>/var/log/stubby.log</string>
     <key>StandardOutPath</key>
