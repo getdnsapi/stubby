@@ -1,0 +1,4 @@
+[submodule "getdns"]
+	path = getdns
+	url = https://github.com/getdnsapi/getdns.git
+	branch = master

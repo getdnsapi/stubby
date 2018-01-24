@@ -21,10 +21,7 @@ See [Stubby Homepage](https://dnsprivacy.org/wiki/x/JYAT) for more details
 
 Stubby uses [getdns](https://getdnsapi.net/) and requires the 1.2 release of getdns or later.
 
-It also requires that either
-* getdns was compiled with [yaml](http://pyyaml.org/wiki/LibYAML) support (using the --with-libyaml configure option)
-* or stubby is compiled with libyaml as a dependancy. 
-
+Stubby also requires [libyaml](https://github.com/yaml/libyaml).
 
 # Installing Using a Package Manager
 
@@ -35,23 +32,33 @@ https://repology.org/metapackage/stubby/versions
 * A Homebrew package for stubby is now available (`brew install stubby`).
 * A [GUI for macOS](https://dnsprivacy.org/wiki/x/CIBn) is also available for testing
 
-If you need to install getdns from source, see the section [at the end of this document.](#building-getdns-from-source)
+If you need to install getdns from source, it can be built as part of the stubby build. See the section [at the end of this document](#building-stubby-with-a-local-build-of-getdns).
 
 # Build Stubby from source
 
 Get the code:
-```
+
+```sh
 git clone https://github.com/getdnsapi/stubby.git
 ```
 
-Build and install (the paths below assume that getdns and libyaml are installed in a standard location e.g. by Homebrew in /usr/local/)
-```
+Build and install:
+
+```sh
 cd stubby
 autoreconf -vfi
-./configure CFLAGS="-I/usr/local/include" LDFLAGS="-L/usr/local/lib"
+./configure
 make
 sudo make install
-````
+```
+
+If getdns or libyaml are installed at non-standard locations, it may be
+necessary to specify the include and library paths. In this example,
+libyaml has been installed into `/opt/yaml`:
+
+```sh
+./configure CFLAGS="-I/opt/yaml/include" LDFLAGS="-L/opt/yaml/lib"
+```
 
 # Configure Stubby
 
@@ -194,10 +201,41 @@ Instructions for how to update the resolvers manually are provided are also prov
 * If Stubby works for a while but you then see failures from Stubby such as "None of the configured upstreams could be used to send queries on the specified transports" try restarting Stubby.
 * If you are using a DNS Privacy server that does not support concurrent processing of TLS queries, you may experience some issues due to timeouts causing subsequent queries on the same connection to fail.
 
-# Building getdns from Source
+# Building stubby with a local build of getdns
 
-Note that from getdns 1.1.3 stubby is included in the getdns code as a git submodule. Therefore stubby and getdns can be built together by following the
-instructions below but adding the ``--with-stubby`` flag to the `configure` step.
+As a convenience to stubby and getdns developers, stubby can be built with a
+local copy of getdns. In this case, assuming the local copy of getdns is only
+for use with stubby, we recommend configuring with the getdns option
+`--enable-stub-only` to minimise getdns dependencies.
+
+Get the code:
+
+```sh
+git clone https://github.com/getdnsapi/stubby.git
+```
+
+Prepare stubby and getdns:
+
+```sh
+cd stubby
+git submodule update --init --recursive
+autoreconf -vfi
+```
+
+Configure and build stubby and getdns:
+
+```sh
+./configure --enable-stub-only
+make
+```
+
+Note that if you then choose to run:
+
+```sh
+sudo make install
+```
+
+this will install stubby AND the local getdns.
 
 ## Dependencies
 
@@ -209,22 +247,11 @@ It may be necessary to install [1.0.2 from source](https://openssl.org/source/op
 
 ### OS X
 
-It is recommended to [install OpenSSL using homebrew](http://brewformulas.org/Openssl), in which case use the following in the `configure` line in the build step below:
+It is recommended to [install OpenSSL using homebrew](http://brewformulas.org/Openssl), in which case use the following parameter to `configure`:
 
 ```sh
 --with-ssl=/usr/local/opt/openssl/
 ```
-
-## Download the getdns source
-
-Either clone the code:
-
-```sh
-> git clone https://github.com/getdnsapi/getdns.git
-> cd getdns
-> git checkout develop
-```
-for the very latest version of getdns or grab a release tarball from this page: [Latest getdns releases](https://getdnsapi.net/releases/)
 
 ## Build the code
 
@@ -235,7 +262,7 @@ Note that on Mac OS X you will need the developer tools from Xcode to compile th
 > autoreconf -fi
 > mkdir build
 > cd build
-> ../configure --prefix=<install_location> --without-libidn --enable-stub-only
+> ../configure --prefix=<install_location> --enable-stub-only
 > make
 > sudo make install
 ```

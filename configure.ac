@@ -5,6 +5,23 @@ AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR([src/stubby.c])
 AC_CONFIG_HEADERS([config.h])
 
+# Nedd to use libtool to retrieve getdns library if local.
+AC_CONFIG_MACRO_DIRS([m4])
+AC_PROG_LIBTOOL
+
+getdns_local=0
+AS_IF([test -f "$srcdir/getdns/configure.ac"],
+  [AC_CONFIG_SUBDIRS([getdns])
+   AC_SUBST([getdnslib], [getdns/src/libgetdns.la])
+   AC_SUBST([getdnsincdir], [getdns/src])
+   getdns_local=1],
+  [AC_CHECK_LIB([getdns], [getdns_context_set_trust_anchors_url],,
+     [AC_MSG_ERROR([Missing dependency: getdns >= 1.2.0])],
+     [])
+   AC_CHECK_HEADERS([getdns/getdns_extra.h],,
+     [AC_MSG_ERROR([Missing dependency getdns development headers])],)])
+AM_CONDITIONAL([GETDNS_LOCAL], [test $getdns_local -eq 1])
+
 # Autoconf 2.70 will have set up runstatedir. 2.69 is frequently (Debian)
 # patched to do the same, but frequently (MacOS) not. So add a with option
 # for pid file location, and default it to runstatedir if present.
@@ -18,15 +35,8 @@ AC_SUBST([runstatedir], [$with_piddir])
 
 AC_PROG_CC([clang gcc])
 
-AC_CHECK_LIB([getdns], [getdns_context_set_trust_anchors_url],,
-    [AC_MSG_ERROR([Missing dependency: getdns >= 1.2.0 ])],)
-AC_CHECK_HEADERS([getdns/getdns_extra.h],,
-    [AC_MSG_ERROR([Missing dependency getdns development headers])],)
-AC_CHECK_FUNCS([getdns_yaml2dict],, [
-	AC_CHECK_LIB([yaml], [yaml_parser_parse],,
-	    [AC_MSG_ERROR([Missing dependency: libyaml])])
-])
-AM_CONDITIONAL([WITH_YAML], [test "x$ac_cv_func_getdns_yaml2dict" = xno])
+AC_CHECK_LIB([yaml], [yaml_parser_parse],,
+    [AC_MSG_ERROR([Missing dependency: libyaml])])
 AC_CHECK_HEADERS([assert.h stdio.h stdarg.h inttypes.h])
 
 AC_MSG_CHECKING(whether the C compiler (${CC-cc}) accepts the "format" attribute)

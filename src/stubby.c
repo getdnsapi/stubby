@@ -38,13 +38,10 @@
 #include <signal.h>
 #include <limits.h>
 
-#ifdef HAVE_GETDNS_YAML2DICT
-getdns_return_t getdns_yaml2dict(const char *str, getdns_dict **dict);
-#else
 # include "yaml/convert_yaml_to_json.h"
-# define getdns_yaml2dict stubby_yaml2dict
+
 getdns_return_t
-getdns_yaml2dict(const char *str, getdns_dict **dict)
+stubby_yaml2dict(const char *str, getdns_dict **dict)
 {
 	char *jsonstr;
 	
@@ -60,7 +57,6 @@ getdns_yaml2dict(const char *str, getdns_dict **dict)
 		return GETDNS_RETURN_GENERIC_ERROR;
 	}       
 }
-#endif
 
 #define STUBBYPIDFILE RUNSTATEDIR"/stubby.pid"
 
@@ -174,17 +170,7 @@ static getdns_return_t parse_config(const char *config_str, int yaml_config)
 	getdns_return_t r;
 
 	if (yaml_config) {
-		r = getdns_yaml2dict(config_str, &config_dict);
-		if (r == GETDNS_RETURN_NOT_IMPLEMENTED) {
-			/* If this fails then YAML is really not supported. Check this at 
-			   runtime because it could change under us..... */
-			r = getdns_yaml2dict(config_str, NULL);
-			if (r == GETDNS_RETURN_NOT_IMPLEMENTED) {
-				fprintf(stderr, "Support for YAML configuration files not available because\n");
-				fprintf(stderr, "the version of getdns used was not compiled with YAML support.\n");
-				return GETDNS_RETURN_NOT_IMPLEMENTED;
-			}
-		}
+		r = stubby_yaml2dict(config_str, &config_dict);
 	} else {
 		r = getdns_str2dict(config_str, &config_dict);
 	}

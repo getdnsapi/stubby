@@ -1,7 +1,7 @@
 if ON_MACOS
     OPTIONAL_BUILD_SUBDIR = macos
 endif
-SUBDIRS = src $(OPTIONAL_BUILD_SUBDIR)
+SUBDIRS = $(subdirs) src $(OPTIONAL_BUILD_SUBDIR)
 
 stubbyconfdir = $(sysconfdir)/stubby
 dist_stubbyconf_DATA = stubby.yml.example
