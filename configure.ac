@@ -22,6 +22,11 @@ AS_IF([test -f "$srcdir/getdns/configure.ac"],
      [AC_MSG_ERROR([Missing dependency getdns development headers])],)])
 AM_CONDITIONAL([GETDNS_LOCAL], [test $getdns_local -eq 1])
 
+# We need to link against OpenSSL if using a pre-built getdns. Enable
+# the --with-ssl option as per getdns.
+ACX_WITH_SSL_OPTIONAL
+ACX_LIB_SSL
+
 # Autoconf 2.70 will have set up runstatedir. 2.69 is frequently (Debian)
 # patched to do the same, but frequently (MacOS) not. So add a with option
 # for pid file location, and default it to runstatedir if present.
@@ -145,10 +150,6 @@ AH_BOTTOM([
 #else /* !HAVE_ATTR_UNUSED */
 #  define ATTR_UNUSED(x)  x
 #endif /* !HAVE_ATTR_UNUSED */
-
-#ifndef HAVE_GETDNS_YAML2DICT
-# define USE_YAML_CONFIG 1
-#endif
 
 #define yaml_string_to_json_string        stubby_yaml_string_to_json_string
 
