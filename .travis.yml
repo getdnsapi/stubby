@@ -10,29 +10,19 @@ os:
   - linux
   - osx
 
-addons:
-  apt:
-    packages:
-    - libyaml-dev
-    - libssl-dev
+# Dependencies. We need libyaml and libssl.
+# Both are installed in the base Travis image.
 
 # For now...
 branches:
   only:
     - feature/travis
 
-before_install:
-  - if [ "$TRAVIS_OS_NAME" = osx ]; then brew update >/dev/null; fi
-
-install:
-  - if [ "$TRAVIS_OS_NAME" = osx ]; then brew install libyaml; fi
-  - if [ "$TRAVIS_OS_NAME" = osx ]; then brew install openssl; fi
-
 before_script:
   - autoreconf -vfi
   - mkdir build
   - cd build
-  - if [ "$TRAVIS_OS_NAME" = osx ]; then WITH_SSL="--with-ssl=/use/local/opt/openssl"; fi
+  - if [ "$TRAVIS_OS_NAME" = osx ]; then WITH_SSL="--with-ssl=/usr/local/opt/openssl"; fi
   - ../configure --enable-stub-only --without-libidn --without-libidn2 $WITH_SSL
 
 script:
