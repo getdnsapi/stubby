@@ -19,20 +19,21 @@ See [Stubby Homepage](https://dnsprivacy.org/wiki/x/JYAT) for more details
 
 # Dependancies
 
-Stubby uses [getdns](https://getdnsapi.net/) and requires the 1.2 release of getdns or later.
+Stubby uses [libgetdns](https://getdnsapi.net/) and requires the 1.2 release of getdns or later.
 
 Stubby also requires [libyaml](https://github.com/yaml/libyaml).
 
 # Installing Using a Package Manager
 
-Check to see if getdns, libyaml and Stubby are available via a package manager for your system.
+Check to see if libgetdns, libyaml and Stubby are available via a package manager for your system.
+Stubby packages can be found here:
 https://repology.org/metapackage/stubby/versions
 
 * A [Windows Installer](https://dnsprivacy.org/wiki/x/CoBn) is now available for Stubby.
 * A Homebrew package for stubby is now available (`brew install stubby`).
 * A [GUI for macOS](https://dnsprivacy.org/wiki/x/CIBn) is also available for testing
 
-If you need to install getdns from source, it can be built as part of the stubby build. See the section [at the end of this document](#building-stubby-with-a-local-build-of-getdns).
+NOTE: If you need to build getdns from source, it can be built as part of the stubby build as of stubby v0.3.0 and later. See the section [at the end of this document](#building-stubby-with-a-local-build-of-getdns).
 
 # Build Stubby from source
 
@@ -52,7 +53,7 @@ make
 sudo make install
 ```
 
-If getdns or libyaml are installed at non-standard locations, it may be
+If libgetdns or libyaml are installed at non-standard locations, it may be
 necessary to specify the include and library paths. In this example,
 libyaml has been installed into `/opt/yaml`:
 
@@ -205,8 +206,32 @@ Instructions for how to update the resolvers manually are provided are also prov
 
 As a convenience to stubby and getdns developers, stubby can be built with a
 local copy of getdns. In this case, assuming the local copy of getdns is only
-for use with stubby, we recommend configuring with the getdns option
-`--enable-stub-only` to minimise getdns dependencies.
+for use with stubby, we recommend configuring with the necessary getdns
+configure options to minimise getdns dependencies.
+
+## Dependencies for getdns
+
+The most limited install of getdns that will work with Stubby requires only OpenSSL as a dependancy (version 1.0.2 or later is required for hostname authentication to be supported). If OpenSSL is installed in a non-standard location on your system use the `--with-ssl` option to `configure` below to specify where it is installed.
+
+### Linux
+
+It may be necessary to install [1.0.2 or later from source](https://openssl.org/source/openssl-1.0.2h.tar.gz) for most Linux distros.
+
+### OS X
+
+It is recommended to [install OpenSSL using homebrew](http://brewformulas.org/Openssl), in which case use the following parameter to `configure`:
+
+```sh
+--with-ssl=/usr/local/opt/openssl/
+
+## Dependancies for stubby
+
+As above, if libyaml is installed in a non-standard location then the location
+should be specified to configure using CFLAGS and LDFLAGS.
+
+## Build the code
+
+(Note that on Mac OS X you will need the developer tools from Xcode to compile the code. And you may need to use brew to install libtool, autoconf, and automake.)
 
 Get the code:
 
@@ -225,9 +250,15 @@ autoreconf -vfi
 Configure and build stubby and getdns:
 
 ```sh
-./configure --enable-stub-only
+./configure --enable-stub-only --without-libidn --without-libidn2
 make
 ```
+
+###Logging/debugging
+
+**`--enable-debug-stub`**   If you do want to see _very_ detailed debug information as messages are processed then add the `--enable-debug-stub` option to the `configure` line above (not recommended for general use with stubby)
+
+## Install
 
 Note that if you then choose to run:
 
@@ -236,37 +267,3 @@ sudo make install
 ```
 
 this will install stubby AND the local getdns.
-
-## Dependencies
-
-The most limited install of getdns that will work with Stubby requires only OpenSSL as a dependancy (version 1.0.2 or later is required for hostname authentication to be supported). If OpenSSL is installed in a non-standard location on your system use the `--with-ssl` option to `configure` below to specify where it is installed.
-
-### Linux
-
-It may be necessary to install [1.0.2 from source](https://openssl.org/source/openssl-1.0.2h.tar.gz) for most Linux distros.
-
-### OS X
-
-It is recommended to [install OpenSSL using homebrew](http://brewformulas.org/Openssl), in which case use the following parameter to `configure`:
-
-```sh
---with-ssl=/usr/local/opt/openssl/
-```
-
-## Build the code
-
-Note that on Mac OS X you will need the developer tools from Xcode to compile the code. And you may need to use brew to install libtool, autoconf, and automake.
-
-```sh
-> git submodule update --init
-> autoreconf -fi
-> mkdir build
-> cd build
-> ../configure --prefix=<install_location> --enable-stub-only
-> make
-> sudo make install
-```
-
-Logging/debugging
-
-> **`--enable-debug-stub`**   If you do want to see _very_ detailed debug information as messages are processed then add the `--enable-debug-stub` option to the `configure` line above (not recommended for use with Stubby)
