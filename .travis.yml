@@ -12,6 +12,7 @@ os:
 
 addons:
   apt:
+    packages:
     - libyaml-dev
     - libssl-dev
 
