@@ -34,3 +34,6 @@ before_script:
   - cd build
   - if [ "$TRAVIS_OS_NAME" = osx ]; then WITH_SSL="--with-ssl=/use/local/opt/openssl"; fi
   - ../configure --enable-stub-only --without-libidn --without-libidn2 $WITH_SSL
+
+script:
+  - make
