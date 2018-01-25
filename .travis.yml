@@ -12,8 +12,8 @@ os:
 
 addons:
   apt:
-    libyaml-dev
-    libssl-dev
+    - libyaml-dev
+    - libssl-dev
 
 # For now...
 branches:
