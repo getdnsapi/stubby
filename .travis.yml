@@ -18,7 +18,7 @@ addons:
 # For now...
 branches:
   only:
-    - feature/getdns-subbuild
+    - feature/travis
 
 before_install:
   - if [ "$TRAVIS_OS_NAME" = osx ]; then brew update >/dev/null; fi
