@@ -10,13 +10,15 @@ os:
   - linux
   - osx
 
+# Use macOS Sierra
+osx_image: xcode9.2
+
+# See if we can get xenial. This may not work.
+# See https://github.com/travis-ci/travis-ci/issues/7260
+dist: xenial
+
 # Dependencies. We need libyaml and libssl.
 # Both are installed in the base Travis image.
-
-# For now...
-branches:
-  only:
-    - feature/travis
 
 before_script:
   - autoreconf -vfi
