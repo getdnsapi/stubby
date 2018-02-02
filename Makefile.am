@@ -6,6 +6,13 @@ SUBDIRS = src $(OPTIONAL_BUILD_SUBDIR)
 stubbyconfdir = $(sysconfdir)/stubby
 dist_stubbyconf_DATA = stubby.yml.example
 
+dist_noinst_DATA = doc/stubby.1.in
+dist_man_MANS = stubby.1
+dist_doc_DATA = AUTHORS COPYING ChangeLog INSTALL NEWS README.md
+
+%.1 :: doc/%.1.in ; sed -e "s|@ETCDIR@|$(stubbyconfdir)|g" $< > $@
+
+
 if ON_WINDOWS
 CONFIG_FILE = stubby.yml.windows
 else
