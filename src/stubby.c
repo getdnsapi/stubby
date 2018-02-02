@@ -867,6 +867,43 @@ main(int argc, char **argv)
 	} else
 #endif
 	{
+		/* Report basic config options which specifically affect privacy and validation*/
+		stubby_local_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_INFO,
+			       "DNSSEC Validation is %s\n", dnssec_validation==1 ? "ON":"OFF");
+		size_t transport_count = 0;
+		getdns_transport_list_t *transport_list;
+		getdns_context_get_dns_transport_list(context, 
+		                                 &transport_count, &transport_list);
+		stubby_local_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_INFO,
+		                "Transport list is:\n");
+		for (size_t i = 0; i < transport_count; i++) {
+			char* transport_name;
+			switch (transport_list[i]) {
+				case GETDNS_TRANSPORT_UDP:
+					transport_name = "UDP";
+					break;
+				case GETDNS_TRANSPORT_TCP:
+					transport_name = "TCP";
+					break;
+				case GETDNS_TRANSPORT_TLS:
+					transport_name = "TLS";
+					break;
+				default:
+					transport_name = "Unknown transport type";
+					break;
+				}
+			stubby_local_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_INFO,
+			                 "  - %s\n", transport_name);
+		}
+		free(transport_list);
+		getdns_tls_authentication_t auth;
+		getdns_context_get_tls_authentication(context, &auth);
+		stubby_local_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_INFO,
+		                "Privacy Usage Profile is %s\n", 
+		                 auth==GETDNS_AUTHENTICATION_REQUIRED ? 
+		                "Strict (Authentication required)":"Opportunistic");
+		stubby_local_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_INFO,
+			            "(NOTE a Strict Profile only applies when TLS is the ONLY transport!!)\n");
 		stubby_local_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_DEBUG,
 			       "Starting DAEMON....\n");
 #ifdef SIGPIPE
