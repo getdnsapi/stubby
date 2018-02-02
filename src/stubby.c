@@ -124,9 +124,9 @@ static void stubby_local_log(void *userarg, uint64_t system,
 
 
 void
-print_usage(FILE *out, const char *progname)
+print_usage(FILE *out)
 {
-	fprintf(out, "usage: %s [<option> ...] \\\n", progname);
+	fprintf(out, "usage: " PACKAGE " [<option> ...] \\\n");
 	fprintf(out, "\t-C\t<filename>\n");
 	fprintf(out, "\t\tRead settings from config file <filename>\n");
 	fprintf(out, "\t\tThe getdns context will be configured with these settings\n");
@@ -155,6 +155,13 @@ print_usage(FILE *out, const char *progname)
 	fprintf(out, "\t\t\t5: NOTICE - %s\n", GETDNS_LOG_NOTICE_TEXT);
 	fprintf(out, "\t\t\t6: INFO   - %s\n", GETDNS_LOG_INFO_TEXT);
 	fprintf(out, "\t\t\t7: DEBUG  - %s\n", GETDNS_LOG_DEBUG_TEXT);
+	fprintf(out, "\t-V\tPrint the " PACKAGE " version\n");
+}
+
+void
+print_version(FILE *out)
+{
+	fprintf(out, PACKAGE_STRING "\n");
 }
 
 #ifndef GETDNS_RETURN_IO_ERROR
@@ -651,14 +658,7 @@ main(int argc, char **argv)
 	getdns_list *api_info_keys = NULL;
 	getdns_bindata *api_info_key = NULL;
 
-#ifndef USE_WINSOCK
-	char *prg_name = strrchr(argv[0], '/');
-#else
-	char *prg_name = strrchr(argv[0], '\\');
-#endif
-	prg_name = prg_name ? prg_name + 1 : argv[0];
-
-	while ((opt = getopt(argc, argv, "C:ighlv:")) != -1) {
+	while ((opt = getopt(argc, argv, "C:ighlv:V")) != -1) {
 		switch (opt) {
 		case 'C':
 			custom_config_fn = optarg;
@@ -667,7 +667,7 @@ main(int argc, char **argv)
 			run_in_foreground = 0;
 			break;
 		case 'h':
-			print_usage(stdout, prg_name);
+			print_usage(stdout);
 			exit(EXIT_SUCCESS);
 		case 'i':
 			print_api_info = 1;
@@ -686,8 +686,11 @@ main(int argc, char **argv)
 				exit(EXIT_FAILURE);
 			}
 			break;
+                case 'V':
+			print_version(stdout);
+			exit(EXIT_SUCCESS);
 		default:
-			print_usage(stderr, prg_name);
+			print_usage(stderr);
 			exit(EXIT_FAILURE);
 		}
 	}
