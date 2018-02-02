@@ -153,8 +153,12 @@ upstream_recursive_servers:
 # Additional servers
 
 # IPv4 addresses
-## Quad 9 service
+## Quad 9 'secure' service - Filters, does DNSSEC, doesn't send ECS
 #  - address_data: 9.9.9.9
+#    tls_auth_name: "dns.quad9.net"
+## Quad 9 'insecure' service - No filtering, does DNSSEC, may send ECS (it is 
+## unclear if it honours the edns_client_subnet_private request from stubby)
+#  - address_data: 9.9.9.10
 #    tls_auth_name: "dns.quad9.net"
 ## The Uncensored DNS servers
 #  - address_data: 89.233.43.71
