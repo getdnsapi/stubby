@@ -242,6 +242,13 @@ upstream_recursive_servers:
 ##         value: pOXrpUt9kgPgbWxBFFcBTbRH2heo2wHwXp1fd4AEVXI=
 
 #IPv6 addresses
+## Quad 9 'secure' service - Filters, does DNSSEC, doesn't send ECS
+#  - address_data: 2620:fe::fe
+#    tls_auth_name: "dns.quad9.net"
+## Quad 9 'insecure' service - No filtering, does DNSSEC, may send ECS (it is 
+## unclear if it honours the edns_client_subnet_private request from stubby)
+#  - address_data: 2620:fe::10
+#    tls_auth_name: "dns.quad9.net"
 ## The Uncensored DNS server
 #  - address_data: 2a01:3a0:53:53::0
 #    tls_auth_name: "unicast.censurfridns.dk"
