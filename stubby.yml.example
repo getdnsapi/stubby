@@ -42,9 +42,9 @@ dns_transport_list:
 tls_authentication: GETDNS_AUTHENTICATION_REQUIRED
 
 # EDNS0 option to pad the size of the DNS query to the given blocksize
-# 256 is currently recommended by 
-# https://tools.ietf.org/html/draft-ietf-dprive-padding-policy-01
-tls_query_padding_blocksize: 256
+# 128 is currently recommended by 
+# https://tools.ietf.org/html/draft-ietf-dprive-padding-policy-03
+tls_query_padding_blocksize: 128
 
 # EDNS0 option for ECS client privacy as described in Section 7.1.2 of
 # https://tools.ietf.org/html/rfc7871
