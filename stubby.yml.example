@@ -14,6 +14,8 @@
 #   - yaml tags are not supported
 #   - IPv6 addresses ending in :: are not yet supported (use ::0)
 #
+# Note that we plan to introduce a more compact format for defining upstreams
+# in future: https://github.com/getdnsapi/stubby/issues/79
 
 # Logging is currently configured at runtime using command line arguments. See
 # > stubby -h
@@ -188,7 +190,7 @@ upstream_recursive_servers:
 #        value: 3IOHSS48KOc/zlkKGtI46a9TY9PPKDVGhE3W2ZS4JZo=
 #      - digest: "sha256"
 #        value: 5zFN3smRPuHIlM/8L+hANt99LW26T97RFHqHv90awjo=
-## dns.larsdebruin.net (formally dns1.darkmoon.is)
+## dns.larsdebruin.net (formerly dns1.darkmoon.is)
 #  - address_data: 51.15.70.167
 #    tls_auth_name: "dns.larsdebruin.net "
 #    tls_pubkey_pinset:
@@ -229,6 +231,12 @@ upstream_recursive_servers:
 #    tls_pubkey_pinset:
 #      - digest: "sha256"
 #        value: WaG0kHUS5N/ny0labz85HZg+v+f0b/UQ73IZjFep0nM=
+## dns.neutopia.org
+#  - address_data: 89.234.186.112
+#    tls_auth_name: "dns.neutopia.org"
+#    tls_pubkey_pinset:
+#      - digest: "sha256"
+#        value: wTeXHM8aczvhRSi0cv2qOXkXInoDU+2C+M8MpRyT3OI=
 ## NIC Chile (self-signed cert)
 #  - address_data: 200.1.123.46
 #    tls_pubkey_pinset:
@@ -312,6 +320,12 @@ upstream_recursive_servers:
 #    tls_pubkey_pinset:
 #      - digest: "sha256"
 #        value: WaG0kHUS5N/ny0labz85HZg+v+f0b/UQ73IZjFep0nM=
+## dns.neutopia.org
+#  - address_data: 2a00:5884:8209::2
+#    tls_auth_name: "dns.neutopia.org"
+#    tls_pubkey_pinset:
+#      - digest: "sha256"
+#        value: wTeXHM8aczvhRSi0cv2qOXkXInoDU+2C+M8MpRyT3OI=
 ## NIC Chile (self-signed cert)
 #  - address_data: 2001:1398:1:0:200:1:123:46
 #    tls_pubkey_pinset:
@@ -331,7 +345,7 @@ upstream_recursive_servers:
 ##         value: pOXrpUt9kgPgbWxBFFcBTbRH2heo2wHwXp1fd4AEVXI=
 
 ## Servers that listen on port 443 (IPv4 and IPv6)
-## Surfnet/Sinodun servers listening on port 443
+## Surfnet/Sinodun servers
 #  - address_data: 145.100.185.15
 #    tls_port: 443
 #    tls_auth_name: "dnsovertls.sinodun.com"
@@ -344,7 +358,7 @@ upstream_recursive_servers:
 #    tls_pubkey_pinset:
 #      - digest: "sha256"
 #        value: cE2ecALeE5B+urJhDrJlVFmf38cJLAvqekONvjvpqUA=
-## dns.cmrg.net server using Knot resolver, listening on port 443
+## dns.cmrg.net server using Knot resolver
 #  - address_data: 199.58.81.218
 #    tls_port: 443
 #    tls_auth_name: "dns.cmrg.net"
@@ -353,13 +367,20 @@ upstream_recursive_servers:
 #        value: 3IOHSS48KOc/zlkKGtI46a9TY9PPKDVGhE3W2ZS4JZo=
 #      - digest: "sha256"
 #        value: 5zFN3smRPuHIlM/8L+hANt99LW26T97RFHqHv90awjo=
-## Lorraine Data Network  (self-signed cert), listening on port 443.
+## Lorraine Data Network  (self-signed cert)
 #  - address_data: 80.67.188.188
 #    tls_port: 443
 #    tls_pubkey_pinset:
 #      - digest: "sha256"
 #        value: WaG0kHUS5N/ny0labz85HZg+v+f0b/UQ73IZjFep0nM=
-## The Surfnet/Sinodun servers, listening on port 443
+## dns.neutopia.org
+#  - address_data: 89.234.186.112
+#    tls_port: 443
+#    tls_auth_name: "dns.neutopia.org"
+#    tls_pubkey_pinset:
+#      - digest: "sha256"
+#        value: wTeXHM8aczvhRSi0cv2qOXkXInoDU+2C+M8MpRyT3OI=
+## The Surfnet/Sinodun servers
 #  - address_data: 2001:610:1:40ba:145:100:185:15
 #    tls_port: 443
 #    tls_auth_name: "dnsovertls.sinodun.com"
@@ -372,7 +393,7 @@ upstream_recursive_servers:
 #    tls_pubkey_pinset:
 #      - digest: "sha256"
 #        value: cE2ecALeE5B+urJhDrJlVFmf38cJLAvqekONvjvpqUA=
-## dns.cmrg.net server using Knot resolver listening on port 443.
+## dns.cmrg.net server using Knot resolver
 #  - address_data: 2001:470:1c:76d::53
 #    tls_port: 443
 #    tls_auth_name: "dns.cmrg.net"
@@ -381,9 +402,16 @@ upstream_recursive_servers:
 #        value: 3IOHSS48KOc/zlkKGtI46a9TY9PPKDVGhE3W2ZS4JZo=
 #      - digest: "sha256"
 #        value: 5zFN3smRPuHIlM/8L+hANt99LW26T97RFHqHv90awjo=
-## Lorraine Data Network (self-signed cert), listening on port 443.
+## Lorraine Data Network (self-signed cert)
 #  - address_data: 2001:913::8
 #    tls_port: 443
 #    tls_pubkey_pinset:
 #      - digest: "sha256"
 #        value: WaG0kHUS5N/ny0labz85HZg+v+f0b/UQ73IZjFep0nM=
+## dns.neutopia.org
+#  - address_data: 2a00:5884:8209::2
+#    tls_port: 443
+#    tls_auth_name: "dns.neutopia.org"
+#    tls_pubkey_pinset:
+#      - digest: "sha256"
+#        value: wTeXHM8aczvhRSi0cv2qOXkXInoDU+2C+M8MpRyT3OI=
