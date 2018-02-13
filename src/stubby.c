@@ -126,7 +126,7 @@ static void stubby_local_log(void *userarg, uint64_t system,
 void
 print_usage(FILE *out)
 {
-	fprintf(out, "usage: " PACKAGE " [<option> ...] \\\n");
+	fprintf(out, "usage: " STUBBY_PACKAGE " [<option> ...] \\\n");
 	fprintf(out, "\t-C\t<filename>\n");
 	fprintf(out, "\t\tRead settings from config file <filename>\n");
 	fprintf(out, "\t\tThe getdns context will be configured with these settings\n");
@@ -155,13 +155,13 @@ print_usage(FILE *out)
 	fprintf(out, "\t\t\t5: NOTICE - %s\n", GETDNS_LOG_NOTICE_TEXT);
 	fprintf(out, "\t\t\t6: INFO   - %s\n", GETDNS_LOG_INFO_TEXT);
 	fprintf(out, "\t\t\t7: DEBUG  - %s\n", GETDNS_LOG_DEBUG_TEXT);
-	fprintf(out, "\t-V\tPrint the " PACKAGE " version\n");
+	fprintf(out, "\t-V\tPrint the " STUBBY_PACKAGE " version\n");
 }
 
 void
 print_version(FILE *out)
 {
-	fprintf(out, PACKAGE_STRING "\n");
+	fprintf(out, STUBBY_PACKAGE_STRING "\n");
 }
 
 #ifndef GETDNS_RETURN_IO_ERROR
