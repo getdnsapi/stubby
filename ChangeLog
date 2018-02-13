@@ -1,8 +1,9 @@
 * 2018-02-??: Version 0.2.2
- * Add manpage
- * Add -V version option to Stubby
- * Add output of basic config to the logs to aid debugging.
- * Corrected address of ns1.dnsprivacy.at in config file
+ * Fixes and updates to the stubby.yml.config file. Add separate entries for
+   servers that listen on port 443.
+ * Additional logging of basic config on startup
+ * -V option to show version
+ * Added a man page
 
 * 2017-12-18: Version 0.2.1
  * Fix use of logging on macos 10.11
