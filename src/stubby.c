@@ -124,9 +124,9 @@ static void stubby_local_log(void *userarg, uint64_t system,
 
 
 void
-print_usage(FILE *out, const char *progname)
+print_usage(FILE *out)
 {
-	fprintf(out, "usage: %s [<option> ...] \\\n", progname);
+	fprintf(out, "usage: " STUBBY_PACKAGE " [<option> ...] \\\n");
 	fprintf(out, "\t-C\t<filename>\n");
 	fprintf(out, "\t\tRead settings from config file <filename>\n");
 	fprintf(out, "\t\tThe getdns context will be configured with these settings\n");
@@ -155,6 +155,13 @@ print_usage(FILE *out, const char *progname)
 	fprintf(out, "\t\t\t5: NOTICE - %s\n", GETDNS_LOG_NOTICE_TEXT);
 	fprintf(out, "\t\t\t6: INFO   - %s\n", GETDNS_LOG_INFO_TEXT);
 	fprintf(out, "\t\t\t7: DEBUG  - %s\n", GETDNS_LOG_DEBUG_TEXT);
+	fprintf(out, "\t-V\tPrint the " STUBBY_PACKAGE " version\n");
+}
+
+void
+print_version(FILE *out)
+{
+	fprintf(out, STUBBY_PACKAGE_STRING "\n");
 }
 
 #ifndef GETDNS_RETURN_IO_ERROR
@@ -651,14 +658,7 @@ main(int argc, char **argv)
 	getdns_list *api_info_keys = NULL;
 	getdns_bindata *api_info_key = NULL;
 
-#ifndef USE_WINSOCK
-	char *prg_name = strrchr(argv[0], '/');
-#else
-	char *prg_name = strrchr(argv[0], '\\');
-#endif
-	prg_name = prg_name ? prg_name + 1 : argv[0];
-
-	while ((opt = getopt(argc, argv, "C:ighlv:")) != -1) {
+	while ((opt = getopt(argc, argv, "C:ighlv:V")) != -1) {
 		switch (opt) {
 		case 'C':
 			custom_config_fn = optarg;
@@ -667,7 +667,7 @@ main(int argc, char **argv)
 			run_in_foreground = 0;
 			break;
 		case 'h':
-			print_usage(stdout, prg_name);
+			print_usage(stdout);
 			exit(EXIT_SUCCESS);
 		case 'i':
 			print_api_info = 1;
@@ -686,8 +686,11 @@ main(int argc, char **argv)
 				exit(EXIT_FAILURE);
 			}
 			break;
+                case 'V':
+			print_version(stdout);
+			exit(EXIT_SUCCESS);
 		default:
-			print_usage(stderr, prg_name);
+			print_usage(stderr);
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -867,6 +870,43 @@ main(int argc, char **argv)
 	} else
 #endif
 	{
+		/* Report basic config options which specifically affect privacy and validation*/
+		stubby_local_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_INFO,
+			       "DNSSEC Validation is %s\n", dnssec_validation==1 ? "ON":"OFF");
+		size_t transport_count = 0;
+		getdns_transport_list_t *transport_list;
+		getdns_context_get_dns_transport_list(context, 
+		                                 &transport_count, &transport_list);
+		stubby_local_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_INFO,
+		                "Transport list is:\n");
+		for (size_t i = 0; i < transport_count; i++) {
+			char* transport_name;
+			switch (transport_list[i]) {
+				case GETDNS_TRANSPORT_UDP:
+					transport_name = "UDP";
+					break;
+				case GETDNS_TRANSPORT_TCP:
+					transport_name = "TCP";
+					break;
+				case GETDNS_TRANSPORT_TLS:
+					transport_name = "TLS";
+					break;
+				default:
+					transport_name = "Unknown transport type";
+					break;
+				}
+			stubby_local_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_INFO,
+			                 "  - %s\n", transport_name);
+		}
+		free(transport_list);
+		getdns_tls_authentication_t auth;
+		getdns_context_get_tls_authentication(context, &auth);
+		stubby_local_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_INFO,
+		                "Privacy Usage Profile is %s\n", 
+		                 auth==GETDNS_AUTHENTICATION_REQUIRED ? 
+		                "Strict (Authentication required)":"Opportunistic");
+		stubby_local_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_INFO,
+			            "(NOTE a Strict Profile only applies when TLS is the ONLY transport!!)\n");
 		stubby_local_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_DEBUG,
 			       "Starting DAEMON....\n");
 #ifdef SIGPIPE

@@ -21,15 +21,14 @@ See [Stubby Homepage](https://dnsprivacy.org/wiki/x/JYAT) for more details
 
 Stubby uses [getdns](https://getdnsapi.net/) and requires the 1.2 release of getdns or later.
 
-It also requires that either
-* getdns was compiled with [yaml](http://pyyaml.org/wiki/LibYAML) support (using the --with-libyaml configure option)
-* or stubby is compiled with libyaml as a dependancy. 
-
+It also requires [yaml](http://pyyaml.org/wiki/LibYAML).
 
 # Installing Using a Package Manager
 
-Check to see if getdns, libyaml and Stubby are available via a package manager for your system.
+Check to see if stubby, getdns and yaml are available via a package manager for your system:
 https://repology.org/metapackage/stubby/versions
+https://repology.org/metapackage/getdns/versions
+https://repology.org/metapackage/libyaml/versions
 
 * A [Windows Installer](https://dnsprivacy.org/wiki/x/CoBn) is now available for Stubby.
 * A Homebrew package for stubby is now available (`brew install stubby`).
