@@ -1,4 +1,4 @@
-* 2018-02-??: Version 0.2.2
+* 2018-02-21: Version 0.2.2
  * Fixes and updates to the stubby.yml.config file. Add separate entries for
    servers that listen on port 443.
  * Additional logging of basic config on startup
