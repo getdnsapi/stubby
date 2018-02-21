@@ -1,3 +1,10 @@
+* 2018-02-21: Version 0.2.2
+ * Fixes and updates to the stubby.yml.config file. Add separate entries for
+   servers that listen on port 443.
+ * Additional logging of basic config on startup
+ * -V option to show version
+ * Added a man page
+
 * 2017-12-18: Version 0.2.1
  * Fix use of logging on macos 10.11
 

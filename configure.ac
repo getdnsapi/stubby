@@ -1,9 +1,12 @@
 AC_PREREQ([2.68])
-AC_INIT([Stubby], [0.2.1], [sara@sinodun.com])
+AC_INIT([Stubby], [0.2.2], [team@getdnsapi.net])
 AC_CANONICAL_TARGET
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR([src/stubby.c])
 AC_CONFIG_HEADERS([config.h])
+
+AC_DEFINE_UNQUOTED([STUBBY_PACKAGE], [PACKAGE], [Stubby package])
+AC_DEFINE_UNQUOTED([STUBBY_PACKAGE_STRING], [PACKAGE_STRING], [Stubby package string])
 
 # Autoconf 2.70 will have set up runstatedir. 2.69 is frequently (Debian)
 # patched to do the same, but frequently (MacOS) not. So add a with option
