@@ -162,6 +162,11 @@ upstream_recursive_servers:
 ## unclear if it honours the edns_client_subnet_private request from stubby)
 #  - address_data: 9.9.9.10
 #    tls_auth_name: "dns.quad9.net"
+## Cloudflare 1.1.1.1 and 1.0.0.1
+#  - address_data: 1.1.1.1
+#    tls_auth_name: "cloudflare-dns.com"
+#  - address_data: 1.0.0.1
+#    tls_auth_name: "cloudflare-dns.com"
 ## The Uncensored DNS servers
 #  - address_data: 89.233.43.71
 #    tls_auth_name: "unicast.censurfridns.dk"
@@ -257,6 +262,11 @@ upstream_recursive_servers:
 ## unclear if it honours the edns_client_subnet_private request from stubby)
 #  - address_data: 2620:fe::10
 #    tls_auth_name: "dns.quad9.net"
+## Cloudflare servers
+#  - address_data: 2606:4700:4700::1111
+#    tls_auth_name: "cloudflare-dns.com"
+#  - address_data: 2606:4700:4700::1001
+#    tls_auth_name: "cloudflare-dns.com"
 ## The Uncensored DNS server
 #  - address_data: 2a01:3a0:53:53::0
 #    tls_auth_name: "unicast.censurfridns.dk"
