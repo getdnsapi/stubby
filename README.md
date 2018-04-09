@@ -234,13 +234,16 @@ Note that on Mac OS X you will need the developer tools from Xcode to compile th
 
 ```sh
 > git submodule update --init
+> libtoolize -ci
 > autoreconf -fi
 > mkdir build
 > cd build
-> ../configure --prefix=<install_location> --without-libidn --enable-stub-only
+> ../configure --prefix=<install_location> --without-libidn --without-libidn2 
 > make
 > sudo make install
 ```
+
+Use the ```--enable-stub-only``` flag with configure IF you want remove the dependancy on libunbound for getdns for some reason (Stubby works fine when getdns is built like this but beware this limits the functions of the getdns library as a generic system component and should be used with care).
 
 Logging/debugging
 
