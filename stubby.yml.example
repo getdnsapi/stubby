@@ -1,5 +1,5 @@
 #
-# This is a yaml version of the stubby configuration file (it replaces the 
+# This is a yaml version of the stubby configuration file (it replaces the
 # json based stubby.conf file used in earlier versions of getdns/stubby).
 #
 # For more information see
@@ -10,7 +10,7 @@
 #   - mapping keys must be yaml scalars
 #   - plain scalars will be converted to json unchanged
 #   - non-plain scalars (quoted, double-quoted, wrapped) will be interpreted
-#     as json strings, i.e. double quoted. 
+#     as json strings, i.e. double quoted.
 #   - yaml tags are not supported
 #   - IPv6 addresses ending in :: are not yet supported (use ::0)
 #
@@ -21,13 +21,13 @@
 # > stubby -h
 # for details.
 
-# Specifies whether to run as a recursive or stub resolver 
+# Specifies whether to run as a recursive or stub resolver
 # For stubby this MUST be set to GETDNS_RESOLUTION_STUB
 resolution_type: GETDNS_RESOLUTION_STUB
 
-# Ordered list composed of one or more transport protocols: 
+# Ordered list composed of one or more transport protocols:
 # GETDNS_TRANSPORT_UDP, GETDNS_TRANSPORT_TCP or GETDNS_TRANSPORT_TLS
-# If only one transport value is specified it will be the only transport used. 
+# If only one transport value is specified it will be the only transport used.
 # Should it not be available basic resolution will fail.
 # Fallback transport options are specified by including multiple values in the
 # list.  Strict mode (see below) should use only GETDNS_TRANSPORT_TLS.
@@ -44,7 +44,7 @@ dns_transport_list:
 tls_authentication: GETDNS_AUTHENTICATION_REQUIRED
 
 # EDNS0 option to pad the size of the DNS query to the given blocksize
-# 128 is currently recommended by 
+# 128 is currently recommended by
 # https://tools.ietf.org/html/draft-ietf-dprive-padding-policy-03
 tls_query_padding_blocksize: 128
 
@@ -54,18 +54,18 @@ edns_client_subnet_private : 1
 
 # EDNS0 option for keepalive idle timeout in ms as specified in
 # https://tools.ietf.org/html/rfc7828
-# This keeps idle TLS connections open to avoid the overhead of opening a new 
+# This keeps idle TLS connections open to avoid the overhead of opening a new
 # connection for every query.
 idle_timeout: 10000
 
 # Set the listen addresses for the stubby DAEMON. This specifies localhost IPv4
-# and IPv6. It will listen on port 53 by default. Use <IP_address>@<port> to 
+# and IPv6. It will listen on port 53 by default. Use <IP_address>@<port> to
 # specify a different port
 listen_addresses:
   - 127.0.0.1
   -  0::1
 
-# Instructs stubby to distribute queries across all available name servers. 
+# Instructs stubby to distribute queries across all available name servers.
 # Set to 0 to treat the upstreams below as an ordered list and use a single
 # upstream until it becomes unavailable, then use the next one.
 round_robin_upstreams: 1
@@ -166,7 +166,7 @@ upstream_recursive_servers:
 ## Quad 9 'secure' service - Filters, does DNSSEC, doesn't send ECS
 #  - address_data: 9.9.9.9
 #    tls_auth_name: "dns.quad9.net"
-## Quad 9 'insecure' service - No filtering, does DNSSEC, may send ECS (it is 
+## Quad 9 'insecure' service - No filtering, does DNSSEC, may send ECS (it is
 ## unclear if it honours the edns_client_subnet_private request from stubby)
 #  - address_data: 9.9.9.10
 #    tls_auth_name: "dns.quad9.net"
@@ -187,7 +187,7 @@ upstream_recursive_servers:
 #    tls_pubkey_pinset:
 #      - digest: "sha256"
 #        value: 5SpFz7JEPzF71hditH1v2dBhSErPUMcLPJx1uk2svT8=
-## A Surfnet/Sinodun server using Knot resolver. Warning - has issue when used 
+## A Surfnet/Sinodun server using Knot resolver. Warning - has issue when used
 ## for DNSSEC
 #  - address_data: 145.100.185.17
 #    tls_auth_name: "dnsovertls2.sinodun.com"
@@ -233,7 +233,7 @@ upstream_recursive_servers:
 #    tls_pubkey_pinset:
 #      - digest: "sha256"
 #        value: s5Em89o0kigwfBF1gcXWd8zlATSWVXsJ6ecZfmBDTKg=
-## dns.bitgeek.in 
+## dns.bitgeek.in
 #  - address_data: 139.59.51.46
 #    tls_auth_name: "dns.bitgeek.in"
 #    tls_pubkey_pinset:
@@ -266,7 +266,7 @@ upstream_recursive_servers:
 ## Quad 9 'secure' service - Filters, does DNSSEC, doesn't send ECS
 #  - address_data: 2620:fe::fe
 #    tls_auth_name: "dns.quad9.net"
-## Quad 9 'insecure' service - No filtering, does DNSSEC, may send ECS (it is 
+## Quad 9 'insecure' service - No filtering, does DNSSEC, may send ECS (it is
 ## unclear if it honours the edns_client_subnet_private request from stubby)
 #  - address_data: 2620:fe::10
 #    tls_auth_name: "dns.quad9.net"
@@ -287,7 +287,7 @@ upstream_recursive_servers:
 #    tls_pubkey_pinset:
 #      - digest: "sha256"
 #        value: 5SpFz7JEPzF71hditH1v2dBhSErPUMcLPJx1uk2svT8=
-## A Surfnet/Sinodun server using Knot resolver. Warning - has issue when used 
+## A Surfnet/Sinodun server using Knot resolver. Warning - has issue when used
 ## for DNSSEC
 #  - address_data: 2001:610:1:40ba:145:100:185:17
 #    tls_auth_name: "dnsovertls2.sinodun.com"
@@ -333,7 +333,7 @@ upstream_recursive_servers:
 #    tls_pubkey_pinset:
 #      - digest: "sha256"
 #        value: g5lqtwHia/plKqWU/Fe2Woh4+7MO3d0JYqYJpj/iYAw=
-## Lorraine Data Network  (self-signed cert). 
+## Lorraine Data Network  (self-signed cert).
 #  - address_data: 2001:913::8
 #    tls_pubkey_pinset:
 #      - digest: "sha256"
