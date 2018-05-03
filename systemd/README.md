@@ -14,3 +14,9 @@ Normally, a downstream distributor will install them as:
 
     /usr/lib/tmpfiles.d/stubby.conf
     /lib/systemd/system/stubby.service
+
+When the system-level user does not have a home directory, a directory
+for storing the with Zero configuration DNSSEC dynamically acquired root
+trust anchor needs to be specified with a "appdata_dir" directive in the
+stubby.yml configuration file.  Please see the relevant section in the
+stubby.yml.example example configuration file.
