@@ -4,6 +4,8 @@
  * Update securedns.eu entries in stubby.yml.example
  * Added Cloudflare servers in stubby.yml.example
  * Added basic upstart script in contrib/upstart dir. Thanks vapniks
+ * Bugfix #98: EDNS options that are handled internally should not
+   be passed on through downstream.  Thanks Twisteroid Ambassador
 
 * 2018-02-21: Version 0.2.2
  * Fixes and updates to the stubby.yml.config file. Add separate entries for
