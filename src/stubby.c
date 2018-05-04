@@ -373,6 +373,10 @@ static void request_cb(
 	uint32_t qid;
 	getdns_return_t r = GETDNS_RETURN_GOOD;
 	uint32_t n, rcode, dnssec_status = GETDNS_DNSSEC_INDETERMINATE;
+	getdns_list *options;
+	size_t n_options;
+	uint32_t arcount;
+	char i_as_jptr[80];
 
 #if defined(SERVER_DEBUG) && SERVER_DEBUG
 	getdns_bindata *qname;
@@ -451,6 +455,59 @@ static void request_cb(
 	else if (n == 0)
 		SERVFAIL("Recursion not available", 0, msg, &response);
 
+	if (!getdns_dict_get_int(response, "/replies_tree/0/header/arcount", &arcount)
+	&&  arcount > 0
+	&&  snprintf( i_as_jptr, sizeof(i_as_jptr)
+	            , "/replies_tree/0/additional/%d/rdata/options"
+	            , (int)(arcount - 1))
+	&&  !getdns_dict_get_list(response, i_as_jptr, &options)
+	&&  !getdns_list_get_length(options, &n_options)) {
+		int i;
+		int options_changed = 0;
+
+		for (i = 0; i < n_options; i++) {
+			getdns_dict *option;
+			uint32_t option_code;
+			uint8_t a_byte;
+			uint16_t a_word;
+
+			(void) snprintf(i_as_jptr, sizeof(i_as_jptr),
+			    "/replies_tree/0/additional/%d/rdata/options/%d",
+			    (int)(arcount - 1), i);
+		
+			if (getdns_dict_get_dict(response, i_as_jptr, &option)
+			||  getdns_dict_get_int(option, "option_code", &option_code))
+				continue;
+			
+			switch (option_code) {
+			case  8: /* CLIENT SUBNET */
+				if (getdns_context_get_edns_client_subnet_private
+				    (context, &a_byte) || !a_byte)
+					continue;
+				break;
+			case 11: /* KeepAlive (remove always) */
+				break;
+			case 12: /* Padding */
+				if (getdns_context_get_tls_query_padding_blocksize
+				    (context, &a_word) || !a_word)
+					continue;
+				break;
+			default:
+				continue;
+			}
+			if (!getdns_dict_remove_name(response, i_as_jptr)) {
+				options_changed++;
+				i -= 1;
+				n_options -= 1;
+			}
+		}
+		if (options_changed) {
+			(void) snprintf( i_as_jptr, sizeof(i_as_jptr)
+			               , "/replies_tree/0/additional/%d/rdata/rdata_raw"
+			               , (int)(arcount - 1));
+			(void) getdns_dict_remove_name(response, i_as_jptr);
+		}
+	}
 	if ((r = getdns_reply(context, response, msg->request_id))) {
 		fprintf(stderr, "Could not reply: %s\n", _getdns_strerror(r));
 		/* Cancel reply */
