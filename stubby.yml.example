@@ -30,7 +30,6 @@
 # > stubby -h
 # for details.
 
-
 ########################## BASIC & PRIVACY SETTINGS ############################
 # Specifies whether to run as a recursive or stub resolver
 # For stubby this MUST be set to GETDNS_RESOLUTION_STUB
