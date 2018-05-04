@@ -75,12 +75,17 @@ round_robin_upstreams: 1
 # dnssec_return_status: GETDNS_EXTENSION_TRUE
 
 # Stubby tries to fetch and validate the DNSSEC root trust anchor on the fly
-# when needed (Zero configuration DNSSEC), but only if it can store it.
-# The default location to store these files is the ".getdns" subdirectory in
-# the user's home directory, but when stubby runs as a special user without
-# a home directory (such as in setups using systemd), a directory needs to
-# be provided that is writable (and readable) by that special system user.
-# appdata_dir: "/run/stubby"
+# when needed (Zero configuration DNSSEC), but only if it can store then
+# somewhere.  The default location to store these files is the ".getdns"
+# subdirectory in the user's home directory. If there is no home directory, or
+# the .getdns subdirectory could not be created (or is not present), Stubby
+# will fall back to the current working directory to try to store the
+# trust-anchor files.
+# When stubby runs as a special system-level user without a home directory
+# however (such as in setups using systemd), it is recommended that an explicit
+# location for storing the trust-anchor files is provided that is writable (and
+# readable) by that special system user.
+# appdata_dir: "/var/cache/stubby"
 
 # Specify the location of the installed trust anchor file (leave commented out
 # for zero configuration DNSSEC)
