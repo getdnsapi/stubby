@@ -1,3 +1,9 @@
+* 2018-05-??: Version 0.2.3
+ * With systemd setups, make /run/stubby directory writeable for stubby user
+   and include a "appdata_dir" directory in stubby.yml.example
+ * Update securedns.eu entries in stubby.yml.example
+ * Added Cloudflare servers in stubby.yml.example
+
 * 2018-02-21: Version 0.2.2
  * Fixes and updates to the stubby.yml.config file. Add separate entries for
    servers that listen on port 443.

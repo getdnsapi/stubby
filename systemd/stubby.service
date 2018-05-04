@@ -2,11 +2,13 @@
 Description=stubby DNS resolver
 
 [Service]
-WorkingDirectory=/run/stubby
+User=stubby
+DynamicUser=yes
+CacheDirectory=stubby
+WorkingDirectory=/var/cache/stubby
 ExecStart=/usr/bin/stubby
 AmbientCapabilities=CAP_NET_BIND_SERVICE
 CapabilityBoundingSet=CAP_NET_BIND_SERVICE
-User=stubby
 
 [Install]
 WantedBy=multi-user.target
