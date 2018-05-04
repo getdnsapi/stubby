@@ -1,5 +1,7 @@
-#
-# This is a yaml version of the stubby configuration file (it replaces the 
+################################################################################
+######################## STUBBY YAML CONFIG FILE ###############################
+################################################################################
+# This is a yaml version of the stubby configuration file (it replaces the
 # json based stubby.conf file used in earlier versions of getdns/stubby).
 #
 # For more information see
@@ -10,24 +12,32 @@
 #   - mapping keys must be yaml scalars
 #   - plain scalars will be converted to json unchanged
 #   - non-plain scalars (quoted, double-quoted, wrapped) will be interpreted
-#     as json strings, i.e. double quoted. 
+#     as json strings, i.e. double quoted.
 #   - yaml tags are not supported
 #   - IPv6 addresses ending in :: are not yet supported (use ::0)
+#
+# Also beware that yaml is sensitive to the indentation at the start of each
+# line so if you encounter errors when parsing the config file then please check
+# that. We will add better checking but a useful online tool to check yaml
+# format is here (it also converts yaml to json)
+# https://yaml-online-parser.appspot.com/
 #
 # Note that we plan to introduce a more compact format for defining upstreams
 # in future: https://github.com/getdnsapi/stubby/issues/79
 
+################################### LOGGING ####################################
 # Logging is currently configured at runtime using command line arguments. See
 # > stubby -h
 # for details.
 
-# Specifies whether to run as a recursive or stub resolver 
+########################## BASIC & PRIVACY SETTINGS ############################
+# Specifies whether to run as a recursive or stub resolver
 # For stubby this MUST be set to GETDNS_RESOLUTION_STUB
 resolution_type: GETDNS_RESOLUTION_STUB
 
-# Ordered list composed of one or more transport protocols: 
+# Ordered list composed of one or more transport protocols:
 # GETDNS_TRANSPORT_UDP, GETDNS_TRANSPORT_TCP or GETDNS_TRANSPORT_TLS
-# If only one transport value is specified it will be the only transport used. 
+# If only one transport value is specified it will be the only transport used.
 # Should it not be available basic resolution will fail.
 # Fallback transport options are specified by including multiple values in the
 # list.  Strict mode (see below) should use only GETDNS_TRANSPORT_TLS.
@@ -44,7 +54,7 @@ dns_transport_list:
 tls_authentication: GETDNS_AUTHENTICATION_REQUIRED
 
 # EDNS0 option to pad the size of the DNS query to the given blocksize
-# 128 is currently recommended by 
+# 128 is currently recommended by
 # https://tools.ietf.org/html/draft-ietf-dprive-padding-policy-03
 tls_query_padding_blocksize: 128
 
@@ -52,24 +62,44 @@ tls_query_padding_blocksize: 128
 # https://tools.ietf.org/html/rfc7871
 edns_client_subnet_private : 1
 
-# EDNS0 option for keepalive idle timeout in ms as specified in
-# https://tools.ietf.org/html/rfc7828
-# This keeps idle TLS connections open to avoid the overhead of opening a new 
-# connection for every query.
-idle_timeout: 10000
-
-# Set the listen addresses for the stubby DAEMON. This specifies localhost IPv4
-# and IPv6. It will listen on port 53 by default. Use <IP_address>@<port> to 
-# specify a different port
-listen_addresses:
-  - 127.0.0.1
-  -  0::1
-
-# Instructs stubby to distribute queries across all available name servers. 
+############################# CONNECTION SETTINGS ##############################
+# Set to 1 to instruct stubby to distribute queries across all available name
+# servers - this will use multiple simultaneous connections which can give
+# better performance is most (but not all) cases.
 # Set to 0 to treat the upstreams below as an ordered list and use a single
 # upstream until it becomes unavailable, then use the next one.
 round_robin_upstreams: 1
 
+# EDNS0 option for keepalive idle timeout in ms as specified in
+# https://tools.ietf.org/html/rfc7828
+# This keeps idle TLS connections open to avoid the overhead of opening a new
+# connection for every query.
+idle_timeout: 10000
+
+# Control the maximum number of connection failures that will be permitted
+# before Stubby backs-off from using an individual upstream (default 2)
+# tls_connection_retries: 5
+
+# Control the maximum time in seconds Stubby will back-off from using an
+# individual upstream after failures under normal circumstances (default 3600)
+# tls_backoff_time: 300
+
+# Limit the total number of outstanding queries permitted
+# limit_outstanding_queries: 100
+
+# Specify the timeout on getting a response to an individual request
+# (default 5s)
+# timeout: 1
+
+################################ LISTEN ADDRESS ################################
+# Set the listen addresses for the stubby DAEMON. This specifies localhost IPv4
+# and IPv6. It will listen on port 53 by default. Use <IP_address>@<port> to
+# specify a different port
+listen_addresses:
+  - 127.0.0.1
+  - 0::1
+
+############################### DNSSEC SETTINGS ################################
 # Require DNSSEC validation. For releases earlier than 1.2 a trust anchor must
 # be configured configured manually. This can be done with unbound-anchor.
 # dnssec_return_status: GETDNS_EXTENSION_TRUE
@@ -91,21 +121,8 @@ round_robin_upstreams: 1
 # for zero configuration DNSSEC)
 # dnssec_trust_anchors: "/etc/unbound/getdns-root.key"
 
-# Control the maximum number of connection failures that will be permitted
-# before Stubby backs-off from using an individual upstream (default 2)
-# tls_connection_retries: 5
 
-# Control the maximum time in seconds Stubby will back-off from using an
-# individual upstream after failures under normal circumstances (default 3600)
-# tls_backoff_time: 300
-
-# Limit the total number of outstanding queries permitted
-# limit_outstanding_queries: 100
-
-# Specify the timeout on getting a response to an individual request
-# (default 5s)
-# timeout: 1
-
+##################################  UPSTREAMS  ################################
 # Specify the list of upstream recursive name servers to send queries to
 # In Strict mode upstreams need either a tls_auth_name or a tls_pubkey_pinset
 # so the upstream can be authenticated.
@@ -127,7 +144,9 @@ round_robin_upstreams: 1
 #              key
 #   tls_port: Port for TLS (default is 853)
 upstream_recursive_servers:
-# IPv4 addresses
+############################ DEFAULT UPSTREAMS  ################################
+####### IPv4 addresses ######
+### Test servers ###
 # The Surfnet/Sinodun servers
   - address_data: 145.100.185.15
     tls_auth_name: "dnsovertls.sinodun.com"
@@ -145,7 +164,8 @@ upstream_recursive_servers:
     tls_pubkey_pinset:
       - digest: "sha256"
         value: foxZRnIh9gZpWnl+zEiKa0EJ2rdCGroMWm02gaxSc9Q=
-# IPv6 addresses
+####### IPv6 addresses ######
+### Test servers ###
 # The Surfnet/Sinodun servers
   - address_data: 2001:610:1:40ba:145:100:185:15
     tls_auth_name: "dnsovertls.sinodun.com"
@@ -165,13 +185,13 @@ upstream_recursive_servers:
         value: foxZRnIh9gZpWnl+zEiKa0EJ2rdCGroMWm02gaxSc9Q=
 
 
-# Additional servers
-
-# IPv4 addresses
+############################ OPTIONAL UPSTREAMS  ###############################
+####### IPv4 addresses ######
+### Anycast services ###
 ## Quad 9 'secure' service - Filters, does DNSSEC, doesn't send ECS
 #  - address_data: 9.9.9.9
 #    tls_auth_name: "dns.quad9.net"
-## Quad 9 'insecure' service - No filtering, does DNSSEC, may send ECS (it is 
+## Quad 9 'insecure' service - No filtering, does DNSSEC, may send ECS (it is
 ## unclear if it honours the edns_client_subnet_private request from stubby)
 #  - address_data: 9.9.9.10
 #    tls_auth_name: "dns.quad9.net"
@@ -186,13 +206,14 @@ upstream_recursive_servers:
 #    tls_pubkey_pinset:
 #      - digest: "sha256"
 #        value: wikE3jYAA6jQmXYTr/rbHeEPmC78dQwZbQp6WdrseEs=
+### Test servers ###
 ## A Surfnet/Sinodun server supporting TLS 1.2 and 1.3
 #  - address_data: 145.100.185.18
 #    tls_auth_name: "dnsovertls3.sinodun.com"
 #    tls_pubkey_pinset:
 #      - digest: "sha256"
 #        value: 5SpFz7JEPzF71hditH1v2dBhSErPUMcLPJx1uk2svT8=
-## A Surfnet/Sinodun server using Knot resolver. Warning - has issue when used 
+## A Surfnet/Sinodun server using Knot resolver. Warning - has issue when used
 ## for DNSSEC
 #  - address_data: 145.100.185.17
 #    tls_auth_name: "dnsovertls2.sinodun.com"
@@ -238,7 +259,7 @@ upstream_recursive_servers:
 #    tls_pubkey_pinset:
 #      - digest: "sha256"
 #        value: s5Em89o0kigwfBF1gcXWd8zlATSWVXsJ6ecZfmBDTKg=
-## dns.bitgeek.in 
+## dns.bitgeek.in
 #  - address_data: 139.59.51.46
 #    tls_auth_name: "dns.bitgeek.in"
 #    tls_pubkey_pinset:
@@ -267,11 +288,12 @@ upstream_recursive_servers:
 ##       - digest: "sha256"
 ##         value: pOXrpUt9kgPgbWxBFFcBTbRH2heo2wHwXp1fd4AEVXI=
 
-#IPv6 addresses
+####### IPv6 addresses #######
+### Anycast services ###
 ## Quad 9 'secure' service - Filters, does DNSSEC, doesn't send ECS
 #  - address_data: 2620:fe::fe
 #    tls_auth_name: "dns.quad9.net"
-## Quad 9 'insecure' service - No filtering, does DNSSEC, may send ECS (it is 
+## Quad 9 'insecure' service - No filtering, does DNSSEC, may send ECS (it is
 ## unclear if it honours the edns_client_subnet_private request from stubby)
 #  - address_data: 2620:fe::10
 #    tls_auth_name: "dns.quad9.net"
@@ -280,6 +302,7 @@ upstream_recursive_servers:
 #    tls_auth_name: "cloudflare-dns.com"
 #  - address_data: 2606:4700:4700::1001
 #    tls_auth_name: "cloudflare-dns.com"
+### Test servers ###
 ## The Uncensored DNS server
 #  - address_data: 2a01:3a0:53:53::0
 #    tls_auth_name: "unicast.censurfridns.dk"
@@ -292,7 +315,7 @@ upstream_recursive_servers:
 #    tls_pubkey_pinset:
 #      - digest: "sha256"
 #        value: 5SpFz7JEPzF71hditH1v2dBhSErPUMcLPJx1uk2svT8=
-## A Surfnet/Sinodun server using Knot resolver. Warning - has issue when used 
+## A Surfnet/Sinodun server using Knot resolver. Warning - has issue when used
 ## for DNSSEC
 #  - address_data: 2001:610:1:40ba:145:100:185:17
 #    tls_auth_name: "dnsovertls2.sinodun.com"
@@ -338,7 +361,7 @@ upstream_recursive_servers:
 #    tls_pubkey_pinset:
 #      - digest: "sha256"
 #        value: g5lqtwHia/plKqWU/Fe2Woh4+7MO3d0JYqYJpj/iYAw=
-## Lorraine Data Network  (self-signed cert). 
+## Lorraine Data Network  (self-signed cert).
 #  - address_data: 2001:913::8
 #    tls_pubkey_pinset:
 #      - digest: "sha256"
@@ -367,7 +390,8 @@ upstream_recursive_servers:
 ##       - digest: "sha256"
 ##         value: pOXrpUt9kgPgbWxBFFcBTbRH2heo2wHwXp1fd4AEVXI=
 
-## Servers that listen on port 443 (IPv4 and IPv6)
+####### Servers that listen on port 443 (IPv4 and IPv6) #######
+### Test servers ###
 ## Surfnet/Sinodun servers
 #  - address_data: 145.100.185.15
 #    tls_port: 443
