@@ -465,7 +465,7 @@ static void request_cb(
 		int i;
 		int options_changed = 0;
 
-		for (i = 0; i < n_options; i++) {
+		for (i = 0; i < (int)n_options; i++) {
 			getdns_dict *option;
 			uint32_t option_code;
 			uint8_t a_byte;
