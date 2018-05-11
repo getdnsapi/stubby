@@ -835,6 +835,8 @@ main(int argc, char **argv)
 			   && value == GETDNS_EXTENSION_TRUE)
 				dnssec_validation = 1;
 		}
+		getdns_list_destroy(api_info_keys);
+		api_info_keys = NULL;
 		if (   !dnssec_validation
 		    && !getdns_dict_get_dict(api_information, "all_context"
 		                                            , &all_context)
@@ -848,6 +850,8 @@ main(int argc, char **argv)
 				   && value == GETDNS_EXTENSION_TRUE)
 					dnssec_validation = 1;
 			}
+			getdns_list_destroy(api_info_keys);
+			api_info_keys = NULL;
 		}
 	}
 	if (print_api_info) {
@@ -972,6 +976,8 @@ main(int argc, char **argv)
 		getdns_context_run(context);
 	}
 
+	if (api_info_keys)
+		getdns_list_destroy(api_info_keys);
 	getdns_dict_destroy(api_information);
 	getdns_context_destroy(context);
 
