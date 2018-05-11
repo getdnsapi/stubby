@@ -1,4 +1,4 @@
-* 2018-05-??: Version 0.2.3
+* 2018-05-11: Version 0.2.3
  * Bugfix #62 and #106: With systemd setups, make /run/stubby directory
    writeable for stubby user and include a "appdata_dir" directory
    in stubby.yml.example.
