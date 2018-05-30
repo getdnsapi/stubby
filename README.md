@@ -17,7 +17,7 @@ Stubby is developed by the getdns team.
 
 See [Stubby Homepage](https://dnsprivacy.org/wiki/x/JYAT) for more details
 
-# Dependancies
+# Dependencies
 
 Stubby uses [getdns](https://getdnsapi.net/) and requires the 1.2 release of getdns or later.
 
