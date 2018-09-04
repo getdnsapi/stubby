@@ -120,6 +120,12 @@ Simply invoke Stubby on the command line. By default it runs in the foreground, 
 > sudo stubby
 ```
 
+Or, to let it run as an unprivileged user:
+```sh
+> sudo setcap 'cap_net_bind_service=+ep' /usr/local/bin/stubby
+> stubby
+```
+
 * Enable connection logging by using the `-l` flag. The logging is currently simplistic and simply writes to stdout. (We are working on making this better!)
 * A custom configuration file can be specified using the -C flag.
 * The pid file is /usr/local/var/run/stubby.pid
