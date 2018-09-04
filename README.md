@@ -203,7 +203,7 @@ instructions below but adding the ``--with-stubby`` flag to the `configure` step
 
 ## Dependencies
 
-The most limited install of getdns that will work with Stubby requires only OpenSSL as a dependancy (version 1.0.2 or later is required for hostname authentication to be supported). If OpenSSL is installed in a non-standard location on your system use the `--with-ssl` option to `configure` below to specify where it is installed.
+The most limited install of getdns that will work with Stubby requires only OpenSSL as a dependency (version 1.0.2 or later is required for hostname authentication to be supported). If OpenSSL is installed in a non-standard location on your system use the `--with-ssl` option to `configure` below to specify where it is installed.
 
 ### Linux
 
@@ -243,7 +243,7 @@ Note that on Mac OS X you will need the developer tools from Xcode to compile th
 > sudo make install
 ```
 
-Use the ```--enable-stub-only``` flag with configure IF you want remove the dependancy on libunbound for getdns for some reason (Stubby works fine when getdns is built like this but beware this limits the functions of the getdns library as a generic system component and should be used with care).
+Use the ```--enable-stub-only``` flag with configure IF you want remove the dependency on libunbound for getdns for some reason (Stubby works fine when getdns is built like this but beware this limits the functions of the getdns library as a generic system component and should be used with care).
 
 Logging/debugging
 
