@@ -84,6 +84,10 @@ idle_timeout: 10000
 # individual upstream after failures under normal circumstances (default 3600)
 # tls_backoff_time: 300
 
+# Specify where the location for CA certificates for verification purposes are 
+# located.
+# tls_ca_path: "/etc/ssl/certs/"
+
 # Limit the total number of outstanding queries permitted
 # limit_outstanding_queries: 100
 
