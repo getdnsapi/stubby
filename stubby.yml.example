@@ -206,6 +206,12 @@ upstream_recursive_servers:
 #    tls_pubkey_pinset:
 #      - digest: "sha256"
 #        value: wikE3jYAA6jQmXYTr/rbHeEPmC78dQwZbQp6WdrseEs=
+## Fondation RESTENA (NREN for Luxembourg)
+#  - address_data: 158.64.1.29
+#    tls_auth_name: "kaitain.restena.lu"
+#    tls_pubkey_pinset:
+#      - digest: "sha256"
+#        value: 7ftvIkA+UeN/ktVkovd/7rPZ6mbkhVI7/8HnFJIiLa4=
 ### Test servers ###
 ## A Surfnet/Sinodun server supporting TLS 1.2 and 1.3
 #  - address_data: 145.100.185.18
@@ -309,6 +315,12 @@ upstream_recursive_servers:
 #    tls_pubkey_pinset:
 #      - digest: "sha256"
 #        value: wikE3jYAA6jQmXYTr/rbHeEPmC78dQwZbQp6WdrseEs=
+## Fondation RESTENA (NREN for Luxembourg)
+#  - address_data: 2001:a18:1::29
+#    tls_auth_name: "kaitain.restena.lu"
+#    tls_pubkey_pinset:
+#      - digest: "sha256"
+#        value: 7ftvIkA+UeN/ktVkovd/7rPZ6mbkhVI7/8HnFJIiLa4=
 ## A Surfnet/Sinodun server supporting TLS 1.2 and 1.3
 #  - address_data: 2001:610:1:40ba:145:100:185:18
 #    tls_auth_name: "dnsovertls3.sinodun.com"
