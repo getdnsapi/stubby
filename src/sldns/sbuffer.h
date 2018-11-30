@@ -130,7 +130,7 @@ struct sldns_buffer
 	/** If the buffer is fixed it cannot be resized */
 	unsigned _fixed : 1;
 
-	/** If the buffer is vfixed, no more than capacity bytes willl be
+	/** If the buffer is vfixed, no more than capacity bytes will be
 	 * written to _data, however the _position counter will be updated
 	 * with the amount that would have been written in consecutive
 	 * writes.  This allows for a modus operandi in which a sequence is
@@ -497,7 +497,7 @@ sldns_buffer_set_at(sldns_buffer *buffer, size_t at, int c, size_t count)
  * writes count bytes of data to the current position of the buffer
  * \param[in] buffer the buffer
  * \param[in] data the data to write
- * \param[in] count the lenght of the data to write
+ * \param[in] count the length of the data to write
  */
 INLINE void
 sldns_buffer_write(sldns_buffer *buffer, const void *data, size_t count)
