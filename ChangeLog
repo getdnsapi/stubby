@@ -1,3 +1,8 @@
+* 2018-12-??: Version 0.2.4
+ * More DoT servers for stubby.yml.example
+ * Bugfix: only start Stubby when network is up
+   Thanks Bruno Pagani
+
 * 2018-05-11: Version 0.2.3
  * Bugfix #62 and #106: With systemd setups, make /run/stubby directory
    writeable for stubby user and include a "appdata_dir" directory
