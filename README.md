@@ -131,7 +131,7 @@ Or, to let it run as an unprivileged user:
 * The pid file is /usr/local/var/run/stubby.pid
 
 # Platform specific management
-The Windows and macOS installers include scripts to run stubby as a managed daemon. We have basic support for using systemd to manage Stubby, see [systemd](https://github.com/getdnsapi/stubby/tree/develop/systemd)
+The Windows and macOS installers include scripts to run stubby as a managed daemon. We have basic support for using systemd to manage Stubby, see [systemd](https://github.com/getdnsapi/stubby/tree/master/systemd)
 
 # Test Stubby
 
@@ -230,7 +230,7 @@ Either clone the code:
 ```sh
 > git clone https://github.com/getdnsapi/getdns.git
 > cd getdns
-> git checkout develop
+> git checkout master
 ```
 for the very latest version of getdns or grab a release tarball from this page: [Latest getdns releases](https://getdnsapi.net/releases/)
 
