@@ -393,12 +393,6 @@ upstream_recursive_servers:
 #    tls_pubkey_pinset:
 #      - digest: "sha256"
 #        value: sG6kj+XJToXwt1M6+9BeCz1SOj/1/mdZn56OZvCyZZc=
-## Yeti. Note the servers use a different root trust anchor for DNSSEC!
-#  - address_data: 2001:4b98:dc2:43:216:3eff:fea9:41a
-#    tls_auth_name: "dns-resolver.yeti.eu.org"
-#    tls_pubkey_pinset:
-#      - digest: "sha256"
-#        value: YxtXAorQNSo+333ko1ctuXcnpMcplPaOI/GCM+YeMQk=
 ## # OARC. Note: this server currently doesn't support strict mode!
 ##   - address_data: 2620:ff:c000:0:1::64:25
 ##     tls_auth_name: "tls-dns-u.odvr.dns-oarc.net"
