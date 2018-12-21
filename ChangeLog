@@ -1,5 +1,6 @@
 * 2018-12-??: Version 0.2.4
- * More DoT servers for stubby.yml.example
+ * DNSSEC with dnssec extension in example config
+ * Added the Foundation RESTENA servers in stubby.yml.example
  * Bugfix: only start Stubby when network is up
    Thanks Bruno Pagani
 
