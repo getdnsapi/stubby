@@ -1,4 +1,4 @@
-* 2018-12-??: Version 0.2.4
+* 2018-12-21: Version 0.2.4
  * DNSSEC with dnssec extension in example config
  * Added the Foundation RESTENA servers in stubby.yml.example
  * Bugfix: only start Stubby when network is up
