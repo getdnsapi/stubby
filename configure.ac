@@ -1,5 +1,5 @@
 AC_PREREQ([2.68])
-AC_INIT([Stubby], [0.2.4-rc1], [team@getdnsapi.net])
+AC_INIT([Stubby], [0.2.4], [team@getdnsapi.net])
 AC_CANONICAL_TARGET
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR([src/stubby.c])
@@ -21,8 +21,8 @@ AC_SUBST([runstatedir], [$with_piddir])
 
 AC_PROG_CC([clang gcc])
 
-AC_CHECK_LIB([getdns], [getdns_context_set_trust_anchors_url],,
-    [AC_MSG_ERROR([Missing dependency: getdns >= 1.2.0 ])],)
+AC_CHECK_LIB([getdns], [getdns_context_set_tls_ciphersuites],,
+    [AC_MSG_ERROR([Missing dependency: getdns >= 1.5.0 ])],)
 AC_CHECK_HEADERS([getdns/getdns_extra.h],,
     [AC_MSG_ERROR([Missing dependency getdns development headers])],)
 AC_CHECK_FUNCS([getdns_yaml2dict],, [
