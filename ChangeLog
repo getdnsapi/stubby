@@ -1,5 +1,6 @@
 * 2018-12-21: Version 0.2.4
- * DNSSEC with dnssec extension in example config
+ * DNSSEC required with dnssec extension in example config
+ * Removed the yeti servers from stubby.yml.example
  * Added the Foundation RESTENA servers in stubby.yml.example
  * Bugfix: only start Stubby when network is up
    Thanks Bruno Pagani
