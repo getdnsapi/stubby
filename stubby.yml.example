@@ -84,6 +84,10 @@ idle_timeout: 10000
 # individual upstream after failures under normal circumstances (default 3600)
 # tls_backoff_time: 300
 
+# Specify where the location for CA certificates for verification purposes are 
+# located.
+# tls_ca_path: "/etc/ssl/certs/"
+
 # Limit the total number of outstanding queries permitted
 # limit_outstanding_queries: 100
 
@@ -100,9 +104,13 @@ listen_addresses:
   - 0::1
 
 ############################### DNSSEC SETTINGS ################################
-# Require DNSSEC validation. For releases earlier than 1.2 a trust anchor must
-# be configured configured manually. This can be done with unbound-anchor.
-# dnssec_return_status: GETDNS_EXTENSION_TRUE
+# Require DNSSEC validation. This will withhold answers with BOGUS DNSSEC
+# status and answers that could not be validated (i.e. with DNSSEC status
+# INDETERMINATE). Beware that if no DNSSEC trust-anchor is provided, or if
+# stubby is not able to fetch and validate the DNSSEC trust-anchor itself,
+# (using Zero configuration DNSSEC) stubby will not return answers at all.
+# If DNSSEC validation is required, a trust-anchor is also required.
+# dnssec: GETDNS_EXTENSION_TRUE
 
 # Stubby tries to fetch and validate the DNSSEC root trust anchor on the fly
 # when needed (Zero configuration DNSSEC), but only if it can store then
@@ -111,6 +119,7 @@ listen_addresses:
 # the .getdns subdirectory could not be created (or is not present), Stubby
 # will fall back to the current working directory to try to store the
 # trust-anchor files.
+#
 # When stubby runs as a special system-level user without a home directory
 # however (such as in setups using systemd), it is recommended that an explicit
 # location for storing the trust-anchor files is provided that is writable (and
@@ -206,6 +215,12 @@ upstream_recursive_servers:
 #    tls_pubkey_pinset:
 #      - digest: "sha256"
 #        value: wikE3jYAA6jQmXYTr/rbHeEPmC78dQwZbQp6WdrseEs=
+## Fondation RESTENA (NREN for Luxembourg)
+#  - address_data: 158.64.1.29
+#    tls_auth_name: "kaitain.restena.lu"
+#    tls_pubkey_pinset:
+#      - digest: "sha256"
+#        value: 7ftvIkA+UeN/ktVkovd/7rPZ6mbkhVI7/8HnFJIiLa4=
 ### Test servers ###
 ## A Surfnet/Sinodun server supporting TLS 1.2 and 1.3
 #  - address_data: 145.100.185.18
@@ -309,6 +324,12 @@ upstream_recursive_servers:
 #    tls_pubkey_pinset:
 #      - digest: "sha256"
 #        value: wikE3jYAA6jQmXYTr/rbHeEPmC78dQwZbQp6WdrseEs=
+## Fondation RESTENA (NREN for Luxembourg)
+#  - address_data: 2001:a18:1::29
+#    tls_auth_name: "kaitain.restena.lu"
+#    tls_pubkey_pinset:
+#      - digest: "sha256"
+#        value: 7ftvIkA+UeN/ktVkovd/7rPZ6mbkhVI7/8HnFJIiLa4=
 ## A Surfnet/Sinodun server supporting TLS 1.2 and 1.3
 #  - address_data: 2001:610:1:40ba:145:100:185:18
 #    tls_auth_name: "dnsovertls3.sinodun.com"
@@ -377,12 +398,6 @@ upstream_recursive_servers:
 #    tls_pubkey_pinset:
 #      - digest: "sha256"
 #        value: sG6kj+XJToXwt1M6+9BeCz1SOj/1/mdZn56OZvCyZZc=
-## Yeti. Note the servers use a different root trust anchor for DNSSEC!
-#  - address_data: 2001:4b98:dc2:43:216:3eff:fea9:41a
-#    tls_auth_name: "dns-resolver.yeti.eu.org"
-#    tls_pubkey_pinset:
-#      - digest: "sha256"
-#        value: YxtXAorQNSo+333ko1ctuXcnpMcplPaOI/GCM+YeMQk=
 ## # OARC. Note: this server currently doesn't support strict mode!
 ##   - address_data: 2620:ff:c000:0:1::64:25
 ##     tls_auth_name: "tls-dns-u.odvr.dns-oarc.net"

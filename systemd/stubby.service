@@ -1,5 +1,7 @@
 [Unit]
 Description=stubby DNS resolver
+Wants=network-online.target
+After=network-online.target
 
 [Service]
 User=stubby

@@ -17,7 +17,7 @@ Stubby is developed by the getdns team.
 
 See [Stubby Homepage](https://dnsprivacy.org/wiki/x/JYAT) for more details
 
-# Dependancies
+# Dependencies
 
 Stubby uses [getdns](https://getdnsapi.net/) and requires the 1.2 release of getdns or later.
 
@@ -120,12 +120,18 @@ Simply invoke Stubby on the command line. By default it runs in the foreground, 
 > sudo stubby
 ```
 
+Or, to let it run as an unprivileged user:
+```sh
+> sudo setcap 'cap_net_bind_service=+ep' /usr/local/bin/stubby
+> stubby
+```
+
 * Enable connection logging by using the `-l` flag. The logging is currently simplistic and simply writes to stdout. (We are working on making this better!)
 * A custom configuration file can be specified using the -C flag.
 * The pid file is /usr/local/var/run/stubby.pid
 
 # Platform specific management
-The Windows and macOS installers include scripts to run stubby as a managed daemon. We have basic support for using systemd to manage Stubby, see [systemd](https://github.com/getdnsapi/stubby/tree/develop/systemd)
+The Windows and macOS installers include scripts to run stubby as a managed daemon. We have basic support for using systemd to manage Stubby, see [systemd](https://github.com/getdnsapi/stubby/tree/master/systemd)
 
 # Test Stubby
 
@@ -203,7 +209,7 @@ instructions below but adding the ``--with-stubby`` flag to the `configure` step
 
 ## Dependencies
 
-The most limited install of getdns that will work with Stubby requires only OpenSSL as a dependancy (version 1.0.2 or later is required for hostname authentication to be supported). If OpenSSL is installed in a non-standard location on your system use the `--with-ssl` option to `configure` below to specify where it is installed.
+The most limited install of getdns that will work with Stubby requires only OpenSSL as a dependency (version 1.0.2 or later is required for hostname authentication to be supported). If OpenSSL is installed in a non-standard location on your system use the `--with-ssl` option to `configure` below to specify where it is installed.
 
 ### Linux
 
@@ -224,7 +230,7 @@ Either clone the code:
 ```sh
 > git clone https://github.com/getdnsapi/getdns.git
 > cd getdns
-> git checkout develop
+> git checkout master
 ```
 for the very latest version of getdns or grab a release tarball from this page: [Latest getdns releases](https://getdnsapi.net/releases/)
 
@@ -243,7 +249,7 @@ Note that on Mac OS X you will need the developer tools from Xcode to compile th
 > sudo make install
 ```
 
-Use the ```--enable-stub-only``` flag with configure IF you want remove the dependancy on libunbound for getdns for some reason (Stubby works fine when getdns is built like this but beware this limits the functions of the getdns library as a generic system component and should be used with care).
+Use the ```--enable-stub-only``` flag with configure IF you want remove the dependency on libunbound for getdns for some reason (Stubby works fine when getdns is built like this but beware this limits the functions of the getdns library as a generic system component and should be used with care).
 
 Logging/debugging
 
