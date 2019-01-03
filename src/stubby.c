@@ -830,7 +830,8 @@ main(int argc, char **argv)
 		    ; !dnssec_validation &&
 		      !getdns_list_get_bindata(api_info_keys, i, &api_info_key)
 		    ; i++) {
-			if (!strncmp((const char *)api_info_key->data, "dnssec_", 7)
+			if ((  !strncmp((const char *)api_info_key->data, "dnssec_", 7)
+			    || !strcmp ((const char *)api_info_key->data, "dnssec"))
 			   && !getdns_dict_get_int(api_information, (const char *)api_info_key->data, &value)
 			   && value == GETDNS_EXTENSION_TRUE)
 				dnssec_validation = 1;
@@ -845,7 +846,8 @@ main(int argc, char **argv)
 			    ; !dnssec_validation &&
 			      !getdns_list_get_bindata(api_info_keys, i, &api_info_key)
 			    ; i++) {
-				if (!strncmp((const char *)api_info_key->data, "dnssec_", 7)
+				if ((  !strncmp((const char *)api_info_key->data, "dnssec_", 7)
+				    || !strcmp ((const char *)api_info_key->data, "dnssec"))
 				   && !getdns_dict_get_int(all_context, (const char *)api_info_key->data, &value)
 				   && value == GETDNS_EXTENSION_TRUE)
 					dnssec_validation = 1;

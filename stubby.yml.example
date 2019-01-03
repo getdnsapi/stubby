@@ -104,9 +104,13 @@ listen_addresses:
   - 0::1
 
 ############################### DNSSEC SETTINGS ################################
-# Require DNSSEC validation. For releases earlier than 1.2 a trust anchor must
-# be configured configured manually. This can be done with unbound-anchor.
-# dnssec_return_status: GETDNS_EXTENSION_TRUE
+# Require DNSSEC validation. This will withhold answers with BOGUS DNSSEC
+# status and answers that could not be validated (i.e. with DNSSEC status
+# INDETERMINATE). Beware that if no DNSSEC trust-anchor is provided, or if
+# stubby is not able to fetch and validate the DNSSEC trust-anchor itself,
+# (using Zero configuration DNSSEC) stubby will not return answers at all.
+# If DNSSEC validation is required, a trust-anchor is also required.
+# dnssec: GETDNS_EXTENSION_TRUE
 
 # Stubby tries to fetch and validate the DNSSEC root trust anchor on the fly
 # when needed (Zero configuration DNSSEC), but only if it can store then
@@ -115,6 +119,7 @@ listen_addresses:
 # the .getdns subdirectory could not be created (or is not present), Stubby
 # will fall back to the current working directory to try to store the
 # trust-anchor files.
+#
 # When stubby runs as a special system-level user without a home directory
 # however (such as in setups using systemd), it is recommended that an explicit
 # location for storing the trust-anchor files is provided that is writable (and
@@ -393,12 +398,6 @@ upstream_recursive_servers:
 #    tls_pubkey_pinset:
 #      - digest: "sha256"
 #        value: sG6kj+XJToXwt1M6+9BeCz1SOj/1/mdZn56OZvCyZZc=
-## Yeti. Note the servers use a different root trust anchor for DNSSEC!
-#  - address_data: 2001:4b98:dc2:43:216:3eff:fea9:41a
-#    tls_auth_name: "dns-resolver.yeti.eu.org"
-#    tls_pubkey_pinset:
-#      - digest: "sha256"
-#        value: YxtXAorQNSo+333ko1ctuXcnpMcplPaOI/GCM+YeMQk=
 ## # OARC. Note: this server currently doesn't support strict mode!
 ##   - address_data: 2620:ff:c000:0:1::64:25
 ##     tls_auth_name: "tls-dns-u.odvr.dns-oarc.net"
