@@ -126,6 +126,12 @@ listen_addresses:
 # readable) by that special system user.
 # appdata_dir: "/var/cache/stubby"
 
+# When Zero configuration DNSSEC failed, because of network unavailability or
+# failure to write to the appdata directory, stubby will backoff trying to 
+# refetch the DNSSEC trust-anchor for a specified amount of time  expressed
+# in milliseconds (which defaults to two and a half seconds).
+# trust_anchors_backoff_time: 2500
+
 # Specify the location of the installed trust anchor file (leave commented out
 # for zero configuration DNSSEC)
 # dnssec_trust_anchors: "/etc/unbound/getdns-root.key"
