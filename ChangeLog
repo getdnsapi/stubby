@@ -3,7 +3,8 @@
    in stubby.yml.example. Thanks Jonathan Underwood
  * RFE #148: Document tls_ciphersuites, tls_cipher_list, tls_min_version
    and tls_max_version in stubby.yml.example. Thanks Jonathan Underwood
-
+ * RFE #149: Added Google Public DNS to stubby.yml.example.
+   Thanks Bruno Pagani
 
 * 2018-12-21: Version 0.2.4
  * DNSSEC required with dnssec extension in example config
