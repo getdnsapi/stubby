@@ -84,7 +84,7 @@ idle_timeout: 10000
 # individual upstream after failures under normal circumstances (default 3600)
 # tls_backoff_time: 300
 
-# Specify where the location for CA certificates for verification purposes are 
+# Specify where the location for CA certificates for verification purposes are
 # located.
 # tls_ca_path: "/etc/ssl/certs/"
 
@@ -94,6 +94,23 @@ idle_timeout: 10000
 # Specify the timeout on getting a response to an individual request
 # (default 5s)
 # timeout: 1
+
+# Set the acceptable ciphers for DNS over TLS.  With OpenSSL 1.1.1 this list is
+# for TLS1.2 and older only. Ciphers for TLS1.3 should be set with the
+# tls_ciphersuites option. This option can also be given per upstream.
+# tls_cipher_list: "EECDH+AESGCM:EECDH+CHACHA20"
+
+# Set the acceptable cipher for DNS over TLS1.3. OpenSSL >= 1.1.1 is required
+# for this option. This option can also be given per upstream.
+# tls_ciphersuites: "TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_GCM_SHA256"
+
+# Set the minimum acceptable TLS version. Works with OpenSSL >= 1.1.1 only.
+# This option can also be given per upstream.
+# tls_min_version: GETDNS_TLS1_2
+
+# Set the maximum acceptable TLS version. Works with OpenSSL >= 1.1.1 only.
+# This option can also be given per upstream.
+# tls_max_version: GETDNS_TLS1_3
 
 ################################ LISTEN ADDRESS ################################
 # Set the listen addresses for the stubby DAEMON. This specifies localhost IPv4
@@ -127,7 +144,7 @@ listen_addresses:
 # appdata_dir: "/var/cache/stubby"
 
 # When Zero configuration DNSSEC failed, because of network unavailability or
-# failure to write to the appdata directory, stubby will backoff trying to 
+# failure to write to the appdata directory, stubby will backoff trying to
 # refetch the DNSSEC trust-anchor for a specified amount of time  expressed
 # in milliseconds (which defaults to two and a half seconds).
 # trust_anchors_backoff_time: 2500
