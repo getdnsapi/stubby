@@ -65,7 +65,7 @@ edns_client_subnet_private : 1
 ############################# CONNECTION SETTINGS ##############################
 # Set to 1 to instruct stubby to distribute queries across all available name
 # servers - this will use multiple simultaneous connections which can give
-# better performance is most (but not all) cases.
+# better performance in most (but not all) cases.
 # Set to 0 to treat the upstreams below as an ordered list and use a single
 # upstream until it becomes unavailable, then use the next one.
 round_robin_upstreams: 1
