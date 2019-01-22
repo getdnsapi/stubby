@@ -71,7 +71,7 @@ if [[ $LIST -eq 1 ]]; then
     echo "** Current DNS settings **"
     networksetup -listallnetworkservices 2>/dev/null | grep -v '\*' | while read -r x ; do
         RESULT=$(networksetup -getdnsservers "$x")
-        RESULT=$(echo "$RESULT")
+        RESULT=$(echo $RESULT)
         printf '%-30s %s\n' "$x:" "$RESULT"
     done
     exit 1
