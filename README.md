@@ -96,7 +96,7 @@ idle_timeout: 10000
 listen_addresses:
   - 127.0.0.1
   -  0::1
-round_robin_upstreams: 1
+round_robin_upstreams: 0
 upstream_recursive_servers:
   - address_data: 185.49.141.38
     tls_auth_name: "getdnsapi.net"

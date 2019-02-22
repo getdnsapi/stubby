@@ -68,7 +68,7 @@ edns_client_subnet_private : 1
 # better performance in most (but not all) cases.
 # Set to 0 to treat the upstreams below as an ordered list and use a single
 # upstream until it becomes unavailable, then use the next one.
-round_robin_upstreams: 1
+round_robin_upstreams: 0
 
 # EDNS0 option for keepalive idle timeout in milliseconds as specified in
 # https://tools.ietf.org/html/rfc7828
