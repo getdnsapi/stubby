@@ -1,3 +1,11 @@
+* 2019-02-xx: Version 0.2.6
+ * Windows: use appropriate system and user configuration directories.
+ * Windows: replace references to C:\Program Files with %PROGRAMFILES%.
+ * Windows: use location of stubby.bat to find stubby.exe and stubby.yml.
+
+* 2019-01-11: Version 0.2.5
+ * Fix builds on Windows.
+
 * 2018-12-21: Version 0.2.4
  * DNSSEC required with dnssec extension in example config
  * Removed the yeti servers from stubby.yml.example
