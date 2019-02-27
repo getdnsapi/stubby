@@ -35,6 +35,7 @@
 #if defined(STUBBY_ON_WINDOWS) || defined(GETDNS_ON_WINDOWS)
 #include <shlobj.h>
 #else
+#include <pwd.h>
 #include <unistd.h>
 #endif
 #include <signal.h>
@@ -129,7 +130,11 @@ char *system_config_file()
 
 char *home_config_file()
 {
-	return make_config_file_path(getenv("HOME"), "/.stubby.yml");
+	struct passwd *p = getpwuid(getuid());
+	char *home = p ? p->pw_dir : getend("HOME");
+	if (!home)
+		return NULL;
+	return make_config_file_path(home, "/.stubby.yml");
 }
 
 char *system_config_file()
