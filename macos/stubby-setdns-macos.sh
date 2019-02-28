@@ -48,7 +48,7 @@ usage () {
 RESET=0
 LIST=0
 SERVERS="127.0.0.1 ::1"
-OS_X=`uname -a | grep -c 'Darwin'`
+OS_X=$(uname -a | grep -c 'Darwin')
 
 while getopts ":rlh" opt; do
     case $opt in
@@ -69,9 +69,9 @@ fi
 
 if [[ $LIST -eq 1 ]]; then
     echo "** Current DNS settings **"
-    networksetup -listallnetworkservices 2>/dev/null | grep -v '*' | while read x ; do
-        RESULT=`networksetup -getdnsservers "$x"`
-        RESULT=`echo $RESULT`
+    networksetup -listallnetworkservices 2>/dev/null | grep -v '\*' | while read -r x ; do
+        RESULT=$(networksetup -getdnsservers "$x")
+        RESULT=$(echo $RESULT)
         printf '%-30s %s\n' "$x:" "$RESULT"
     done
     exit 1
@@ -84,13 +84,12 @@ fi
 
 if [[ $RESET -eq 1 ]]; then
     SERVERS="empty"
-    echo "Setting DNS servers to '"$SERVERS"' - the system will use default DNS service."
+    echo "Setting DNS servers to $SERVERS - the system will use default DNS service."
 else
-    echo "Setting DNS servers to '"$SERVERS"' - the system will use Stubby if it is running."
+    echo "Setting DNS servers to $SERVERS - the system will use Stubby if it is running."
 fi
 
 ### Set the DNS settings via networksetup ###
-networksetup -listallnetworkservices 2>/dev/null | grep -v '*' | while read x ; do
+networksetup -listallnetworkservices 2>/dev/null | grep -v '\*' | while read -r x ; do
     networksetup -setdnsservers "$x" $SERVERS
 done
-
