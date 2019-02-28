@@ -131,7 +131,7 @@ char *system_config_file()
 char *home_config_file()
 {
 	struct passwd *p = getpwuid(getuid());
-	char *home = p ? p->pw_dir : getend("HOME");
+	char *home = p ? p->pw_dir : getenv("HOME");
 	if (!home)
 		return NULL;
 	return make_config_file_path(home, "/.stubby.yml");
