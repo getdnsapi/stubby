@@ -28,9 +28,10 @@ This installs the following files in C:\Program Files\Stubby:
 
 Version
 --------
-This version of the installer is version 0.0.2. It is built from:
-getdns version: 1.2.1rc-1 (with minor fixes)
-stubby version: 0.2.0
+This version of the installer is version %INSTALLER_VERSION%. It is built from:
+getdns version:  %GETDNS_VERSION%
+stubby version:  %STUBBY_VERSION%
+openssl version: %OPENSSL_VERSION%
 
 Configuration
 --------------------

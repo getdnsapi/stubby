@@ -32,7 +32,7 @@
   </Settings>
   <Actions Context="Author">
     <Exec>
-      <Command>"C:\Program Files\Stubby\stubby.bat"</Command>
+      <Command>"%PROGRAMFILES%\Stubby\stubby.bat"</Command>
     </Exec>
   </Actions>
 </Task>
