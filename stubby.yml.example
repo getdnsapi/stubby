@@ -84,8 +84,8 @@ idle_timeout: 10000
 # individual upstream after failures under normal circumstances (default 3600)
 # tls_backoff_time: 300
 
-# Specify where the location for CA certificates for verification purposes are
-# located.
+# Specify the location for CA certificates used for verification purposes are
+# located - this overrides the OS specific default location.
 # tls_ca_path: "/etc/ssl/certs/"
 
 # Limit the total number of outstanding queries permitted
@@ -132,8 +132,9 @@ listen_addresses:
 # Stubby tries to fetch and validate the DNSSEC root trust anchor on the fly
 # when needed (Zero configuration DNSSEC), but only if it can store then
 # somewhere.  The default location to store these files is the ".getdns"
-# subdirectory in the user's home directory. If there is no home directory, or
-# the .getdns subdirectory could not be created (or is not present), Stubby
+# subdirectory in the user's home directory on Unixes, and the %appdata%\getdns
+# directory on Windows. If there is no home directory, or
+# the required subdirectory could not be created (or is not present), Stubby
 # will fall back to the current working directory to try to store the
 # trust-anchor files.
 #
