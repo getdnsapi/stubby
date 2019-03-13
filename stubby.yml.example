@@ -224,8 +224,7 @@ upstream_recursive_servers:
 ## Quad 9 'secure' service - Filters, does DNSSEC, doesn't send ECS
 #  - address_data: 9.9.9.9
 #    tls_auth_name: "dns.quad9.net"
-## Quad 9 'insecure' service - No filtering, does DNSSEC, may send ECS (it is
-## unclear if it honours the edns_client_subnet_private request from stubby)
+## Quad 9 'insecure' service - No filtering, no DNSSEC, doesn't send ECS
 #  - address_data: 9.9.9.10
 #    tls_auth_name: "dns.quad9.net"
 ## Cloudflare 1.1.1.1 and 1.0.0.1
