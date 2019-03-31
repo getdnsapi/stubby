@@ -340,6 +340,9 @@ upstream_recursive_servers:
 ##     tls_pubkey_pinset:
 ##       - digest: "sha256"
 ##         value: pOXrpUt9kgPgbWxBFFcBTbRH2heo2wHwXp1fd4AEVXI=
+## ibksturm testserver - No filtering, No Logging, DNSSEC,  OpenNIC, Hosted in Switzerland
+#  - address_data: 178.82.103.5
+#    tls_auth_name: "ibksturm.synology.me"
 
 ####### IPv6 addresses #######
 ### Anycast services ###
