@@ -1,4 +1,4 @@
-* 2019-02-xx: Version 0.2.6
+* 2019-04-03: Version 0.2.6
  * Windows: use appropriate system and user configuration directories.
  * Windows: replace references to C:\Program Files with %PROGRAMFILES%.
  * Windows: use location of stubby.bat to find stubby.exe and stubby.yml.
