@@ -1,1 +1,1 @@
-"C:\Program Files\Stubby\stubby.exe" -C "C:\Program Files\Stubby\stubby.yml" -l
+"%~dp0stubby.exe" -C "%~dp0stubby.yml" -l

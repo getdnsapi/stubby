@@ -1,4 +1,10 @@
+* 2019-04-03: Version 0.2.6
+ * Windows: use appropriate system and user configuration directories.
+ * Windows: replace references to C:\Program Files with %PROGRAMFILES%.
+ * Windows: use location of stubby.bat to find stubby.exe and stubby.yml.
+
 * 2019-01-11: Version 0.2.5
+ * Fix builds on Windows.
  * RFE getdnsapi/getdns#408: Document trust_anchors_backoff_time
    in stubby.yml.example. Thanks Jonathan Underwood
  * RFE #148: Document tls_ciphersuites, tls_cipher_list, tls_min_version

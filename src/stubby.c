@@ -32,7 +32,10 @@
 #include <errno.h>
 #include <limits.h>
 #include <assert.h>
-#if !defined(STUBBY_ON_WINDOWS) && !defined(GETDNS_ON_WINDOWS)
+#if defined(STUBBY_ON_WINDOWS) || defined(GETDNS_ON_WINDOWS)
+#include <shlobj.h>
+#else
+#include <pwd.h>
 #include <unistd.h>
 #endif
 #include <signal.h>
@@ -62,7 +65,17 @@ getdns_yaml2dict(const char *str, getdns_dict **dict)
 }
 #endif
 
-#define STUBBYPIDFILE RUNSTATEDIR"/stubby.pid"
+static char *make_config_file_path(const char *dir, const char *fname)
+{
+	int reslen = strlen(dir) + strlen(fname) + 1;
+	char *res = malloc(reslen);
+
+	if (res == NULL)
+		return NULL;
+
+	snprintf(res, reslen, "%s%s", dir, fname);
+	return res;
+}
 
 #if defined(STUBBY_ON_WINDOWS) || defined(GETDNS_ON_WINDOWS)
 #define DEBUG_ON(...) do { \
@@ -78,7 +91,31 @@ getdns_yaml2dict(const char *str, getdns_dict **dict)
 	                fprintf(stderr, "[%s.%.6d] ", buf_dEbUgSyM, (int)tv_dEbUgSyM.tv_usec); \
 	                fprintf(stderr, __VA_ARGS__); \
 	        } while (0)
+
+static char *folder_config_file(int csidl)
+{
+	TCHAR szPath[MAX_PATH];
+
+	if (!SUCCEEDED(SHGetFolderPath(NULL,
+	    csidl | CSIDL_FLAG_CREATE, NULL, 0, szPath)))
+		return NULL;
+
+	return make_config_file_path(szPath, "\\Stubby\\stubby.yml");
+}
+
+// %APPDATA%/Stubby/stubby.yml.
+char *home_config_file()
+{
+	return folder_config_file(CSIDL_APPDATA);
+}
+
+char *system_config_file()
+{
+	return folder_config_file(CSIDL_PROGRAM_FILES);
+}
 #else
+#define STUBBYPIDFILE RUNSTATEDIR"/stubby.pid"
+
 #define DEBUG_ON(...) do { \
 	                struct timeval tv_dEbUgSyM; \
 	                struct tm tm_dEbUgSyM; \
@@ -90,6 +127,20 @@ getdns_yaml2dict(const char *str, getdns_dict **dict)
 	                fprintf(stderr, "[%s.%.6d] ", buf_dEbUgSyM, (int)tv_dEbUgSyM.tv_usec); \
 	                fprintf(stderr, __VA_ARGS__); \
 	        } while (0)
+
+char *home_config_file()
+{
+	struct passwd *p = getpwuid(getuid());
+	char *home = p ? p->pw_dir : getenv("HOME");
+	if (!home)
+		return NULL;
+	return make_config_file_path(home, "/.stubby.yml");
+}
+
+char *system_config_file()
+{
+	return make_config_file_path(STUBBYCONFDIR, "/stubby.yml");
+}
 #endif
 #define DEBUG_OFF(...) do {} while (0)
 
@@ -126,6 +177,8 @@ static void stubby_local_log(void *userarg, uint64_t system,
 void
 print_usage(FILE *out)
 {
+	char *home_conf_fn = home_config_file();
+	char *system_conf_fn = system_config_file();
 	fprintf(out, "usage: " STUBBY_PACKAGE " [<option> ...] \\\n");
 	fprintf(out, "\t-C\t<filename>\n");
 	fprintf(out, "\t\tRead settings from config file <filename>\n");
@@ -135,16 +188,16 @@ print_usage(FILE *out)
 	fprintf(out, "\t\tspecified on the command line.)\n");
 	fprintf(out, "\t\tBy default, the configuration file location is obtained\n");
 	fprintf(out, "\t\tby looking for YAML files in the following order:\n");
-	fprintf(out, "\t\t\t\"%s/.stubby.yml\"\n", getenv("HOME"));
-	fprintf(out, "\t\t\t\"%s/stubby.yml\"\n", STUBBYCONFDIR);
-	fprintf(out, "\t\tAn default file (Using Strict mode) is installed as\n");
-	fprintf(out, "\t\t\t\"%s/stubby.yml\"\n", STUBBYCONFDIR);
+	fprintf(out, "\t\t\t\"%s\"\n", home_conf_fn);
+	fprintf(out, "\t\t\t\"%s\"\n", system_conf_fn);
+	fprintf(out, "\t\tA default file (Using Strict mode) is installed as\n");
+	fprintf(out, "\t\t\t\"%s\"\n", system_conf_fn);
 #if !defined(STUBBY_ON_WINDOWS) && !defined(GETDNS_ON_WINDOWS)
 	fprintf(out, "\t-g\tRun stubby in background (default is foreground)\n");
 #endif
 	fprintf(out, "\t-h\tPrint this help\n");
 	fprintf(out, "\t-i\tValidate and print the configuration only. Useful to validate config file\n");
-	fprintf(out, "\t\t\tcontents. Note: does not attempt to bind to the listen addresses.\n");
+	fprintf(out, "\t\tcontents. Note: does not attempt to bind to the listen addresses.\n");
 	fprintf(out, "\t-l\tEnable logging of all logs (same as -v 7)\n");
 	fprintf(out, "\t-v\tSpecify logging level (overrides -l option). Values are\n");
 	fprintf(out, "\t\t\t0: EMERG  - %s\n", GETDNS_LOG_EMERG_TEXT);
@@ -156,6 +209,8 @@ print_usage(FILE *out)
 	fprintf(out, "\t\t\t6: INFO   - %s\n", GETDNS_LOG_INFO_TEXT);
 	fprintf(out, "\t\t\t7: DEBUG  - %s\n", GETDNS_LOG_DEBUG_TEXT);
 	fprintf(out, "\t-V\tPrint the " STUBBY_PACKAGE " version\n");
+	free(home_conf_fn);
+	free(system_conf_fn);
 }
 
 void
@@ -702,9 +757,9 @@ void stubby_local_log(void *userarg, uint64_t system,
 int
 main(int argc, char **argv)
 {
-	char home_stubby_conf_fn_spc[1024], *home_stubby_conf_fn = NULL;
+	char *conf_fn;
 	const char *custom_config_fn = NULL;
-	int fn_sz;
+	int found_conf = 0;
 	int print_api_info = 0;
 	int log_connections = 0;
 	getdns_return_t r;
@@ -771,48 +826,36 @@ main(int argc, char **argv)
 			return r;
 		}
 	} else {
-		fn_sz = snprintf( home_stubby_conf_fn_spc
-				, sizeof(home_stubby_conf_fn_spc)
-				, "%s/.stubby.yml"
-				, getenv("HOME")
-				);
-
-		if (fn_sz > 0 && fn_sz < (int)sizeof(home_stubby_conf_fn_spc))
-			home_stubby_conf_fn = home_stubby_conf_fn_spc;
-
-		else if (fn_sz > 0) {
-			if (!(home_stubby_conf_fn = malloc(fn_sz + 1)) ||
-			    snprintf( home_stubby_conf_fn, fn_sz
-				    , "%s/.stubby.yml", getenv("HOME")) != fn_sz) {
-				if (home_stubby_conf_fn) {
-					free(home_stubby_conf_fn);
-					home_stubby_conf_fn = NULL;
-				}
-			}
+		conf_fn = home_config_file();
+		if (!conf_fn) {
+			fprintf(stderr, "Error getting user config file");
+			exit(EXIT_FAILURE);
 		}
-		if (home_stubby_conf_fn &&
-		    (r = parse_config_file(home_stubby_conf_fn))) {
-			if (r != GETDNS_RETURN_IO_ERROR)
+		r = parse_config_file(conf_fn);
+		if (r == GETDNS_RETURN_GOOD)
+			found_conf = 1;
+		else if (r != GETDNS_RETURN_IO_ERROR)
+			fprintf( stderr, "Error parsing config file "
+				 "\"%s\": %s\n", conf_fn
+				 , _getdns_strerror(r));
+		free(conf_fn);
+		if (!found_conf) {
+			conf_fn = system_config_file();
+			if (!conf_fn) {
+				fprintf(stderr, "Error getting system config file");
+				exit(EXIT_FAILURE);
+			}
+			r = parse_config_file(conf_fn);
+			if (r == GETDNS_RETURN_GOOD)
+				found_conf = 1;
+			else if (r != GETDNS_RETURN_IO_ERROR)
 				fprintf( stderr, "Error parsing config file "
-				         "\"%s\": %s\n", home_stubby_conf_fn
+				         "\"%s\": %s\n", conf_fn
 				       , _getdns_strerror(r));
-			if (home_stubby_conf_fn != home_stubby_conf_fn_spc)
-				free(home_stubby_conf_fn);
-			home_stubby_conf_fn = NULL;
+			free(conf_fn);
 		}
-		if (!home_stubby_conf_fn &&
-		    (r = parse_config_file(STUBBYCONFDIR"/stubby.yml"))) {
-			if (r != GETDNS_RETURN_IO_ERROR) {
-				fprintf( stderr, "Error parsing config file \"%s\": %s\n"
-			            , STUBBYCONFDIR"/stubby.yml"
-			            , _getdns_strerror(r));
-			}
+		if (!found_conf)
 			fprintf(stderr, "WARNING: No Stubby config file found... using minimal default config (Opportunistic Usage)\n");
-		}
-		if (home_stubby_conf_fn &&
-		    home_stubby_conf_fn != home_stubby_conf_fn_spc) {
-			free(home_stubby_conf_fn);
-		}
 	}
 	if ((r = getdns_context_set_resolution_type(context, GETDNS_RESOLUTION_STUB))) {
 		fprintf( stderr, "Error while trying to configure stubby for "

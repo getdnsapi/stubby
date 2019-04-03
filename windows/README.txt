@@ -25,12 +25,16 @@ This installs the following files in C:\Program Files\Stubby:
   * stubby.bat
   * stubby.xml
 
+NOTE: The 32bit build of Stubby is installed in C:\Program Files (x86)\Stubby on
+64 bit systems so use that path below as required. 
+
 
 Version
 --------
-This version of the installer is version 0.0.2. It is built from:
-getdns version: 1.2.1rc-1 (with minor fixes)
-stubby version: 0.2.0
+This version of the installer is version %INSTALLER_VERSION%. It is built from:
+getdns version:  %GETDNS_VERSION%
+stubby version:  %STUBBY_VERSION%
+openssl version: %OPENSSL_VERSION%
 
 Configuration
 --------------------
@@ -48,11 +52,14 @@ Simply invoke Stubby on the command line from a command prompt window (To get a
 command prompt go to the Windows search box and type 'cmd' and then choose the 
 'Command prompt' option)
 
-> "C:\Program Files\Stubby\stubby.exe" -C "C:\Program Files\Stubby\stubby.yml" -l
+> "C:\Program Files\Stubby\stubby.exe" -l
 
 The -l flag enables full logging. Alternatively a specific logging level can be 
 controlled by using the -v flag (run '"C:\Program Files\Stubby\stubby.exe" - h' 
 for details of available levels).
+
+A different location for the configuration file can be specified by adding:
+-C "<full path to stubby.yml>"
 
 We are working on support for running stubby as a service on Windows 10
 
@@ -142,7 +149,7 @@ $ libtoolize -ci
 $ autoreconf -fi
 $ mkdir build
 $ cd build
-$ CFLAGS= LDFLAGS="-Wl,-static -lpthread" ../configure --host=x86_64-w64-mingw32 --without-libidn --with-ssl=/mingw64 --with-libyaml=/mingw64 --enable-stub-only --with-stubby --disable-shared
+$ CFLAGS="-O2" LDFLAGS="-Wl,-static -lpthread" ../configure --host=x86_64-w64-mingw32 --without-libidn --with-ssl=/mingw64 --with-libyaml=/mingw64 --enable-stub-only --with-stubby --disable-shared
 $ make
 $ make install
 
