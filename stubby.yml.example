@@ -534,12 +534,32 @@ upstream_recursive_servers:
 #  - address_data: 37.252.185.232
 #    tls_port: 443
 #    tls_auth_name: "dot1.appliedprivacy.net"
+#    tls_pubkey_pinset:
+#      - digest: "sha256"
+#        value: YLh1dUR9y6Kja30RrAn7JKnbQG/uEtLMkBgFF2Fuihg=
+#      - digest: "sha256"
+#        value: sRHdihwgkaib1P1gxX8HFszlD+7/gTfNvuAybgLPNis=
 #  - address_data: 2a00:63c1:a:229::3
 #    tls_port: 443
 #    tls_auth_name: "dot1.appliedprivacy.net"
+#    tls_pubkey_pinset:
+#      - digest: "sha256"
+#        value: YLh1dUR9y6Kja30RrAn7JKnbQG/uEtLMkBgFF2Fuihg=
+#      - digest: "sha256"
+#        value: sRHdihwgkaib1P1gxX8HFszlD+7/gTfNvuAybgLPNis=
 #  - address_data: 109.70.100.100
 #    tls_port: 443
 #    tls_auth_name: "dot2.appliedprivacy.net"
+#    tls_pubkey_pinset:
+#      - digest: "sha256"
+#        value: YLh1dUR9y6Kja30RrAn7JKnbQG/uEtLMkBgFF2Fuihg=
+#      - digest: "sha256"
+#        value: sRHdihwgkaib1P1gxX8HFszlD+7/gTfNvuAybgLPNis=
 #  - address_data: 2a03:e600:100::53:1
 #    tls_port: 443
 #    tls_auth_name: "dot2.appliedprivacy.net"
+#    tls_pubkey_pinset:
+#      - digest: "sha256"
+#        value: YLh1dUR9y6Kja30RrAn7JKnbQG/uEtLMkBgFF2Fuihg=
+#      - digest: "sha256"
+#        value: sRHdihwgkaib1P1gxX8HFszlD+7/gTfNvuAybgLPNis=
