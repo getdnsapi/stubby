@@ -807,6 +807,9 @@ main(int argc, char **argv)
 		}
 	}
 
+	stubby_local_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_INFO,
+		       "Stubby version: %s\n", STUBBY_PACKAGE_STRING);
+
 	if ((r = getdns_context_create(&context, 1))) {
 		fprintf(stderr, "Create context failed: %s\n",
 		        _getdns_strerror(r));
