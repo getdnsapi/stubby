@@ -349,7 +349,7 @@ upstream_recursive_servers:
 #  - address_data: 37.252.185.232
 #    tls_auth_name: "dot1.appliedprivacy.net"
 # ibksturm testserver
-#  - address_data: 178.82.103.5
+#  - address_data: 217.162.206.220
 #    tls_auth_name: "ibksturm.synology.me"
 ## # OARC. Note: this server currently doesn't support strict mode!
 ##   - address_data: 184.105.193.78
