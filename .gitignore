@@ -52,9 +52,12 @@ Makefile
 config.log
 config.status
 config.h
+config.guess
+config.sub
 stamp-h1
 INSTALL
+.dirstamp
 
 # stubby specific
 stubby
-
+stubby.1
