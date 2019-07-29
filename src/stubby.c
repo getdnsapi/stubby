@@ -40,6 +40,9 @@
 #endif
 #include <signal.h>
 #include <limits.h>
+#if defined(HAVE_LIBSYSTEMD)
+#include <systemd/sd-daemon.h>
+#endif
 
 #ifdef HAVE_GETDNS_YAML2DICT
 getdns_return_t getdns_yaml2dict(const char *str, getdns_dict **dict);
@@ -974,6 +977,9 @@ main(int argc, char **argv)
 #ifdef SIGPIPE
 			(void)signal(SIGPIPE, SIG_IGN);
 #endif
+#ifdef HAVE_LIBSYSTEMD
+			sd_notifyf(0, "READY=1\nMAINPID=%u", getpid());
+#endif
 			getdns_context_run(context);
 		}
 	} else
@@ -1020,6 +1026,9 @@ main(int argc, char **argv)
 			       "Starting DAEMON....\n");
 #ifdef SIGPIPE
 		(void)signal(SIGPIPE, SIG_IGN);
+#endif
+#ifdef HAVE_LIBSYSTEMD
+		sd_notify(0, "READY=1");
 #endif
 		getdns_context_run(context);
 	}

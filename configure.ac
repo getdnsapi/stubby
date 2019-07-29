@@ -32,6 +32,11 @@ AC_CHECK_FUNCS([getdns_yaml2dict],, [
 AM_CONDITIONAL([WITH_YAML], [test "x$ac_cv_func_getdns_yaml2dict" = xno])
 AC_CHECK_HEADERS([assert.h stdio.h stdarg.h inttypes.h])
 
+AC_CHECK_HEADERS([systemd/sd-daemon.h])
+AC_CHECK_LIB([systemd], [sd_notify])
+AM_CONDITIONAL([WITH_SYSTEMD],
+	[test "x$ac_cv_func_systemd_sd_notify" = xno -a "x$ac_cv_header_systemd_sd_daemon_h" = xno])
+
 AC_MSG_CHECKING(whether the C compiler (${CC-cc}) accepts the "format" attribute)
 AC_TRY_COMPILE([
 	#include <stdio.h>
