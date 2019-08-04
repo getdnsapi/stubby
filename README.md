@@ -191,7 +191,7 @@ Or via the GUI:
 * Use the '+' button to add `127.0.0.1` and `::1` (only add the IPv4 address if you don't have IPv6)
 * Hit 'OK' in the *DNS* pane and then 'Apply' on the *Network* pane
 
-## Windows 8 and later
+## Windows 7, 8 and 10
 
 Powershell scripts are provided in the the windows directory of the source code that can be used to update the system resolvers. 
 Instructions for how to update the resolvers manually are provided are also provided - see https://dnsprivacy.org/wiki/display/DP/Windows+installer+for+Stubby 
@@ -201,6 +201,7 @@ Instructions for how to update the resolvers manually are provided are also prov
 
 * If Stubby works for a while but you then see failures from Stubby such as "None of the configured upstreams could be used to send queries on the specified transports" try restarting Stubby.
 * If you are using a DNS Privacy server that does not support concurrent processing of TLS queries, you may experience some issues due to timeouts causing subsequent queries on the same connection to fail.
+* Windows 7 users, ignore powershell command and skip to create a new Scheduled Task upon user login, to run the provided .bat file. This starts the Daemon every time you reboot.
 
 # Building getdns from Source
 
