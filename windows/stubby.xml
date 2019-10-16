@@ -8,7 +8,7 @@
   </Triggers>
   <Principals>
     <Principal id="Author">
-      <LogonType>Password</LogonType>
+      <LogonType>S4U</LogonType>
       <RunLevel>LeastPrivilege</RunLevel>
     </Principal>
   </Principals>
