@@ -33,7 +33,15 @@
   </Settings>
   <Actions Context="Author">
     <Exec>
+      <Command>PowerShell</Command>
+      <Arguments>"Get-NetAdapter -Physical | Set-DnsClientServerAddress -ServerAddresses ('127.0.0.1','::1')"</Arguments>
+    </Exec>
+    <Exec>
       <Command>"%PROGRAMFILES%\Stubby\stubby.bat"</Command>
+    </Exec>
+    <Exec>
+      <Command>PowerShell</Command>
+      <Arguments>"Get-NetAdapter -Physical | Set-DnsClientServerAddress -ResetServerAddresses"</Arguments>
     </Exec>
   </Actions>
 </Task>
