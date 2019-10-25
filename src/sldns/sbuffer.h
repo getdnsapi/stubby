@@ -13,6 +13,11 @@
 #ifndef LDNS_SBUFFER_H
 #define LDNS_SBUFFER_H
 
+#include <assert.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif

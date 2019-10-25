@@ -28,6 +28,7 @@
 #include "config.h"
 #include <getdns/getdns.h>
 #include <getdns/getdns_extra.h>
+#include <stdint.h>
 #include <string.h>
 #include <errno.h>
 #include <limits.h>
