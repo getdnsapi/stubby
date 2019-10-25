@@ -42,7 +42,13 @@ install(DIRECTORY
   )
 set(STUBBYCONFDIR "${RUNSTATEDIR}/stubby")
 
-find_package(Getdns "1.5.0" REQUIRED)
+# Are we being built from getdns?
+if (TARGET getdns)
+  set(getdns_lib "getdns")
+else ()
+  find_package(Getdns "1.5.0" REQUIRED)
+  set(getdns_lib "Getdns::Getdns")
+endif ()
 find_package(Libyaml REQUIRED)
 
 if (WIN32)
@@ -72,7 +78,7 @@ add_executable(stubby
   src/sldns/sbuffer.c
   )
 target_include_directories(stubby PRIVATE src ${CMAKE_CURRENT_BINARY_DIR})
-target_link_libraries(stubby PRIVATE Getdns::Getdns Libyaml::Libyaml)
+target_link_libraries(stubby PRIVATE ${getdns_lib} Libyaml::Libyaml)
 set_property(TARGET stubby PROPERTY C_STANDARD 11)
 
 install(TARGETS stubby)
