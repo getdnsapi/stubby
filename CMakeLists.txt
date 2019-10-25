@@ -81,7 +81,7 @@ target_include_directories(stubby PRIVATE src ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(stubby PRIVATE ${getdns_lib} Libyaml::Libyaml)
 set_property(TARGET stubby PROPERTY C_STANDARD 11)
 
-install(TARGETS stubby)
+install(TARGETS stubby DESTINATION bin)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/stubby.1 DESTINATION share/man/man1)
 install(FILES AUTHORS COPYING ChangeLog INSTALL NEWS README.md DESTINATION share/doc/stubby)
 
