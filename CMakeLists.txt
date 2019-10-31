@@ -43,7 +43,7 @@ install(DIRECTORY
   GROUP_READ GROUP_EXECUTE
   WORLD_READ WORLD_EXECUTE
   )
-set(STUBBYCONFDIR "${RUNSTATEDIR}/stubby")
+set(STUBBYCONFDIR "${CMAKE_INSTALL_FULL_SYSCONFDIR}/stubby")
 
 find_package(Libyaml REQUIRED)
 
@@ -95,14 +95,17 @@ install(TARGETS stubby DESTINATION bin)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/stubby.1 DESTINATION share/man/man1)
 install(FILES AUTHORS COPYING ChangeLog NEWS README.md DESTINATION share/doc/stubby)
 
-if (WIN32)
-  # Attempt to ensure the file gets CRLF line endings.
-  file(STRINGS stubby.yml.example conf)
-  file(WRITE stubby.yml ${conf})
-  install(FILES stubby.yml DESTINATION ${STUBBYCONFDIR}/stubby.yml)
-else ()
-  install(FILES stubby.yml.example DESTINATION ${STUBBYCONFDIR}/stubby.yml)
-endif ()
+# Ensure the file gets CRLF line endings on Windows.
+file(GENERATE OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/stubby.yml INPUT ${CMAKE_CURRENT_SOURCE_DIR}/stubby.yml.example)
+# Copy to destination iff no destination file exists.
+install(CODE "\
+  set(targetdir ${STUBBYCONFDIR})\n\
+  if (\$ENV{DESTDIR})\n\
+    set(targetdir \$ENV{DESTDIR}/\${targetdir})\n\
+  endif ()\n\
+  if (NOT EXISTS \${targetdir}/stubby.yml)\n\
+    file(COPY ${CMAKE_CURRENT_BINARY_DIR}/stubby.yml DESTINATION \${targetdir})\n\
+  endif ()")
 
 if (APPLE)
   find_library(security Security REQUIRED)
