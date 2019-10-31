@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 
+if (POLICY CMP0075)
+  cmake_policy(SET CMP0075 NEW)
+endif ()
+
 # The following must be set BEFORE doing project() or enable_language().
 if (NOT CMAKE_BUILD_TYPE)
   message(STATUS "No build type defined; defaulting to 'Debug'")
