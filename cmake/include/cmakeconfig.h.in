@@ -17,6 +17,10 @@
 #ifdef STUBBY_ON_WINDOWS
 # ifndef  _CUSTOM_VSNPRINTF
 #  define _CUSTOM_VSNPRINTF
+// Ensure we have definition of va_list, and that vsnprint is defined
+// before we redefine it.
+#  include <stdarg.h>
+#  include <stdio.h>
         static inline int _gldns_custom_vsnprintf(
             char *str, size_t size, const char *format, va_list ap)
         { int r = vsnprintf(str, size, format, ap)
