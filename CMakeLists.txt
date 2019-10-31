@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 
-set(CMAKE_VERBOSE_MAKEFILE_ON)
-
 # The following must be set BEFORE doing project() or enable_language().
 if (NOT CMAKE_BUILD_TYPE)
   message(STATUS "No build type defined; defaulting to 'Debug'")
