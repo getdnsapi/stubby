@@ -90,11 +90,11 @@ install(FILES AUTHORS COPYING ChangeLog INSTALL NEWS README.md DESTINATION share
 
 if (WIN32)
   # Attempt to ensure the file gets CRLF line endings.
-  file(STRINGS src/stubby.yml conf)
+  file(STRINGS stubby.yml.example conf)
   file(WRITE stubby.yml ${conf})
   install(FILES stubby.yml DESTINATION ${STUBBYCONFDIR}/stubby.yml)
 else ()
-  install(FILES src/stubby.yml.example DESTINATION ${STUBBYCONFDIR}/stubby.yml)
+  install(FILES stubby.yml.example DESTINATION ${STUBBYCONFDIR}/stubby.yml)
 endif ()
 
 if (APPLE)
