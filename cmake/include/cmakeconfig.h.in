@@ -23,7 +23,18 @@
         ; return r == -1 ? _vscprintf(format, ap) : r; }
 #  define vsnprintf _gldns_custom_vsnprintf
 # endif
-# define PRIsz "Iu"
+
+# ifdef _MSC_VER
+#  if _MSC_VER >= 1800
+#   define PRIsz "zu"
+#  else
+#   define PRIsz "Iu"
+#  endif
+#  include <BaseTsd.h>
+   typedef SSIZE_T ssize_t;
+# else
+#  define PRIsz "Iu"
+# endif
 #else
 # define PRIsz "zu"
 #endif
