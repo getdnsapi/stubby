@@ -93,7 +93,7 @@ set_property(TARGET stubby PROPERTY C_STANDARD 11)
 
 install(TARGETS stubby DESTINATION bin)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/stubby.1 DESTINATION share/man/man1)
-install(FILES AUTHORS COPYING ChangeLog INSTALL NEWS README.md DESTINATION share/doc/stubby)
+install(FILES AUTHORS COPYING ChangeLog NEWS README.md DESTINATION share/doc/stubby)
 
 if (WIN32)
   # Attempt to ensure the file gets CRLF line endings.
