@@ -37,10 +37,14 @@
 #include <shlobj.h>
 #else
 #include <pwd.h>
-#include <unistd.h>
 #endif
 #include <signal.h>
 #include <limits.h>
+#ifndef HAVE_GETOPT
+#include "getopt.h"
+#else
+#include <unistd.h>
+#endif
 
 #ifdef HAVE_GETDNS_YAML2DICT
 getdns_return_t getdns_yaml2dict(const char *str, getdns_dict **dict);

@@ -27,6 +27,7 @@ project (stubby VERSION ${PACKAGE_VERSION} LANGUAGES C)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
 
 include(CheckIncludeFile)
+include(CheckSymbolExists)
 include(GNUInstallDirs)
 
 # Directories
@@ -52,6 +53,8 @@ endif ()
 
 check_include_file(os/log.h HAVE_OS_LOG_H)
 
+check_symbol_exists(getopt "unistd.h" HAVE_GETOPT)
+
 # Does the compiler accept the "format" attribute?
 try_compile(HAVE_ATTR_FORMAT
   ${CMAKE_CURRENT_BINARY_DIR}
@@ -72,6 +75,10 @@ add_executable(stubby
   src/yaml/convert_yaml_to_json.c
   src/sldns/sbuffer.c
   )
+if (NOT HAVE_GETOPT)
+  target_sources(stubby PRIVATE src/compat/getopt.c)
+  target_include_directories(stubby PRIVATE src/compat)
+endif ()
 
 target_include_directories(stubby PRIVATE src ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(stubby PRIVATE Libyaml::Libyaml)

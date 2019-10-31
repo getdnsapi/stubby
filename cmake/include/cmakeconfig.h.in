@@ -9,6 +9,8 @@
 #cmakedefine HAVE_ATTR_FORMAT   1
 #cmakedefine HAVE_ATTR_UNUSED   1
 
+#cmakedefine HAVE_GETOPT	1
+
 #cmakedefine STUBBYCONFDIR      "@STUBBYCONFDIR@"
 #cmakedefine RUNSTATEDIR        "@RUNSTATEDIR@"
 
