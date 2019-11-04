@@ -87,7 +87,7 @@ if (TARGET getdns)
   target_link_libraries(stubby PRIVATE getdns)
 else ()
   find_package(Getdns "1.5.0" REQUIRED)
-  target_link_libraries(stubby Getdns::Getdns)
+  target_link_libraries(stubby PRIVATE Getdns::Getdns)
 endif ()
 set_property(TARGET stubby PROPERTY C_STANDARD 11)
 
