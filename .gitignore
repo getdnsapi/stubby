@@ -55,6 +55,9 @@ config.h
 stamp-h1
 INSTALL
 
+# build dir
+build/
+
 # stubby specific
 stubby
 

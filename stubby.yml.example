@@ -238,7 +238,7 @@ upstream_recursive_servers:
 ## Quad 9 'insecure' service - No filtering, no DNSSEC, doesn't send ECS
 #  - address_data: 9.9.9.10
 #    tls_auth_name: "dns.quad9.net"
-## Cloudflare 1.1.1.1 and 1.0.0.1 
+## Cloudflare 1.1.1.1 and 1.0.0.1
 ## (NOTE: recommend reducing idle_timeout to 9000 if using Coudflare)
 #  - address_data: 1.1.1.1
 #    tls_auth_name: "cloudflare-dns.com"
