@@ -103,6 +103,7 @@ void usage()
 
 void fail_with_errno(const char *op)
 {
+        (void)op;
         log_failure(strerror(errno));
         exit(1);
 }

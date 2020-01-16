@@ -1,125 +1,44 @@
-AC_PREREQ([2.68])
-AC_INIT([Stubby], [0.2.6], [team@getdnsapi.net])
-AC_CANONICAL_TARGET
-AM_INIT_AUTOMAKE
-AC_CONFIG_SRCDIR([src/stubby.c])
-AC_CONFIG_HEADERS([config.h])
+#ifndef CONFIG_H
+#define CONFIG_H
 
-AC_DEFINE_UNQUOTED([STUBBY_PACKAGE], [PACKAGE], [Stubby package])
-AC_DEFINE_UNQUOTED([STUBBY_PACKAGE_STRING], [PACKAGE_STRING], [Stubby package string])
+#cmakedefine STUBBY_PACKAGE             "@STUBBY_PACKAGE@"
+#cmakedefine STUBBY_PACKAGE_STRING      "@STUBBY_PACKAGE_STRING@"
 
-# Autoconf 2.70 will have set up runstatedir. 2.69 is frequently (Debian)
-# patched to do the same, but frequently (MacOS) not. So add a with option
-# for pid file location, and default it to runstatedir if present.
-default_piddir=${runstatedir:-"${localstatedir}/run"}
-AC_ARG_WITH([piddir],
-  [AS_HELP_STRING([--with-piddir=DIR],
-                  [directory for pid files @<:@default=RUNSTATEDIR or LOCALSTATEDIR/run@:>@])],
-  [],
-  [with_piddir=${default_piddir}])
-AC_SUBST([runstatedir], [$with_piddir])
+#cmakedefine STUBBY_ON_WINDOWS  1
 
-AC_PROG_CC([clang gcc])
+#cmakedefine HAVE_ATTR_FORMAT   1
+#cmakedefine HAVE_ATTR_UNUSED   1
 
-AC_CHECK_LIB([getdns], [getdns_context_set_tls_ciphersuites],,
-    [AC_MSG_ERROR([Missing dependency: getdns >= 1.5.0 ])],)
-AC_CHECK_HEADERS([getdns/getdns_extra.h],,
-    [AC_MSG_ERROR([Missing dependency getdns development headers])],)
-AC_CHECK_FUNCS([getdns_yaml2dict],, [
-	AC_CHECK_LIB([yaml], [yaml_parser_parse],,
-	    [AC_MSG_ERROR([Missing dependency: libyaml])])
-])
-AM_CONDITIONAL([WITH_YAML], [test "x$ac_cv_func_getdns_yaml2dict" = xno])
-AC_CHECK_HEADERS([assert.h stdio.h stdarg.h inttypes.h])
+#cmakedefine HAVE_GETOPT	1
 
-AC_MSG_CHECKING(whether the C compiler (${CC-cc}) accepts the "format" attribute)
-AC_TRY_COMPILE([
-	#include <stdio.h>
-	void f (char *format, ...) __attribute__ ((format (printf, 1, 2)));
-	void (*pf) (char *format, ...) __attribute__ ((format (printf, 1, 2)));
-], [f ("%s", "str");], [
-	AC_MSG_RESULT(yes)
-	AC_DEFINE(HAVE_ATTR_FORMAT, 1,
-	    [Whether the C compiler accepts the "format" attribute])
-], [
-	AC_MSG_RESULT(no)
-])
-
-AC_MSG_CHECKING(whether the C compiler (${CC-cc}) accepts the "unused" attribute)
-AC_TRY_COMPILE([
-	#include <stdio.h>
-	void f (char *u __attribute__((unused)));
-], [f ("x");], [
-	AC_MSG_RESULT(yes)
-	AC_DEFINE(HAVE_ATTR_UNUSED, 1,
-	    [Whether the C compiler accepts the "unused" attribute])
-], [
-	AC_MSG_RESULT(no)
-])
-
-AC_CHECK_HEADERS([os/log.h])
-
-build_on_windows="0"
-build_on_macos="0"
-build_on_unix="0"
-AC_CANONICAL_HOST
-case "${host_os}" in
-cygwin*|mingw*)
-	AC_DEFINE(STUBBY_ON_WINDOWS, 1, [Whether the build target is Windows])
-	build_on_windows="1"
-	;;
-darwin*)
-	build_on_macos="1"
-	;;
-*)
-	build_on_unix="1"
-	;;
-esac
-AM_CONDITIONAL([ON_WINDOWS], [test $build_on_windows -eq 1])
-AM_CONDITIONAL([ON_MACOS], [test $build_on_macos -eq 1])
-AM_CONDITIONAL([ON_UNIX], [test $build_on_unix -eq 1])
-
-AC_CONFIG_FILES([Makefile src/Makefile macos/Makefile])
-
-AH_BOTTOM([
-#ifdef HAVE_STDINT_H
-#include <stdint.h>
-#endif
-
-#ifdef HAVE_STDLIB_H
-#include <stdlib.h>
-#endif
-
-#ifdef HAVE_STRING_H
-#include <string.h>
-#endif
-
-#ifdef HAVE_ASSERT_H
-#include <assert.h>
-#endif
-
-#ifdef HAVE_STDIO_H
-#include <stdio.h>
-#endif
-
-#ifdef HAVE_STDARG_H
-#include <stdarg.h>
-#endif
-
-#ifdef HAVE_INTTYPES_H
-#include <inttypes.h>
-#endif
+#cmakedefine STUBBYCONFDIR      "@STUBBYCONFDIR@"
+#cmakedefine RUNSTATEDIR        "@RUNSTATEDIR@"
 
 #ifdef STUBBY_ON_WINDOWS
 # ifndef  _CUSTOM_VSNPRINTF
 #  define _CUSTOM_VSNPRINTF
-	static inline int _gldns_custom_vsnprintf(
-	    char *str, size_t size, const char *format, va_list ap)
-	{ int r = vsnprintf(str, size, format, ap)
-	; return r == -1 ? _vscprintf(format, ap) : r; }
+// Ensure we have definition of va_list, and that vsnprint is defined
+// before we redefine it.
+#  include <stdarg.h>
+#  include <stdio.h>
+        static inline int _gldns_custom_vsnprintf(
+            char *str, size_t size, const char *format, va_list ap)
+        { int r = vsnprintf(str, size, format, ap)
+        ; return r == -1 ? _vscprintf(format, ap) : r; }
 #  define vsnprintf _gldns_custom_vsnprintf
 # endif
-# define PRIsz "Iu"
+
+# ifdef _MSC_VER
+#  if _MSC_VER >= 1800
+#   define PRIsz "zu"
+#  else
+#   define PRIsz "Iu"
+#  endif
+#  include <BaseTsd.h>
+   typedef SSIZE_T ssize_t;
+# else
+#  define PRIsz "Iu"
+# endif
 #else
 # define PRIsz "zu"
 #endif
@@ -139,9 +58,7 @@ AH_BOTTOM([
 #  define ATTR_UNUSED(x)  x
 #endif /* !HAVE_ATTR_UNUSED */
 
-#ifndef HAVE_GETDNS_YAML2DICT
-# define USE_YAML_CONFIG 1
-#endif
+#define USE_YAML_CONFIG 1
 
 #define yaml_string_to_json_string        stubby_yaml_string_to_json_string
 
@@ -262,5 +179,5 @@ AH_BOTTOM([
 #define gldns_buffer_free                 stubby_ldns_buffer_free
 #define gldns_buffer_export               stubby_ldns_buffer_export
 #define gldns_buffer_copy                 stubby_ldns_buffer_copy
-])
-AC_OUTPUT
+
+#endif /* CONFIG_H */

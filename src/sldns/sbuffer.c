@@ -14,6 +14,7 @@
 #include "config.h"
 #include "sldns/sbuffer.h"
 #include <stdarg.h>
+#include <stdio.h>
 
 sldns_buffer *
 sldns_buffer_new(size_t capacity)

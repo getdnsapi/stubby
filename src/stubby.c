@@ -28,6 +28,7 @@
 #include "config.h"
 #include <getdns/getdns.h>
 #include <getdns/getdns_extra.h>
+#include <stdint.h>
 #include <string.h>
 #include <errno.h>
 #include <limits.h>
@@ -36,10 +37,14 @@
 #include <shlobj.h>
 #else
 #include <pwd.h>
-#include <unistd.h>
 #endif
 #include <signal.h>
 #include <limits.h>
+#ifndef HAVE_GETOPT
+#include "getopt.h"
+#else
+#include <unistd.h>
+#endif
 
 #ifdef HAVE_GETDNS_YAML2DICT
 getdns_return_t getdns_yaml2dict(const char *str, getdns_dict **dict);
@@ -344,7 +349,7 @@ static getdns_return_t parse_config_file(const char *fn)
 typedef struct dns_msg {
 	getdns_transaction_t  request_id;
 	getdns_dict          *request;
-	uint32_t              rt;
+	getdns_resolution_t   rt;
 	uint32_t              ad_bit;
 	uint32_t              do_bit;
 	uint32_t              cd_bit;

@@ -1,3 +1,6 @@
+* 2019-12-20: Version 0.3.0-beta.1
+  * Migration of build system to cmake.
+
 * 2019-04-03: Version 0.2.6
  * Windows: use appropriate system and user configuration directories.
  * Windows: replace references to C:\Program Files with %PROGRAMFILES%.
