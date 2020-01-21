@@ -11,6 +11,8 @@
 
 #cmakedefine HAVE_GETOPT	1
 
+#cmakedefine ENABLE_SYSTEMD     1
+
 #cmakedefine STUBBYCONFDIR      "@STUBBYCONFDIR@"
 #cmakedefine RUNSTATEDIR        "@RUNSTATEDIR@"
 
