@@ -31,6 +31,12 @@ include(CheckIncludeFile)
 include(CheckSymbolExists)
 include(GNUInstallDirs)
 
+# Options.
+find_package(Libsystemd)
+if (Libsystemd_FOUND)
+  option(ENABLE_SYSTEMD "Enable systemd support." ON)
+endif()
+
 # Directories
 if (DEFINED CMAKE_INSTALL_FULL_RUNSTATEDIR)
   set(RUNSTATEDIR "${CMAKE_INSTALL_FULL_RUNSTATEDIR}")
@@ -83,6 +89,9 @@ endif ()
 
 target_include_directories(stubby PRIVATE src ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(stubby PRIVATE Libyaml::Libyaml)
+if (ENABLE_SYSTEMD)
+  target_link_libraries(stubby PRIVATE Libsystemd::Libsystemd)
+endif()
 # Are we being built from getdns? If so, use the build tree getdns.
 if (TARGET getdns)
   target_link_libraries(stubby PRIVATE getdns)
