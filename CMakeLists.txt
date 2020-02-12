@@ -59,6 +59,13 @@ if (WIN32)
 endif ()
 
 check_include_file(os/log.h HAVE_OS_LOG_H)
+check_include_file(inttypes.h HAVE_INTTYPES_H)
+check_include_file(sys/types.h HAVE_SYS_TYPES_H)
+
+option(ENABLE_DEBUG_ALL "Enable all debugging messages.")
+cmake_dependent_option(ENABLE_DEBUG_SERVER "Enable server debugging messages." OFF "NOT ENABLE_DEBUG_ALL" ON)
+set(SERVER_DEBUG ${ENABLE_DEBUG_SERVER})
+
 
 check_symbol_exists(getopt "unistd.h" HAVE_GETOPT)
 
