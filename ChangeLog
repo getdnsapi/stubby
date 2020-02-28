@@ -1,4 +1,4 @@
-* 2020-01-16: Version 0.3.0rc1
+* 2020-02-28: Version 0.3.0
   * Correct the applied-privacy.net details and remove ibksturm server in stubby.yml.example.
   * Include AppArmor profile (thanks CameronNemo)
   * Add `contrib` contributors to the README
