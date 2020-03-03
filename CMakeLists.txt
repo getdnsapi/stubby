@@ -117,12 +117,13 @@ install(FILES AUTHORS COPYING ChangeLog NEWS README.md DESTINATION share/doc/stu
 file(GENERATE OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/stubby.yml INPUT ${CMAKE_CURRENT_SOURCE_DIR}/stubby.yml.example)
 # Copy to destination iff no destination file exists.
 install(CODE "\
-  set(targetdir ${STUBBYCONFDIR})\n\
-  if (\$ENV{DESTDIR})\n\
-    set(targetdir \$ENV{DESTDIR}/\${targetdir})\n\
+  set(targetdir \"${STUBBYCONFDIR}\")\n\
+  set(destdir \"\$ENV{DESTDIR}\")\n\
+  if (destdir)\n\
+    set(targetdir \"\${destdir}/\${targetdir}\")\n\
   endif ()\n\
-  if (NOT EXISTS \${targetdir}/stubby.yml)\n\
-    file(COPY ${CMAKE_CURRENT_BINARY_DIR}/stubby.yml DESTINATION \${targetdir})\n\
+  if (NOT EXISTS \"\${targetdir}/stubby.yml\")\n\
+    file(COPY \"${CMAKE_CURRENT_BINARY_DIR}/stubby.yml\" DESTINATION \"\${targetdir}\")\n\
   endif ()")
 
 if (APPLE)
