@@ -300,12 +300,6 @@ upstream_recursive_servers:
 #    tls_pubkey_pinset:
 #      - digest: "sha256"
 #        value: AAT+rHoKx5wQkWhxlfrIybFocBu3RBrPD2/ySwIwmvA=
-## dot.securedns.eu
-#  - address_data: 146.185.167.43
-#    tls_auth_name: "dot.securedns.eu"
-#    tls_pubkey_pinset:
-#      - digest: "sha256"
-#        value: h3mufC43MEqRD6uE4lz6gAgULZ5/riqH/E+U+jE3H8g=
 ## dns-tls.bitwiseshift.net
 #  - address_data: 81.187.221.24
 #    tls_auth_name: "dns-tls.bitwiseshift.net"
@@ -421,12 +415,6 @@ upstream_recursive_servers:
 #        value: 3IOHSS48KOc/zlkKGtI46a9TY9PPKDVGhE3W2ZS4JZo=
 #      - digest: "sha256"
 #        value: 5zFN3smRPuHIlM/8L+hANt99LW26T97RFHqHv90awjo=
-## dot.securedns.eu
-#  - address_data: 2a03:b0c0:0:1010::e9a:3001
-#    tls_auth_name: "dot.securedns.eu"
-#    tls_pubkey_pinset:
-#      - digest: "sha256"
-#        value: h3mufC43MEqRD6uE4lz6gAgULZ5/riqH/E+U+jE3H8g=
 ## dns-tls.bitwiseshift.net
 #  - address_data: 2001:8b0:24:24::24
 #    tls_auth_name: "dns-tls.bitwiseshift.net"
