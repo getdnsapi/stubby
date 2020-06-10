@@ -248,8 +248,8 @@ static getdns_return_t parse_config(const char *config_str, int yaml_config)
 			   runtime because it could change under us..... */
 			r = getdns_yaml2dict(config_str, NULL);
 			if (r == GETDNS_RETURN_NOT_IMPLEMENTED) {
-				fprintf(stderr, "Support for YAML configuration files not available because\n");
-				fprintf(stderr, "the version of getdns used was not compiled with YAML support.\n");
+				stubby_error("Support for YAML configuration files not available because\n"
+					     "the version of getdns used was not compiled with YAML support.");
 				return GETDNS_RETURN_NOT_IMPLEMENTED;
 			}
 		}
@@ -257,7 +257,7 @@ static getdns_return_t parse_config(const char *config_str, int yaml_config)
 		r = getdns_str2dict(config_str, &config_dict);
 	}
 	if (r) {
-		fprintf(stderr, "Could not parse config file %s, \"%s\"\n",
+		stubby_error("Could not parse config file %s, \"%s\"",
 		    config_str, _getdns_strerror(r));
 		return r;
 	}
@@ -273,28 +273,27 @@ static getdns_return_t parse_config(const char *config_str, int yaml_config)
 		 */
 		if (!listen_dict &&
 		    !(listen_dict = getdns_dict_create())) {
-			fprintf(stderr, "Could not create "
-					"listen_dict");
+			stubby_error("Could not create listen_dict");
 			r = GETDNS_RETURN_MEMORY_ERROR;
 
 		} else if ((r = getdns_dict_set_list(
 		    listen_dict, "listen_list", list)))
-			fprintf(stderr, "Could not set listen_list");
+			stubby_error("Could not set listen_list");
 
 		else if ((r = getdns_dict_get_list(
 		    listen_dict, "listen_list", &listen_list)))
-			fprintf(stderr, "Could not get listen_list");
+			stubby_error("Could not get listen_list");
 
 		else if ((r = getdns_list_get_length(
 		    listen_list, &listen_count)))
-			fprintf(stderr, "Could not get listen_count");
+			stubby_error("Could not get listen_count");
 
 		(void) getdns_dict_remove_name(
 		    config_dict, "listen_addresses");
 	}
 	if (!r && (r = getdns_context_config(context, config_dict))) {
-		fprintf(stderr, "Could not configure context with "
-		    "config dict: %s\n", _getdns_strerror(r));
+		stubby_error("Could not configure context with "
+		    "config dict: %s", _getdns_strerror(r));
 	}
 	getdns_dict_destroy(config_dict);
 	return r;
@@ -324,14 +323,14 @@ static getdns_return_t parse_config_file(const char *fn)
 	}
 	if (!(config_file = malloc(config_file_sz + 1))){
 		fclose(fh);
-		fprintf(stderr, "Could not allocate memory for \"%s\"\n", fn);
+		stubby_error("Could not allocate memory for \"%s\"", fn);
 		return GETDNS_RETURN_MEMORY_ERROR;
 	}
 	rewind(fh);
 	read_sz = fread(config_file, 1, config_file_sz + 1, fh);
 	if (read_sz > (size_t)config_file_sz || ferror(fh) || !feof(fh)) {
-		fprintf( stderr, "An error occurred while reading \"%s\": %s\n"
-		       , fn, strerror(errno));
+		stubby_error("An error occurred while reading \"%s\": %s",
+			     fn, strerror(errno));
 		fclose(fh);
 		free(config_file);
 		return GETDNS_RETURN_IO_ERROR;
@@ -570,7 +569,7 @@ static void request_cb(
 		}
 	}
 	if ((r = getdns_reply(context, response, msg->request_id))) {
-		fprintf(stderr, "Could not reply: %s\n", _getdns_strerror(r));
+		stubby_error("Could not reply: %s", _getdns_strerror(r));
 		/* Cancel reply */
 		(void) getdns_reply(context, NULL, msg->request_id);
 	}
@@ -635,7 +634,7 @@ static void incoming_request_handler(getdns_context *context,
 		}
 	}
 	if ((r = getdns_context_get_resolution_type(context, &msg->rt)))
-		fprintf(stderr, "Could get resolution type from context: %s\n",
+		stubby_error("Could get resolution type from context: %s",
 		    _getdns_strerror(r));
 
 	if (msg->rt == GETDNS_RESOLUTION_STUB) {
@@ -668,28 +667,28 @@ static void incoming_request_handler(getdns_context *context,
 		    "/add_opt_parameters/options", list);
 
 	if ((r = getdns_dict_get_bindata(request,"/question/qname",&qname)))
-		fprintf(stderr, "Could not get qname from query: %s\n",
+		stubby_error("Could not get qname from query: %s",
 		    _getdns_strerror(r));
 
 	else if ((r = getdns_convert_dns_name_to_fqdn(qname, &qname_str)))
-		fprintf(stderr, "Could not convert qname: %s\n",
+		stubby_error("Could not convert qname: %s",
 		    _getdns_strerror(r));
 
 	else if ((r=getdns_dict_get_int(request,"/question/qtype",&qtype)))
-		fprintf(stderr, "Could get qtype from query: %s\n",
+		stubby_error("Could get qtype from query: %s",
 		    _getdns_strerror(r));
 
 	else if ((r=getdns_dict_get_int(request,"/question/qclass",&qclass)))
-		fprintf(stderr, "Could get qclass from query: %s\n",
+		stubby_error("Could get qclass from query: %s",
 		    _getdns_strerror(r));
 
 	else if ((r = getdns_dict_set_int(qext, "specify_class", qclass)))
-		fprintf(stderr, "Could set class from query: %s\n",
+		stubby_error("Could set class from query: %s",
 		    _getdns_strerror(r));
 
 	else if ((r = getdns_general(context, qname_str, qtype,
 	    qext, msg, &transaction_id, request_cb)))
-		fprintf(stderr, "Could not schedule query: %s\n",
+		stubby_error("Could not schedule query: %s",
 		    _getdns_strerror(r));
 	else {
 		DEBUG_SERVER("scheduled: %p %"PRIu64" for %s %d\n",
@@ -715,7 +714,7 @@ error:
 	} while(0);
 #endif
 	if ((r = getdns_reply(context, response, request_id))) {
-		fprintf(stderr, "Could not reply: %s\n",
+		stubby_error("Could not reply: %s",
 		    _getdns_strerror(r));
 		/* Cancel reply */
 		getdns_reply(context, NULL, request_id);
@@ -773,7 +772,7 @@ main(int argc, char **argv)
 			if (log_level < 0 ||  log_level > 7 || *ep != '\0' || 
 			    (errno == ERANGE &&
 			    (log_level == LONG_MAX || log_level == LONG_MIN)) ) {
-				fprintf(stderr, "Log level '%s' is invalid or out of range (0-7)\n", optarg);
+				stubby_error("Log level '%s' is invalid or out of range (0-7)", optarg);
 				exit(EXIT_FAILURE);
 			}
 			break;
@@ -794,10 +793,10 @@ main(int argc, char **argv)
 	}
 
 	stubby_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_INFO,
-		   "Stubby version: %s\n", STUBBY_PACKAGE_STRING);
+		   "Stubby version: %s", STUBBY_PACKAGE_STRING);
 
 	if ((r = getdns_context_create(&context, 1))) {
-		fprintf(stderr, "Create context failed: %s\n",
+		stubby_error("Create context failed: %s",
 		        _getdns_strerror(r));
 		return r;
 	}
@@ -807,46 +806,46 @@ main(int argc, char **argv)
 	(void) parse_config(default_config, 0);
 	if (custom_config_fn) {
 		if ((r = parse_config_file(custom_config_fn))) {
-			fprintf(stderr, "Could not parse config file "
-			        "\"%s\": %s\n", custom_config_fn,
+			stubby_error("Could not parse config file "
+			        "\"%s\": %s", custom_config_fn,
 			        _getdns_strerror(r));
 			return r;
 		}
 	} else {
 		conf_fn = home_config_file();
 		if (!conf_fn) {
-			fprintf(stderr, "Error getting user config file");
+			stubby_error("Error getting user config file");
 			exit(EXIT_FAILURE);
 		}
 		r = parse_config_file(conf_fn);
 		if (r == GETDNS_RETURN_GOOD)
 			found_conf = 1;
 		else if (r != GETDNS_RETURN_IO_ERROR)
-			fprintf( stderr, "Error parsing config file "
-				 "\"%s\": %s\n", conf_fn
+			stubby_error("Error parsing config file "
+				 "\"%s\": %s", conf_fn
 				 , _getdns_strerror(r));
 		free(conf_fn);
 		if (!found_conf) {
 			conf_fn = system_config_file();
 			if (!conf_fn) {
-				fprintf(stderr, "Error getting system config file");
+				stubby_error("Error getting system config file");
 				exit(EXIT_FAILURE);
 			}
 			r = parse_config_file(conf_fn);
 			if (r == GETDNS_RETURN_GOOD)
 				found_conf = 1;
 			else if (r != GETDNS_RETURN_IO_ERROR)
-				fprintf( stderr, "Error parsing config file "
-				         "\"%s\": %s\n", conf_fn
+				stubby_error("Error parsing config file "
+				         "\"%s\": %s", conf_fn
 				       , _getdns_strerror(r));
 			free(conf_fn);
 		}
 		if (!found_conf)
-			fprintf(stderr, "WARNING: No Stubby config file found... using minimal default config (Opportunistic Usage)\n");
+			stubby_warning("WARNING: No Stubby config file found... using minimal default config (Opportunistic Usage)");
 	}
 	if ((r = getdns_context_set_resolution_type(context, GETDNS_RESOLUTION_STUB))) {
-		fprintf( stderr, "Error while trying to configure stubby for "
-		                 "stub resolution only: %s\n", _getdns_strerror(r));
+		stubby_error("Error while trying to configure stubby for "
+			     "stub resolution only: %s", _getdns_strerror(r));
 		exit(EXIT_FAILURE);
 	}
 	if ((api_information = getdns_context_get_api_information(context))
@@ -931,8 +930,8 @@ main(int argc, char **argv)
 			if (kill(running, 0) < 0 && errno == ESRCH)
 				break;
 
-			fprintf( stderr, "Not starting because a running "
-			        "stubby was found on pid: %d\n", running);
+			stubby_error("Not starting because a running "
+				     "stubby was found on pid: %d", running);
 			exit(EXIT_FAILURE);
 		} while(0);
 		if (fh)
@@ -949,9 +948,9 @@ main(int argc, char **argv)
 				fprintf(fh, "%d", (int)pid);
 				fclose(fh);
 			} else {
-				fprintf(stderr, "Could not write pid to "
-				        "\"%s\": %s\n", STUBBYPIDFILE,
-				        strerror(errno));
+				stubby_error("Could not write pid to "
+					     "\"%s\": %s", STUBBYPIDFILE,
+					     strerror(errno));
 				exit(EXIT_FAILURE);
 			}
 		} else {
@@ -968,13 +967,13 @@ main(int argc, char **argv)
 	{
 		/* Report basic config options which specifically affect privacy and validation*/
 		stubby_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_INFO,
-			   "DNSSEC Validation is %s\n", dnssec_validation==1 ? "ON":"OFF");
+			   "DNSSEC Validation is %s", dnssec_validation==1 ? "ON":"OFF");
 		size_t transport_count = 0;
 		getdns_transport_list_t *transport_list;
 		getdns_context_get_dns_transport_list(context, 
 		                                 &transport_count, &transport_list);
 		stubby_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_INFO,
-			   "Transport list is:\n");
+			   "Transport list is:");
 		for (size_t i = 0; i < transport_count; i++) {
 			char* transport_name;
 			switch (transport_list[i]) {
@@ -992,19 +991,19 @@ main(int argc, char **argv)
 					break;
 				}
 			stubby_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_INFO,
-			                 "  - %s\n", transport_name);
+			                 "  - %s", transport_name);
 		}
 		free(transport_list);
 		getdns_tls_authentication_t auth;
 		getdns_context_get_tls_authentication(context, &auth);
 		stubby_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_INFO,
-			   "Privacy Usage Profile is %s\n",
+			   "Privacy Usage Profile is %s",
 			   auth==GETDNS_AUTHENTICATION_REQUIRED ?
 			   "Strict (Authentication required)":"Opportunistic");
 		stubby_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_INFO,
-			   "(NOTE a Strict Profile only applies when TLS is the ONLY transport!!)\n");
+			   "(NOTE a Strict Profile only applies when TLS is the ONLY transport!!)");
 		stubby_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_DEBUG,
-			   "Starting DAEMON....\n");
+			   "Starting DAEMON....");
 #ifdef SIGPIPE
 		(void)signal(SIGPIPE, SIG_IGN);
 #endif

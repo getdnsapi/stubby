@@ -1,11 +1,14 @@
 #include "config.h"
 
+#include <stdio.h>
+
 #include "log.h"
 
 static void default_stubby_verror(getdns_loglevel_type level, const char *fmt, va_list ap)
 {
         (void) level;
         (void) vfprintf(stderr, fmt, ap);
+        (void) fputc('\n', stderr);
 }
 
 static void default_stubby_vlog(void *userarg, uint64_t system,
@@ -26,9 +29,10 @@ static void default_stubby_vlog(void *userarg, uint64_t system,
         gmtime_r(&tv.tv_sec, &tm);
 #endif
         strftime(buf, 10, "%H:%M:%S", &tm);
-        (void)userarg; (void)system;
-        stubby_error("[%s.%.6d] STUBBY: ", buf, (int)tv.tv_usec);
-        default_stubby_verror(level, fmt, ap);
+        (void)userarg; (void)system; (void)level;
+        (void) fprintf(stderr, "[%s.%.6d] STUBBY: ", buf, (int)tv.tv_usec);
+        (void) vfprintf(stderr, fmt, ap);
+        (void) fputc('\n', stderr);
 }
 
 static stubby_verror_t stubby_verror = default_stubby_verror;
