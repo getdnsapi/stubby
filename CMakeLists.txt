@@ -23,7 +23,12 @@ set(PACKAGE_TARNAME "${PACKAGE}-${PACKAGE_VERSION}${RELEASE_CANDIDATE}")
 set(STUBBY_PACKAGE "${PACKAGE}")
 set(STUBBY_PACKAGE_STRING "${PACKAGE_STRING}")
 
-project (stubby VERSION ${PACKAGE_VERSION} LANGUAGES C)
+if (WIN32)
+  set(STUBBY_ON_WINDOWS 1)
+  project (stubby VERSION ${PACKAGE_VERSION} LANGUAGES C RC)
+else()
+  project (stubby VERSION ${PACKAGE_VERSION} LANGUAGES C)
+endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
 
@@ -55,8 +60,15 @@ set(STUBBYCONFDIR "${CMAKE_INSTALL_FULL_SYSCONFDIR}/stubby")
 
 find_package(Libyaml REQUIRED)
 
-if (WIN32)
-  set(STUBBY_ON_WINDOWS 1)
+if (STUBBY_ON_WINDOWS)
+  check_include_file(windows.h HAVE_WINDOWS_H)
+
+  find_program(CMAKE_MC_COMPILER mc.exe DOC "path to message compiler")
+  if (NOT CMAKE_MC_COMPILER)
+    message(FATAL_ERROR "message compiler not found: required to build")
+  endif (NOT CMAKE_MC_COMPILER)
+  message(STATUS "Found message compiler: ${CMAKE_MC_COMPILER}")
+  mark_as_advanced(CMAKE_MC_COMPILER)
 endif ()
 
 check_include_file(os/log.h HAVE_OS_LOG_H)
@@ -85,6 +97,17 @@ configure_file(cmake/include/cmakeconfig.h.in config.h)
 set(ETCDIR "${STUBBYCONFDIR}")
 configure_file(doc/stubby.1.in stubby.1 @ONLY)
 
+if (STUBBY_ON_WINDOWS)
+  add_custom_command(
+    OUTPUT service.rc
+    MAIN_DEPENDENCY src/windows/service.mc
+    COMMAND ${CMAKE_MC_COMPILER}
+    ARGS -U
+         -r ${CMAKE_CURRENT_BINARY_DIR}
+         ${CMAKE_CURRENT_SOURCE_DIR}/src/windows/service.mc
+    )
+endif ()
+
 add_executable(stubby
   src/stubby.c
   src/yaml/convert_yaml_to_json.c
@@ -94,6 +117,10 @@ if (NOT HAVE_GETOPT)
   target_sources(stubby PRIVATE src/compat/getopt.c)
   target_include_directories(stubby PRIVATE src/compat)
 endif ()
+if (STUBBY_ON_WINDOWS)
+  target_sources(stubby PRIVATE src/windows/service.c)
+  target_sources(stubby PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/service.rc)
+endif()
 
 target_include_directories(stubby PRIVATE src ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(stubby PRIVATE Libyaml::Libyaml)
