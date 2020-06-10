@@ -110,6 +110,7 @@ endif ()
 
 add_executable(stubby
   src/stubby.c
+  src/log.c
   src/yaml/convert_yaml_to_json.c
   src/sldns/sbuffer.c
   )

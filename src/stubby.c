@@ -49,6 +49,8 @@
 #include <systemd/sd-daemon.h>
 #endif
 
+#include "log.h"
+
 #ifdef HAVE_GETDNS_YAML2DICT
 getdns_return_t getdns_yaml2dict(const char *str, getdns_dict **dict);
 #else
@@ -177,10 +179,6 @@ static getdns_list *listen_list = NULL;
 static size_t listen_count = 0;
 static int run_in_foreground = 1;
 static int dnssec_validation = 0;
-
-static void stubby_local_log(void *userarg, uint64_t system,
-	getdns_loglevel_type level, const char *fmt, ...);
-
 
 void
 print_usage(FILE *out)
@@ -344,8 +342,8 @@ static getdns_return_t parse_config_file(const char *fn)
 	                           || strstr(fn, ".yaml") != NULL);
 	free(config_file);
 	if (r == GETDNS_RETURN_GOOD)
-		stubby_local_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_DEBUG,
-			       "Read config from file %s\n", fn);
+		stubby_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_DEBUG,
+			   "Read config from file %s\n", fn);
 	return r;
 }
 
@@ -731,37 +729,6 @@ error:
 		getdns_dict_destroy(response);
 }
 
-static void stubby_log(void *userarg, uint64_t system,
-    getdns_loglevel_type level, const char *fmt, va_list ap)
-{
-	struct timeval tv;
-	struct tm tm;
-	char buf[10];
-#if defined(STUBBY_ON_WINDOWS) || defined(GETDNS_ON_WINDOWS)
-	time_t tsec;
-
-	gettimeofday(&tv, NULL);
-	tsec = (time_t) tv.tv_sec;
-	gmtime_s(&tm, (const time_t *) &tsec);
-#else
-	gettimeofday(&tv, NULL);
-	gmtime_r(&tv.tv_sec, &tm);
-#endif
-	strftime(buf, 10, "%H:%M:%S", &tm);
-	(void)userarg; (void)system; (void)level;
-	(void) fprintf(stderr, "[%s.%.6d] STUBBY: ", buf, (int)tv.tv_usec);
-	(void) vfprintf(stderr, fmt, ap);
-}
-
-void stubby_local_log(void *userarg, uint64_t system,
-    getdns_loglevel_type level, const char *fmt, ...)
-{
-	va_list args;
-	va_start(args, fmt);
-	stubby_log(userarg, system, level, fmt, args);
-	va_end(args);
-}
-
 int
 main(int argc, char **argv)
 {
@@ -770,6 +737,10 @@ main(int argc, char **argv)
 	int found_conf = 0;
 	int print_api_info = 0;
 	int log_connections = 0;
+#if defined(STUBBY_ON_WINDOWS)
+	int windows_service = 0;
+	const char *windows_service_arg = NULL;
+#endif
 	getdns_return_t r;
 	int opt;
 	long log_level = 7; 
@@ -778,7 +749,7 @@ main(int argc, char **argv)
 	getdns_list *api_info_keys = NULL;
 	getdns_bindata *api_info_key = NULL;
 
-	while ((opt = getopt(argc, argv, "C:ighlv:V")) != -1) {
+	while ((opt = getopt(argc, argv, "C:ighlv:w:V")) != -1) {
 		switch (opt) {
 		case 'C':
 			custom_config_fn = optarg;
@@ -806,6 +777,13 @@ main(int argc, char **argv)
 				exit(EXIT_FAILURE);
 			}
 			break;
+#if defined(STUBBY_ON_WINDOWS)
+		case 'w':
+			windows_service = 1;
+			windows_service_arg = optarg;
+			break;
+#endif
+
                 case 'V':
 			print_version(stdout);
 			exit(EXIT_SUCCESS);
@@ -815,18 +793,16 @@ main(int argc, char **argv)
 		}
 	}
 
-	stubby_local_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_INFO,
-		       "Stubby version: %s\n", STUBBY_PACKAGE_STRING);
+	stubby_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_INFO,
+		   "Stubby version: %s\n", STUBBY_PACKAGE_STRING);
 
 	if ((r = getdns_context_create(&context, 1))) {
 		fprintf(stderr, "Create context failed: %s\n",
 		        _getdns_strerror(r));
 		return r;
 	}
-	if (log_connections) {
-		(void) getdns_context_set_logfunc(context, NULL,
-	    	GETDNS_LOG_UPSTREAM_STATS, (int)log_level, stubby_log);
-	}
+	if (log_connections)
+		stubby_set_getdns_logging(context, (int)log_level);
 
 	(void) parse_config(default_config, 0);
 	if (custom_config_fn) {
@@ -991,14 +967,14 @@ main(int argc, char **argv)
 #endif
 	{
 		/* Report basic config options which specifically affect privacy and validation*/
-		stubby_local_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_INFO,
-			       "DNSSEC Validation is %s\n", dnssec_validation==1 ? "ON":"OFF");
+		stubby_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_INFO,
+			   "DNSSEC Validation is %s\n", dnssec_validation==1 ? "ON":"OFF");
 		size_t transport_count = 0;
 		getdns_transport_list_t *transport_list;
 		getdns_context_get_dns_transport_list(context, 
 		                                 &transport_count, &transport_list);
-		stubby_local_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_INFO,
-		                "Transport list is:\n");
+		stubby_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_INFO,
+			   "Transport list is:\n");
 		for (size_t i = 0; i < transport_count; i++) {
 			char* transport_name;
 			switch (transport_list[i]) {
@@ -1015,20 +991,20 @@ main(int argc, char **argv)
 					transport_name = "Unknown transport type";
 					break;
 				}
-			stubby_local_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_INFO,
+			stubby_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_INFO,
 			                 "  - %s\n", transport_name);
 		}
 		free(transport_list);
 		getdns_tls_authentication_t auth;
 		getdns_context_get_tls_authentication(context, &auth);
-		stubby_local_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_INFO,
-		                "Privacy Usage Profile is %s\n", 
-		                 auth==GETDNS_AUTHENTICATION_REQUIRED ? 
-		                "Strict (Authentication required)":"Opportunistic");
-		stubby_local_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_INFO,
-			            "(NOTE a Strict Profile only applies when TLS is the ONLY transport!!)\n");
-		stubby_local_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_DEBUG,
-			       "Starting DAEMON....\n");
+		stubby_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_INFO,
+			   "Privacy Usage Profile is %s\n",
+			   auth==GETDNS_AUTHENTICATION_REQUIRED ?
+			   "Strict (Authentication required)":"Opportunistic");
+		stubby_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_INFO,
+			   "(NOTE a Strict Profile only applies when TLS is the ONLY transport!!)\n");
+		stubby_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_DEBUG,
+			   "Starting DAEMON....\n");
 #ifdef SIGPIPE
 		(void)signal(SIGPIPE, SIG_IGN);
 #endif
