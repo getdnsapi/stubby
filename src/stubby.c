@@ -47,9 +47,10 @@
 #include "log.h"
 #include "server.h"
 #include "util.h"
-#include "windowsservice.h"
 
-#if !defined(STUBBY_ON_WINDOWS)
+#if defined(STUBBY_ON_WINDOWS)
+#include "windowsservice.h"
+#else
 #define STUBBYPIDFILE RUNSTATEDIR"/stubby.pid"
 #endif
 
