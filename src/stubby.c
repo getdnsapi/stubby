@@ -53,10 +53,6 @@
 #define STUBBYPIDFILE RUNSTATEDIR"/stubby.pid"
 #endif
 
-static getdns_context  *context = NULL;
-static int run_in_foreground = 1;
-static int dnssec_validation = 0;
-
 void
 print_usage(FILE *out)
 {
@@ -107,11 +103,14 @@ main(int argc, char **argv)
 {
 	const char *custom_config_fn = NULL;
 	int print_api_info = 0;
+	int run_in_foreground = 0;
 	int log_connections = 0;
+	int dnssec_validation = 0;
 #if defined(STUBBY_ON_WINDOWS)
 	int windows_service = 0;
 	const char *windows_service_arg = NULL;
 #endif
+	getdns_context  *context = NULL;
 	getdns_return_t r;
 	int opt;
 	long log_level = 7; 
@@ -151,7 +150,6 @@ main(int argc, char **argv)
 			windows_service_arg = optarg;
 			break;
 #endif
-
                 case 'V':
 			print_version(stdout);
 			exit(EXIT_SUCCESS);
