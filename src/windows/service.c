@@ -27,6 +27,7 @@
 
 #include "config.h"
 
+#include <stdarg.h>
 #include <stdio.h>
 
 #include <winsock2.h>
@@ -112,65 +113,73 @@ void report_verror(getdns_loglevel_type level, const char *fmt, va_list ap)
         char buf[256];
         HANDLE hEventSource;
         LPCTSTR lpszStrings[2];
+        WORD eventType;
         DWORD eventId;
 
         hEventSource = RegisterEventSource(NULL, SVCNAME);
+        if ( hEventSource == NULL )
+                return;
 
-        if ( NULL != hEventSource )
+        switch (level)
         {
-                switch (level)
-                {
-                GETDNS_LOG_EMERG:
-                        eventId = SVC_EMERGENCY;
-                        break;
+        case GETDNS_LOG_EMERG:
+                eventType = EVENTLOG_ERROR_TYPE;
+                eventId = SVC_EMERGENCY;
+                break;
 
-                GETDNS_LOG_ALERT:
-                        eventId = SVC_ALERT;
-                        break;
+        case GETDNS_LOG_ALERT:
+                eventType = EVENTLOG_ERROR_TYPE;
+                eventId = SVC_ALERT;
+                break;
 
-                GETDNS_LOG_CRIT:
-                        eventId = SVC_CRITICAL;
-                        break;
+        case GETDNS_LOG_CRIT:
+                eventType = EVENTLOG_ERROR_TYPE;
+                eventId = SVC_CRITICAL;
+                break;
 
-                GETDNS_LOG_ERR:
-                        eventId = SVC_ERROR;
-                        break;
+        case GETDNS_LOG_ERR:
+                eventType = EVENTLOG_ERROR_TYPE;
+                eventId = SVC_ERROR;
+                break;
 
-                GETDNS_LOG_WARNING:
-                        eventId = SVC_WARNING;
-                        break;
+        case GETDNS_LOG_WARNING:
+                eventType = EVENTLOG_WARNING_TYPE;
+                eventId = SVC_WARNING;
+                break;
 
-                GETDNS_LOG_NOTICE:
-                        eventId = SVC_NOTICE;
-                        break;
+        case GETDNS_LOG_NOTICE:
+                eventType = EVENTLOG_WARNING_TYPE;
+                eventId = SVC_NOTICE;
+                break;
 
-                GETDNS_LOG_INFO:
-                        eventId = SVC_INFO;
-                        break;
+        case GETDNS_LOG_INFO:
+                eventType = EVENTLOG_INFORMATION_TYPE;
+                eventId = SVC_INFO;
+                break;
 
-                default:
-                        eventId = SVC_DEBUG;
-                        break;
+        default:
+                eventType = EVENTLOG_INFORMATION_TYPE;
+                eventId = SVC_DEBUG;
+                break;
 
-                }
-
-                vsnprintf(buf, sizeof(buf), fmt, ap);
-
-                lpszStrings[0] = SVCNAME;
-                lpszStrings[1] = buf;
-
-                ReportEvent(hEventSource,        // event log handle
-                            EVENTLOG_ERROR_TYPE, // event type
-                            0,                   // event category
-                            eventId,             // event identifier
-                            NULL,                // no security identifier
-                            2,                   // size of lpszStrings array
-                            0,                   // no binary data
-                            lpszStrings,         // array of strings
-                            NULL);               // no binary data
-
-                DeregisterEventSource(hEventSource);
         }
+
+        vsnprintf(buf, sizeof(buf), fmt, ap);
+
+        lpszStrings[0] = SVCNAME;
+        lpszStrings[1] = buf;
+
+        ReportEvent(hEventSource,        // event log handle
+                    eventType,           // event type
+                    0,                   // event category
+                    eventId,             // event identifier
+                    NULL,                // no security identifier
+                    2,                   // size of lpszStrings array
+                    0,                   // no binary data
+                    lpszStrings,         // array of strings
+                    NULL);               // no binary data
+
+        DeregisterEventSource(hEventSource);
 }
 
 void report_vlog(void *userarg, uint64_t system,
@@ -582,6 +591,7 @@ VOID SvcInit( DWORD dwArgc, LPTSTR *lpszArgv)
                 goto tidy_and_exit;
         }
 
+        ReportSvcStatus(SERVICE_START_PENDING, NO_ERROR, 1030);
         if ( getdns_context_get_eventloop(context, &eventloop) ) {
                 report_getdnserr("Get event loop");
                 goto tidy_and_exit;
@@ -603,6 +613,7 @@ VOID SvcInit( DWORD dwArgc, LPTSTR *lpszArgv)
 
                 default:
                         more = 0;
+                        stubby_debug("Stop object signalled");
                         break;
                 }
 

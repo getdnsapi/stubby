@@ -22,7 +22,7 @@ Severity=Error
 Facility=Runtime
 SymbolicName=SVC_EMERGENCY
 Language=English
-Emergency: %1.
+Emergency: %2.
 .
 
 MessageId=0x2
@@ -30,7 +30,7 @@ Severity=Error
 Facility=Runtime
 SymbolicName=SVC_ALERT
 Language=English
-Alert: %1.
+Alert: %2.
 .
 
 MessageId=0x3
@@ -38,7 +38,7 @@ Severity=Error
 Facility=Runtime
 SymbolicName=SVC_CRITICAL
 Language=English
-Critical: %1.
+Critical: %2.
 .
 
 MessageId=0x4
@@ -46,7 +46,7 @@ Severity=Error
 Facility=Runtime
 SymbolicName=SVC_ERROR
 Language=English
-Error: %1.
+Error: %2.
 .
 
 MessageId=0x5
