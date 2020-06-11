@@ -341,6 +341,7 @@ VOID SvcInstall()
         TCHAR modpath[MAX_PATH];
         const TCHAR ARG[] = "-w service";
         TCHAR cmd[MAX_PATH + 3 + sizeof(ARG)];
+        SERVICE_DESCRIPTION description;
 
         if( !GetModuleFileName(NULL, modpath, MAX_PATH) )
                 winlasterr("GetModuleFileName");
@@ -377,8 +378,9 @@ VOID SvcInstall()
                 winlasterr("Create service");
         }
 
+        description.lpDescription = TEXT("Enable performing DNS name lookups over secure channels.");
         ChangeServiceConfig2(schService, SERVICE_CONFIG_DESCRIPTION,
-                             (LPVOID) TEXT("Enable performing DNS name lookups over secure channels"));
+                             (LPVOID) &description);
 
         printf("Service installed successfully\n");
 
