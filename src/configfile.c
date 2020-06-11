@@ -28,9 +28,15 @@
 #include "config.h"
 
 #include <errno.h>
-#include <string.h>
+#if defined(STUBBY_ON_WINDOWS)
+#include <winsock2.h>
+#include <windows.h>
+#include <shlobj.h>
+#else
 #include <pwd.h>
 #include <unistd.h>
+#endif
+#include <string.h>
 
 #include <getdns/getdns.h>
 #include <getdns/getdns_extra.h>
