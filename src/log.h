@@ -48,6 +48,8 @@ void stubby_log(void *userarg, uint64_t system,
 void stubby_error(const char *fmt, ...);
 void stubby_warning(const char *fmt, ...);
 
+void stubby_set_log_funcs(stubby_verror_t errfunc, stubby_vlog_t logfunc);
+
 void stubby_set_getdns_logging(getdns_context *context, int loglevel);
 
 #endif

@@ -90,6 +90,12 @@ void stubby_log(void *userarg, uint64_t system,
         va_end(args);
 }
 
+void stubby_set_log_funcs(stubby_verror_t errfunc, stubby_vlog_t logfunc)
+{
+        stubby_verror = errfunc;
+        stubby_vlog = logfunc;
+}
+
 void stubby_set_getdns_logging(getdns_context *context, int loglevel)
 {
         (void) getdns_context_set_logfunc(context, NULL, GETDNS_LOG_UPSTREAM_STATS, loglevel, stubby_vlog);
