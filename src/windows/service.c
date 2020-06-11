@@ -364,8 +364,11 @@ VOID SvcInstall()
                 CloseServiceHandle(schSCManager);
                 winlasterr("Create service");
         }
-        else
-                printf("Service installed successfully\n");
+
+        ChangeServiceConfig2(schService, SERVICE_CONFIG_DESCRIPTION,
+                             (LPVOID) TEXT("Enable performing DNS name lookups over secure channels"));
+
+        printf("Service installed successfully\n");
 
         CloseServiceHandle(schService);
         CloseServiceHandle(schSCManager);
