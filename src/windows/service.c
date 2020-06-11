@@ -35,10 +35,11 @@
 
 #include "service.h"
 
-void winerr(const TCHAR* operation)
+#include "windowsservice.h"
+
+static void winerr(const TCHAR* operation, DWORD err)
 {
         char msg[512];
-        DWORD err = GetLastError();
 
         if ( FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM,
                            NULL,
@@ -47,12 +48,16 @@ void winerr(const TCHAR* operation)
                            msg,
                            sizeof(msg),
                            NULL) == 0 )
-                fprintf(stderr, "%s: errno=%d\n", operation, err);
+                fprintf(stderr, "Error: %s: errno=%d\n", operation, err);
         else
-                fprintf(stderr, "%s: %s\n", operation, msg);
-        exit(1);
+                fprintf(stderr, "Error: %s: %s\n", operation, msg);
+        exit(EXIT_FAILURE);
 }
 
+static void winlasterr(const TCHAR* operation)
+{
+        winerr(operation, GetLastError());
+}
 
 // #pragma comment(lib, "advapi32.lib")
 
@@ -75,7 +80,7 @@ VOID SvcInit( DWORD, LPTSTR * );
 VOID SvcReportEvent( LPTSTR );
 
 
-void WinServiceCommand(const TCHAR* arg)
+void windows_service_command(const TCHAR* arg)
 {
         if ( lstrcmpi(arg, TEXT("install")) == 0 )
                 SvcInstall();
@@ -90,10 +95,10 @@ void WinServiceCommand(const TCHAR* arg)
         else
         {
                 fprintf(stderr, "Unknown Windows option '%s'\n", arg);
-                exit(1);
+                exit(EXIT_FAILURE);
         }
 
-        exit(0);
+        exit(EXIT_SUCCESS);
 }
 
 VOID SvcService()
@@ -116,74 +121,81 @@ static void createRegistryEntries(const TCHAR* path)
         TCHAR buf[512];
         HKEY hkey;
         DWORD t;
+        LSTATUS status;
+
         snprintf(buf, sizeof(buf), "SYSTEM\\CurrentControlSet\\Services"
                  "\\EventLog\\Application\\%s", SVCNAME);
-        if ( RegCreateKeyEx(
-                     HKEY_LOCAL_MACHINE,
-                     buf,       // Key
-                     0,         // Reserved
-                     NULL,      // Class
-                     REG_OPTION_NON_VOLATILE, // Info on file
-                     KEY_WRITE, // Access rights
-                     NULL,      // Security descriptor
-                     &hkey,     // Result
-                     NULL       // Don't care if it exists
-                     ) != ERROR_SUCCESS )
-                winerr("Create registry key");
+        status = RegCreateKeyEx(
+                HKEY_LOCAL_MACHINE,
+                buf,       // Key
+                0,         // Reserved
+                NULL,      // Class
+                REG_OPTION_NON_VOLATILE, // Info on file
+                KEY_WRITE, // Access rights
+                NULL,      // Security descriptor
+                &hkey,     // Result
+                NULL       // Don't care if it exists
+                );
+        if ( status != ERROR_SUCCESS )
+                winerr("Create registry key", status);
 
-        if ( RegSetValueEx(
-                     hkey,                      // Key handle
-                     "EventMessageFile",        // Value name
-                     0,                         // Reserved
-                     REG_EXPAND_SZ,             // It's a string
-                     (const BYTE*) path,        // with this value
-                     strlen(path) + 1           // and this long
-                     ) != ERROR_SUCCESS )
+        status = RegSetValueEx(
+                hkey,                      // Key handle
+                "EventMessageFile",        // Value name
+                0,                         // Reserved
+                REG_EXPAND_SZ,             // It's a string
+                (const BYTE*) path,        // with this value
+                strlen(path) + 1           // and this long
+                );
+        if ( status != ERROR_SUCCESS )
         {
                 RegCloseKey(hkey);
-                winerr("Set EventMessageFile");
+                winerr("Set EventMessageFile", status);
         }
 
-        if ( RegSetValueEx(
-                     hkey,                      // Key handle
-                     "CategoryMessageFile",     // Value name
-                     0,                         // Reserved
-                     REG_EXPAND_SZ,             // It's a string
-                     (const BYTE*) path,        // with this value
-                     strlen(path) + 1           // and this long
-                     ) != ERROR_SUCCESS )
+        status = RegSetValueEx(
+                hkey,                      // Key handle
+                "CategoryMessageFile",     // Value name
+                0,                         // Reserved
+                REG_EXPAND_SZ,             // It's a string
+                (const BYTE*) path,        // with this value
+                strlen(path) + 1           // and this long
+                );
+        if ( status != ERROR_SUCCESS )
         {
                 RegCloseKey(hkey);
-                winerr("Set CategoryMessageFile");
+                winerr("Set CategoryMessageFile", status);
         }
 
         /* event types */
         t = EVENTLOG_ERROR_TYPE | EVENTLOG_WARNING_TYPE | EVENTLOG_INFORMATION_TYPE;
-        if ( RegSetValueEx(
-                     hkey,                      // Key handle
-                     "TypesSupported",          // Value name
-                     0,                         // Reserved
-                     REG_DWORD,                 // It's a DWORD
-                     (const BYTE*) &t,          // with this value
-                     sizeof(t)                  // and this long
-                     ) != ERROR_SUCCESS )
+        status = RegSetValueEx(
+                hkey,                      // Key handle
+                "TypesSupported",          // Value name
+                0,                         // Reserved
+                REG_DWORD,                 // It's a DWORD
+                (const BYTE*) &t,          // with this value
+                sizeof(t)                  // and this long
+                );
+        if ( status != ERROR_SUCCESS )
         {
                 RegCloseKey(hkey);
-                winerr("Set TypesSupported");
+                winerr("Set TypesSupported", status);
         }
 
         t = 1;
-        if ( RegSetValueEx(
-                     hkey,                      // Key handle
-                     "CategoryCount",           // Value name
-                     0,                         // Reserved
-                     REG_DWORD,                 // It's a DWORD
-                     (const BYTE*) &t,          // with this value
-                     sizeof(t)                  // and this long
-                     ) != ERROR_SUCCESS )
+        status = RegSetValueEx(
+                hkey,                      // Key handle
+                "CategoryCount",           // Value name
+                0,                         // Reserved
+                REG_DWORD,                 // It's a DWORD
+                (const BYTE*) &t,          // with this value
+                sizeof(t)                  // and this long
+                );
+        if ( status != ERROR_SUCCESS )
         {
                 RegCloseKey(hkey);
-                winerr("Set TypesSupported");
+                winerr("Set TypesSupported", status);
         }
         RegCloseKey(hkey);
 }
@@ -192,28 +204,28 @@ static void deleteRegistryEntries(void)
 {
         HKEY hkey;
         DWORD t;
+        LSTATUS status;
 
-        if ( RegCreateKeyEx(
-                     HKEY_LOCAL_MACHINE,
-                     "SYSTEM\\CurrentControlSet\\Services"
-                     "\\EventLog\\Application",
-                     0,         // Reserved
-                     NULL,      // Class
-                     REG_OPTION_NON_VOLATILE, // Info on file
-                     DELETE,    // Access rights
-                     NULL,      // Security descriptor
-                     &hkey,     // Result
-                     NULL       // Don't care if it exists
-                     ) != ERROR_SUCCESS )
-                winerr("Create registry key");
+        status = RegCreateKeyEx(
+                HKEY_LOCAL_MACHINE,
+                "SYSTEM\\CurrentControlSet\\Services"
+                "\\EventLog\\Application",
+                0,         // Reserved
+                NULL,      // Class
+                REG_OPTION_NON_VOLATILE, // Info on file
+                DELETE,    // Access rights
+                NULL,      // Security descriptor
+                &hkey,     // Result
+                NULL       // Don't care if it exists
+                );
+        if ( status != ERROR_SUCCESS )
+                winerr("Create registry key", status);
 
-        if ( RegDeleteKey(
-                     hkey,
-                     SVCNAME
-                     ) != ERROR_SUCCESS )
+        status = RegDeleteKey(hkey, SVCNAME);
+        if ( status != ERROR_SUCCESS )
         {
                 RegCloseKey(hkey);
-                winerr("Delete registry key");
+                winerr("Delete registry key", status);
         }
         RegCloseKey(hkey);
 }
@@ -227,7 +239,7 @@ VOID SvcInstall()
         TCHAR cmd[MAX_PATH + 3 + sizeof(ARG)];
 
         if( !GetModuleFileName(NULL, modpath, MAX_PATH) )
-                winerr("GetModuleFileName");
+                winlasterr("GetModuleFileName");
         snprintf(cmd, sizeof(cmd), "\"%s\" %s", modpath, ARG);
 
         createRegistryEntries(modpath);
@@ -238,7 +250,7 @@ VOID SvcInstall()
                 SC_MANAGER_ALL_ACCESS);  // full access rights
 
         if (NULL == schSCManager)
-                winerr("Open service manager");
+                winlasterr("Open service manager");
 
         schService = CreateService(
                 schSCManager,              // SCM database
@@ -258,7 +270,7 @@ VOID SvcInstall()
         if (schService == NULL)
         {
                 CloseServiceHandle(schSCManager);
-                winerr("Create service");
+                winlasterr("Create service");
         }
         else
                 printf("Service installed successfully\n");
@@ -278,7 +290,7 @@ VOID SvcRemove()
                 SC_MANAGER_ALL_ACCESS);  // full access rights
 
         if (NULL == schSCManager)
-                winerr("Open service manager");
+                winlasterr("Open service manager");
 
         schService = OpenService(
                 schSCManager,              // SCM database
@@ -288,13 +300,13 @@ VOID SvcRemove()
         if (schService == NULL)
         {
                 CloseServiceHandle(schSCManager);
-                winerr("Open service");
+                winlasterr("Open service");
         }
 
         if ( DeleteService(schService) == 0 )
         {
                 CloseServiceHandle(schSCManager);
-                winerr("Delete service");
+                winlasterr("Delete service");
         }
 
         CloseServiceHandle(schService);
@@ -315,7 +327,7 @@ VOID SvcStart()
                 SC_MANAGER_ALL_ACCESS);  // full access rights
 
         if (NULL == schSCManager)
-                winerr("Open service manager");
+                winlasterr("Open service manager");
 
         schService = OpenService(
                 schSCManager,              // SCM database
@@ -325,7 +337,7 @@ VOID SvcStart()
         if (schService == NULL)
         {
                 CloseServiceHandle(schSCManager);
-                winerr("Open service");
+                winlasterr("Open service");
         }
 
         if ( StartService(
@@ -336,7 +348,7 @@ VOID SvcStart()
         {
                 CloseServiceHandle(schService);
                 CloseServiceHandle(schSCManager);
-                winerr("Start service");
+                winlasterr("Start service");
         }
 
         CloseServiceHandle(schService);
@@ -356,7 +368,7 @@ VOID SvcStop()
                 SC_MANAGER_ALL_ACCESS);  // full access rights
 
         if (NULL == schSCManager)
-                winerr("Open service manager");
+                winlasterr("Open service manager");
 
         schService = OpenService(
                 schSCManager,              // SCM database
@@ -366,7 +378,7 @@ VOID SvcStop()
         if (schService == NULL)
         {
                 CloseServiceHandle(schSCManager);
-                winerr("Open service");
+                winlasterr("Open service");
         }
 
         SERVICE_STATUS st;
@@ -379,7 +391,7 @@ VOID SvcStop()
         {
                 CloseServiceHandle(schService);
                 CloseServiceHandle(schSCManager);
-                winerr("Stop service");
+                winlasterr("Stop service");
         }
 
         CloseServiceHandle(schService);

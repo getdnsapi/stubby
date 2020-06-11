@@ -123,6 +123,7 @@ if (NOT HAVE_GETOPT)
 endif ()
 if (STUBBY_ON_WINDOWS)
   target_sources(stubby PRIVATE src/windows/service.c)
+  target_include_directories(stubby PRIVATE src/windows)
   target_sources(stubby PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/service.rc)
 endif()
 
