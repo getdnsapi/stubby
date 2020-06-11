@@ -355,5 +355,13 @@ char *get_api_info(getdns_context *context)
 
 const getdns_list *get_config_listen_list(void)
 {
-        return listen_list;
+        size_t list_count = 0;
+
+        if ( listen_list )
+                getdns_list_get_length(listen_list, &list_count);
+
+        if ( list_count > 0 )
+                return listen_list;
+        else
+                return NULL;
 }
