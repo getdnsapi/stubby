@@ -29,9 +29,14 @@
 
 #include <stdio.h>
 
+#include <winsock2.h>
 #include <windows.h>
 #include <tchar.h>
 #include <strsafe.h>
+
+#include "configfile.h"
+#include "log.h"
+#include "server.h"
 
 #include "service.h"
 
@@ -66,11 +71,12 @@ static void winlasterr(const TCHAR* operation)
 SERVICE_STATUS          gSvcStatus;
 SERVICE_STATUS_HANDLE   gSvcStatusHandle;
 HANDLE                  ghSvcStopEvent = NULL;
+int                     dnssec_validation = 0;
 
 VOID SvcInstall(void);
 VOID SvcRemove(void);
 VOID SvcService(void);
-VOID SvcStart(void);
+VOID SvcStart(int loglevel);
 VOID SvcStop(void);
 VOID WINAPI SvcCtrlHandler( DWORD );
 VOID WINAPI SvcMain( DWORD, LPTSTR * );
@@ -80,7 +86,7 @@ VOID SvcInit( DWORD, LPTSTR * );
 VOID SvcReportEvent( LPTSTR );
 
 
-void windows_service_command(const TCHAR* arg)
+void windows_service_command(const TCHAR* arg, int loglevel)
 {
         if ( lstrcmpi(arg, TEXT("install")) == 0 )
                 SvcInstall();
@@ -89,7 +95,7 @@ void windows_service_command(const TCHAR* arg)
         else if ( lstrcmpi(arg, TEXT("service")) == 0 )
                 SvcService();
         else if ( lstrcmpi(arg, TEXT("start")) == 0 )
-                SvcStart();
+                SvcStart(loglevel);
         else if ( lstrcmpi(arg, TEXT("stop")) == 0 )
                 SvcStop();
         else
@@ -99,6 +105,92 @@ void windows_service_command(const TCHAR* arg)
         }
 
         exit(EXIT_SUCCESS);
+}
+
+void report_verror(getdns_loglevel_type level, const char *fmt, va_list ap)
+{
+        char buf[256];
+        HANDLE hEventSource;
+        LPCTSTR lpszStrings[2];
+        DWORD eventId;
+
+        hEventSource = RegisterEventSource(NULL, SVCNAME);
+
+        if ( NULL != hEventSource )
+        {
+                switch (level)
+                {
+                GETDNS_LOG_EMERG:
+                        eventId = SVC_EMERGENCY;
+                        break;
+
+                GETDNS_LOG_ALERT:
+                        eventId = SVC_ALERT;
+                        break;
+
+                GETDNS_LOG_CRIT:
+                        eventId = SVC_CRITICAL;
+                        break;
+
+                GETDNS_LOG_ERR:
+                        eventId = SVC_ERROR;
+                        break;
+
+                GETDNS_LOG_WARNING:
+                        eventId = SVC_WARNING;
+                        break;
+
+                GETDNS_LOG_NOTICE:
+                        eventId = SVC_NOTICE;
+                        break;
+
+                GETDNS_LOG_INFO:
+                        eventId = SVC_INFO;
+                        break;
+
+                default:
+                        eventId = SVC_DEBUG;
+                        break;
+
+                }
+
+                vsnprintf(buf, sizeof(buf), fmt, ap);
+
+                lpszStrings[0] = SVCNAME;
+                lpszStrings[1] = buf;
+
+                ReportEvent(hEventSource,        // event log handle
+                            EVENTLOG_ERROR_TYPE, // event type
+                            0,                   // event category
+                            eventId,             // event identifier
+                            NULL,                // no security identifier
+                            2,                   // size of lpszStrings array
+                            0,                   // no binary data
+                            lpszStrings,         // array of strings
+                            NULL);               // no binary data
+
+                DeregisterEventSource(hEventSource);
+        }
+}
+
+void report_vlog(void *userarg, uint64_t system,
+                 getdns_loglevel_type level,
+                 const char *fmt, va_list ap)
+{
+        (void) userarg;
+        (void) system;
+        report_verror(level, fmt, ap);
+}
+
+
+VOID report_winerr(LPTSTR operation)
+{
+        stubby_error("%s: %s", operation, GetLastError());
+}
+
+VOID report_getdnserr(LPTSTR operation)
+{
+        stubby_error("%s: %s", operation, stubby_getdns_strerror());
 }
 
 VOID SvcService()
@@ -112,7 +204,7 @@ VOID SvcService()
         // The process should simply terminate when the call returns.
         if ( !StartServiceCtrlDispatcher(DispatchTable) )
         {
-                SvcReportEvent(TEXT("StartServiceCtrlDispatcher"));
+                report_winerr("StartServiceCtrlDispatcher");
         }
 }
 
@@ -255,7 +347,7 @@ VOID SvcInstall()
         schService = CreateService(
                 schSCManager,              // SCM database
                 SVCNAME,                   // name of service
-                "Stubby secure DNS proxy", // service name to display
+                "Stubby Secure DNS Proxy", // service name to display
                 SERVICE_ALL_ACCESS,        // desired access
                 SERVICE_WIN32_OWN_PROCESS, // service type
                 SERVICE_DEMAND_START,      // start type
@@ -316,7 +408,7 @@ VOID SvcRemove()
         printf("Service removed successfully\n");
 }
 
-VOID SvcStart()
+VOID SvcStart(int loglevel)
 {
         SC_HANDLE schSCManager;
         SC_HANDLE schService;
@@ -340,10 +432,19 @@ VOID SvcStart()
                 winlasterr("Open service");
         }
 
+        TCHAR loglevelstr[2];
+        loglevelstr[0] = '0' + loglevel;
+        loglevelstr[1] = '\0';
+
+        LPCTSTR args[2] = {
+                SVCNAME,
+                loglevelstr
+        };
+
         if ( StartService(
                      schService,        // Service
-                     0,                 // number of args
-                     NULL               // args
+                     2,                 // number of args
+                     args               // args
                      ) == 0 )
         {
                 CloseServiceHandle(schService);
@@ -400,198 +501,141 @@ VOID SvcStop()
         printf("Service stopped successfully\n");
 }
 
-//
-// Purpose:
-//   Entry point for the service
-//
-// Parameters:
-//   dwArgc - Number of arguments in the lpszArgv array
-//   lpszArgv - Array of strings. The first string is the name of
-//     the service and subsequent strings are passed by the process
-//     that called the StartService function to start the service.
-//
-// Return value:
-//   None.
-//
-VOID WINAPI SvcMain( DWORD dwArgc, LPTSTR *lpszArgv )
+VOID WINAPI SvcMain(DWORD dwArgc, LPTSTR *lpszArgv)
 {
-    // Register the handler function for the service
+        stubby_set_log_funcs(report_verror, report_vlog);
 
-    gSvcStatusHandle = RegisterServiceCtrlHandler(
-        SVCNAME,
-        SvcCtrlHandler);
+        gSvcStatusHandle = RegisterServiceCtrlHandler(
+                SVCNAME,
+                SvcCtrlHandler);
 
-    if( !gSvcStatusHandle )
-    {
-        SvcReportEvent(TEXT("RegisterServiceCtrlHandler"));
-        return;
-    }
+        if( !gSvcStatusHandle )
+        {
+                report_winerr("RegisterServiceCtrlHandler");
+                return;
+        }
 
-    // These SERVICE_STATUS members remain as set here
+        gSvcStatus.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
+        gSvcStatus.dwServiceSpecificExitCode = 0;
+        ReportSvcStatus(SERVICE_START_PENDING, NO_ERROR, 3000);
 
-    gSvcStatus.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
-    gSvcStatus.dwServiceSpecificExitCode = 0;
-
-    // Report initial status to the SCM
-
-    ReportSvcStatus( SERVICE_START_PENDING, NO_ERROR, 3000 );
-
-    // Perform service-specific initialization and work.
-
-    SvcInit( dwArgc, lpszArgv );
+        SvcInit(dwArgc, lpszArgv);
 }
 
-//
-// Purpose:
-//   The service code
-//
-// Parameters:
-//   dwArgc - Number of arguments in the lpszArgv array
-//   lpszArgv - Array of strings. The first string is the name of
-//     the service and subsequent strings are passed by the process
-//     that called the StartService function to start the service.
-//
-// Return value:
-//   None
-//
 VOID SvcInit( DWORD dwArgc, LPTSTR *lpszArgv)
 {
-    // TO_DO: Declare and set any required variables.
-    //   Be sure to periodically call ReportSvcStatus() with
-    //   SERVICE_START_PENDING. If initialization fails, call
-    //   ReportSvcStatus with SERVICE_STOPPED.
+        getdns_context *context = NULL;
+        getdns_return_t r;
+        int more = 1;
+        getdns_eventloop *eventloop;
+        int validate_dnssec;
 
-    // Create an event. The control handler function, SvcCtrlHandler,
-    // signals this event when it receives the stop control code.
+        ghSvcStopEvent = CreateEvent(
+                NULL,    // default security attributes
+                TRUE,    // manual reset event
+                FALSE,   // not signaled
+                NULL);   // no name
 
-    ghSvcStopEvent = CreateEvent(
-                         NULL,    // default security attributes
-                         TRUE,    // manual reset event
-                         FALSE,   // not signaled
-                         NULL);   // no name
+        if ( ghSvcStopEvent == NULL)
+        {
+                ReportSvcStatus(SERVICE_STOPPED, NO_ERROR, 0);
+                return;
+        }
 
-    if ( ghSvcStopEvent == NULL)
-    {
-        ReportSvcStatus( SERVICE_STOPPED, NO_ERROR, 0 );
-        return;
-    }
+        ReportSvcStatus(SERVICE_START_PENDING, NO_ERROR, 1000);
+        if ( ( r = getdns_context_create(&context, 1) ) ) {
+                stubby_error("Create context failed: %s", stubby_getdns_strerror(r));
+                ReportSvcStatus(SERVICE_STOPPED, NO_ERROR, 0);
+                return;
+        }
 
-    // Report running status when initialization is complete.
+        if ( dwArgc > 1 )
+                stubby_set_getdns_logging(context, lpszArgv[1][0] - '0');
 
-    ReportSvcStatus( SERVICE_RUNNING, NO_ERROR, 0 );
+        init_config(context);
+        ReportSvcStatus(SERVICE_START_PENDING, NO_ERROR, 1010);
+        if ( !read_config(context, NULL, &validate_dnssec) ) {
+                goto tidy_and_exit;
+        }
+        ReportSvcStatus(SERVICE_START_PENDING, NO_ERROR, 1020);
+        if ( !server_listen(context, dnssec_validation) ) {
+                goto tidy_and_exit;
+        }
 
-    // TO_DO: Perform work until service stops.
+        if ( getdns_context_get_eventloop(context, &eventloop) ) {
+                report_getdnserr("Get event loop");
+                goto tidy_and_exit;
+        }
 
-    while(1)
-    {
-        // Check whether to stop the service.
+        ReportSvcStatus(SERVICE_RUNNING, NO_ERROR, 0);
 
-        WaitForSingleObject(ghSvcStopEvent, INFINITE);
+        for(;;)
+        {
+                switch ( WaitForSingleObject(ghSvcStopEvent, 0) )
+                {
+                case WAIT_OBJECT_0:
+                        break;
 
-        ReportSvcStatus( SERVICE_STOPPED, NO_ERROR, 0 );
-        return;
-    }
+                case WAIT_FAILED:
+                        more = 0;
+                        report_winerr("WaitForSingleObject");
+                        break;
+
+                default:
+                        more = 0;
+                        break;
+                }
+
+                if ( !more )
+                        break;
+
+                eventloop->vmt->run_once(eventloop, 1);
+        }
+
+tidy_and_exit:
+        ReportSvcStatus(SERVICE_STOPPED, NO_ERROR, 0);
+        getdns_context_destroy(context);
+        delete_config();
 }
 
-//
-// Purpose:
-//   Sets the current service status and reports it to the SCM.
-//
-// Parameters:
-//   dwCurrentState - The current state (see SERVICE_STATUS)
-//   dwWin32ExitCode - The system error code
-//   dwWaitHint - Estimated time for pending operation,
-//     in milliseconds
-//
-// Return value:
-//   None
-//
 VOID ReportSvcStatus( DWORD dwCurrentState,
                       DWORD dwWin32ExitCode,
                       DWORD dwWaitHint)
 {
-    static DWORD dwCheckPoint = 1;
+        static DWORD dwCheckPoint = 1;
 
-    // Fill in the SERVICE_STATUS structure.
+        gSvcStatus.dwCurrentState = dwCurrentState;
+        gSvcStatus.dwWin32ExitCode = dwWin32ExitCode;
+        gSvcStatus.dwWaitHint = dwWaitHint;
 
-    gSvcStatus.dwCurrentState = dwCurrentState;
-    gSvcStatus.dwWin32ExitCode = dwWin32ExitCode;
-    gSvcStatus.dwWaitHint = dwWaitHint;
+        if (dwCurrentState == SERVICE_START_PENDING)
+                gSvcStatus.dwControlsAccepted = 0;
+        else gSvcStatus.dwControlsAccepted = SERVICE_ACCEPT_STOP;
 
-    if (dwCurrentState == SERVICE_START_PENDING)
-        gSvcStatus.dwControlsAccepted = 0;
-    else gSvcStatus.dwControlsAccepted = SERVICE_ACCEPT_STOP;
+        if ( (dwCurrentState == SERVICE_RUNNING) ||
+             (dwCurrentState == SERVICE_STOPPED) )
+                gSvcStatus.dwCheckPoint = 0;
+        else gSvcStatus.dwCheckPoint = dwCheckPoint++;
 
-    if ( (dwCurrentState == SERVICE_RUNNING) ||
-           (dwCurrentState == SERVICE_STOPPED) )
-        gSvcStatus.dwCheckPoint = 0;
-    else gSvcStatus.dwCheckPoint = dwCheckPoint++;
-
-    // Report the status of the service to the SCM.
-    SetServiceStatus( gSvcStatusHandle, &gSvcStatus );
+        SetServiceStatus(gSvcStatusHandle, &gSvcStatus);
 }
 
-//
-// Purpose:
-//   Called by SCM whenever a control code is sent to the service
-//   using the ControlService function.
-//
-// Parameters:
-//   dwCtrl - control code
-//
-// Return value:
-//   None
-//
-VOID WINAPI SvcCtrlHandler( DWORD dwCtrl )
+VOID WINAPI SvcCtrlHandler(DWORD dwCtrl)
 {
-   // Handle the requested control code.
+        switch(dwCtrl)
+        {
+        case SERVICE_CONTROL_STOP:
+                ReportSvcStatus(SERVICE_STOP_PENDING, NO_ERROR, 0);
 
-   switch(dwCtrl)
-   {
-      case SERVICE_CONTROL_STOP:
-         ReportSvcStatus(SERVICE_STOP_PENDING, NO_ERROR, 0);
+                // Signal the service to stop.
+                SetEvent(ghSvcStopEvent);
+                ReportSvcStatus(gSvcStatus.dwCurrentState, NO_ERROR, 0);
+                break;
 
-         // Signal the service to stop.
+        case SERVICE_CONTROL_INTERROGATE:
+                break;
 
-         SetEvent(ghSvcStopEvent);
-         ReportSvcStatus(gSvcStatus.dwCurrentState, NO_ERROR, 0);
-
-         return;
-
-      case SERVICE_CONTROL_INTERROGATE:
-         break;
-
-      default:
-         break;
-   }
-
-}
-
-VOID SvcReportEvent(LPTSTR szFunction)
-{
-    HANDLE hEventSource;
-    LPCTSTR lpszStrings[2];
-    TCHAR Buffer[80];
-
-    hEventSource = RegisterEventSource(NULL, SVCNAME);
-
-    if( NULL != hEventSource )
-    {
-        StringCchPrintf(Buffer, 80, TEXT("%s failed with %d"), szFunction, GetLastError());
-
-        lpszStrings[0] = SVCNAME;
-        lpszStrings[1] = Buffer;
-
-        ReportEvent(hEventSource,        // event log handle
-                    EVENTLOG_ERROR_TYPE, // event type
-                    0,                   // event category
-                    SVC_ERROR,           // event identifier
-                    NULL,                // no security identifier
-                    2,                   // size of lpszStrings array
-                    0,                   // no binary data
-                    lpszStrings,         // array of strings
-                    NULL);               // no binary data
-
-        DeregisterEventSource(hEventSource);
-    }
+        default:
+                break;
+        }
 }
