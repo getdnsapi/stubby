@@ -32,11 +32,6 @@
 #include <string.h>
 #include <errno.h>
 #include <limits.h>
-#if defined(STUBBY_ON_WINDOWS)
-#include <shlobj.h>
-#else
-#include <pwd.h>
-#endif
 #include <signal.h>
 #include <limits.h>
 #ifndef HAVE_GETOPT
@@ -52,6 +47,7 @@
 #include "log.h"
 #include "server.h"
 #include "util.h"
+#include "windowsservice.h"
 
 #if !defined(STUBBY_ON_WINDOWS)
 #define STUBBYPIDFILE RUNSTATEDIR"/stubby.pid"
@@ -167,6 +163,13 @@ main(int argc, char **argv)
 
 	stubby_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_INFO,
 		   "Stubby version: %s", STUBBY_PACKAGE_STRING);
+
+#if defined(STUBBY_ON_WINDOWS)
+	if ( windows_service ) {
+		windows_service_command(windows_service_arg, log_connections ? log_level : 0);
+		exit(EXIT_SUCCESS);
+	}
+#endif
 
 	if ((r = getdns_context_create(&context, 1))) {
 		stubby_error("Create context failed: %s",
