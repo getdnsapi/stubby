@@ -536,9 +536,6 @@ main(int argc, char **argv)
 	int opt;
 	long log_level = 7; 
 	char *ep;
-	getdns_dict *api_information = NULL;
-	getdns_list *api_info_keys = NULL;
-	getdns_bindata *api_info_key = NULL;
 	const getdns_list *listen_list = NULL;
 
 	while ((opt = getopt(argc, argv, "C:ighlv:w:V")) != -1) {
@@ -597,51 +594,9 @@ main(int argc, char **argv)
 		stubby_set_getdns_logging(context, (int)log_level);
 
 	init_config(context);
-	if ( !read_config(context, custom_config_fn) )
+	if ( !read_config(context, custom_config_fn, &dnssec_validation) )
 		exit(EXIT_FAILURE);
 
-	if ((r = getdns_context_set_resolution_type(context, GETDNS_RESOLUTION_STUB))) {
-		stubby_error("Error while trying to configure stubby for "
-			     "stub resolution only: %s", stubby_getdns_strerror(r));
-		exit(EXIT_FAILURE);
-	}
-	if ((api_information = getdns_context_get_api_information(context))
-	    && !dnssec_validation
-	    && !getdns_dict_get_names(api_information, &api_info_keys)) {
-		size_t i;
-		uint32_t value;
-		getdns_dict *all_context;
-
-		for ( i = 0
-		    ; !dnssec_validation &&
-		      !getdns_list_get_bindata(api_info_keys, i, &api_info_key)
-		    ; i++) {
-			if ((  !strncmp((const char *)api_info_key->data, "dnssec_", 7)
-			    || !strcmp ((const char *)api_info_key->data, "dnssec"))
-			   && !getdns_dict_get_int(api_information, (const char *)api_info_key->data, &value)
-			   && value == GETDNS_EXTENSION_TRUE)
-				dnssec_validation = 1;
-		}
-		getdns_list_destroy(api_info_keys);
-		api_info_keys = NULL;
-		if (   !dnssec_validation
-		    && !getdns_dict_get_dict(api_information, "all_context"
-		                                            , &all_context)
-		    && !getdns_dict_get_names(all_context, &api_info_keys)) {
-			for ( i = 0
-			    ; !dnssec_validation &&
-			      !getdns_list_get_bindata(api_info_keys, i, &api_info_key)
-			    ; i++) {
-				if ((  !strncmp((const char *)api_info_key->data, "dnssec_", 7)
-				    || !strcmp ((const char *)api_info_key->data, "dnssec"))
-				   && !getdns_dict_get_int(all_context, (const char *)api_info_key->data, &value)
-				   && value == GETDNS_EXTENSION_TRUE)
-					dnssec_validation = 1;
-			}
-			getdns_list_destroy(api_info_keys);
-			api_info_keys = NULL;
-		}
-	}
 	if (print_api_info) {
 		char *api_information_str = get_api_info(context);
 		fprintf(stdout, "%s\n", api_information_str);
@@ -758,9 +713,6 @@ main(int argc, char **argv)
 	}
 
 tidy_and_exit:
-	if (api_info_keys)
-		getdns_list_destroy(api_info_keys);
-	getdns_dict_destroy(api_information);
 	getdns_context_destroy(context);
 
 	delete_config();

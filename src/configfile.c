@@ -227,11 +227,14 @@ void delete_config(void)
         listen_list = NULL;
 }
 
-int read_config(getdns_context *context, const char *custom_config_fn)
+int read_config(getdns_context *context, const char *custom_config_fn, int *validate_dnssec)
 {
         char *conf_fn;
         int found_conf = 0;
         getdns_return_t r;
+        getdns_dict *api_information = NULL;
+        getdns_list *api_info_keys = NULL;
+        int dnssec_validation = 0;
 
         (void) parse_config(context, default_config, 0);
         if (custom_config_fn) {
@@ -273,6 +276,56 @@ int read_config(getdns_context *context, const char *custom_config_fn)
                 if (!found_conf)
                         stubby_warning("WARNING: No Stubby config file found... using minimal default config (Opportunistic Usage)");
         }
+
+        if ((r = getdns_context_set_resolution_type(context, GETDNS_RESOLUTION_STUB))) {
+                stubby_error("Error while trying to configure stubby for "
+                             "stub resolution only: %s", stubby_getdns_strerror(r));
+                return 0;
+        }
+
+        api_information = getdns_context_get_api_information(context);
+        if (api_information
+            && !dnssec_validation
+            && !getdns_dict_get_names(api_information, &api_info_keys)) {
+                size_t i;
+                uint32_t value;
+                getdns_dict *all_context;
+                getdns_bindata *api_info_key;
+
+                for ( i = 0
+                    ; !dnssec_validation &&
+                      !getdns_list_get_bindata(api_info_keys, i, &api_info_key)
+                    ; i++) {
+                        if ((  !strncmp((const char *)api_info_key->data, "dnssec_", 7)
+                            || !strcmp ((const char *)api_info_key->data, "dnssec"))
+                           && !getdns_dict_get_int(api_information, (const char *)api_info_key->data, &value)
+                           && value == GETDNS_EXTENSION_TRUE)
+                                dnssec_validation = 1;
+                }
+                getdns_list_destroy(api_info_keys);
+                api_info_keys = NULL;
+                if (   !dnssec_validation
+                    && !getdns_dict_get_dict(api_information, "all_context"
+                                                            , &all_context)
+                    && !getdns_dict_get_names(all_context, &api_info_keys)) {
+                        for ( i = 0
+                            ; !dnssec_validation &&
+                              !getdns_list_get_bindata(api_info_keys, i, &api_info_key)
+                            ; i++) {
+                                if ((  !strncmp((const char *)api_info_key->data, "dnssec_", 7)
+                                    || !strcmp ((const char *)api_info_key->data, "dnssec"))
+                                   && !getdns_dict_get_int(all_context, (const char *)api_info_key->data, &value)
+                                   && value == GETDNS_EXTENSION_TRUE)
+                                        dnssec_validation = 1;
+                        }
+                        getdns_list_destroy(api_info_keys);
+                        api_info_keys = NULL;
+                }
+        }
+        getdns_list_destroy(api_info_keys);
+        getdns_dict_destroy(api_information);
+        if ( validate_dnssec )
+                *validate_dnssec = dnssec_validation;
 
         return 1;
 }
