@@ -112,6 +112,7 @@ add_executable(stubby
   src/stubby.c
   src/configfile.c
   src/log.c
+  src/server.c
   src/util.c
   src/yaml/convert_yaml_to_json.c
   src/sldns/sbuffer.c
