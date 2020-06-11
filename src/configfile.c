@@ -330,7 +330,7 @@ int read_config(getdns_context *context, const char *custom_config_fn, int *vali
         return 1;
 }
 
-char *get_api_info(getdns_context *context)
+char *config_get_api_info(getdns_context *context)
 {
         getdns_dict *api_information = getdns_context_get_api_information(context);
 

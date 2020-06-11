@@ -598,7 +598,7 @@ main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 
 	if (print_api_info) {
-		char *api_information_str = get_api_info(context);
+		char *api_information_str = config_get_api_info(context);
 		fprintf(stdout, "%s\n", api_information_str);
 		free(api_information_str);
 		fprintf(stderr, "Result: Config file syntax is valid.\n");
