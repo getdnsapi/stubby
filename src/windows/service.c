@@ -185,7 +185,19 @@ void report_vlog(void *userarg, uint64_t system,
 
 VOID report_winerr(LPTSTR operation)
 {
-        stubby_error("%s: %s", operation, GetLastError());
+        char msg[512];
+        DWORD err = GetLastError();
+
+        if ( FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM,
+                           NULL,
+                           err,
+                           0,
+                           msg,
+                           sizeof(msg),
+                           NULL) == 0 )
+                stubby_error("Error: %s: errno=%d\n", operation, err);
+        else
+                stubby_error("Error: %s: %s\n", operation, msg);
 }
 
 VOID report_getdnserr(LPTSTR operation)
