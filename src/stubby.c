@@ -49,44 +49,9 @@
 #include <systemd/sd-daemon.h>
 #endif
 
+#include "configfile.h"
 #include "log.h"
 #include "util.h"
-
-#ifdef HAVE_GETDNS_YAML2DICT
-getdns_return_t getdns_yaml2dict(const char *str, getdns_dict **dict);
-#else
-# include "yaml/convert_yaml_to_json.h"
-# define getdns_yaml2dict stubby_yaml2dict
-getdns_return_t
-getdns_yaml2dict(const char *str, getdns_dict **dict)
-{
-	char *jsonstr;
-	
-	if (!str || !dict)
-		return GETDNS_RETURN_INVALID_PARAMETER;
-
-	jsonstr = yaml_string_to_json_string(str);
-	if (jsonstr) {
-		getdns_return_t res = getdns_str2dict(jsonstr, dict);
-		free(jsonstr);
-		return res;
-	} else {
-		return GETDNS_RETURN_GENERIC_ERROR;
-	}       
-}
-#endif
-
-static char *make_config_file_path(const char *dir, const char *fname)
-{
-	int reslen = strlen(dir) + strlen(fname) + 1;
-	char *res = malloc(reslen);
-
-	if (res == NULL)
-		return NULL;
-
-	snprintf(res, reslen, "%s%s", dir, fname);
-	return res;
-}
 
 #if defined(STUBBY_ON_WINDOWS) || defined(GETDNS_ON_WINDOWS)
 #define DEBUG_ON(...) do { \
@@ -102,28 +67,6 @@ static char *make_config_file_path(const char *dir, const char *fname)
 	                fprintf(stderr, "[%s.%.6d] ", buf_dEbUgSyM, (int)tv_dEbUgSyM.tv_usec); \
 	                fprintf(stderr, __VA_ARGS__); \
 	        } while (0)
-
-static char *folder_config_file(int csidl)
-{
-	TCHAR szPath[MAX_PATH];
-
-	if (!SUCCEEDED(SHGetFolderPath(NULL,
-	    csidl | CSIDL_FLAG_CREATE, NULL, 0, szPath)))
-		return NULL;
-
-	return make_config_file_path(szPath, "\\Stubby\\stubby.yml");
-}
-
-// %APPDATA%/Stubby/stubby.yml.
-char *home_config_file()
-{
-	return folder_config_file(CSIDL_APPDATA);
-}
-
-char *system_config_file()
-{
-	return folder_config_file(CSIDL_PROGRAM_FILES);
-}
 #else
 #define STUBBYPIDFILE RUNSTATEDIR"/stubby.pid"
 
@@ -138,20 +81,6 @@ char *system_config_file()
 	                fprintf(stderr, "[%s.%.6d] ", buf_dEbUgSyM, (int)tv_dEbUgSyM.tv_usec); \
 	                fprintf(stderr, __VA_ARGS__); \
 	        } while (0)
-
-char *home_config_file()
-{
-	struct passwd *p = getpwuid(getuid());
-	char *home = p ? p->pw_dir : getenv("HOME");
-	if (!home)
-		return NULL;
-	return make_config_file_path(home, "/.stubby.yml");
-}
-
-char *system_config_file()
-{
-	return make_config_file_path(STUBBYCONFDIR, "/stubby.yml");
-}
 #endif
 #define DEBUG_OFF(...) do {} while (0)
 
@@ -162,22 +91,7 @@ char *system_config_file()
 #define DEBUG_SERVER(...) DEBUG_OFF(__VA_ARGS__)
 #endif
 
-static const char *default_config =
-"{ resolution_type: GETDNS_RESOLUTION_STUB"
-", dns_transport_list: [ GETDNS_TRANSPORT_TLS"
-"                      , GETDNS_TRANSPORT_UDP"
-"                      , GETDNS_TRANSPORT_TCP ]"
-", idle_timeout: 10000"
-", listen_addresses: [ 127.0.0.1@53, 0::1@53 ]"
-", tls_query_padding_blocksize: 256"
-", edns_client_subnet_private : 1"
-", round_robin_upstreams: 1"
-"}";
-
 static getdns_context  *context = NULL;
-static getdns_dict *listen_dict = NULL;
-static getdns_list *listen_list = NULL;
-static size_t listen_count = 0;
 static int run_in_foreground = 1;
 static int dnssec_validation = 0;
 
@@ -224,117 +138,6 @@ void
 print_version(FILE *out)
 {
 	fprintf(out, STUBBY_PACKAGE_STRING "\n");
-}
-
-static getdns_return_t parse_config(const char *config_str, int yaml_config)
-{
-	getdns_dict *config_dict;
-	getdns_list *list;
-	getdns_return_t r;
-
-	if (yaml_config) {
-		r = getdns_yaml2dict(config_str, &config_dict);
-		if (r == GETDNS_RETURN_NOT_IMPLEMENTED) {
-			/* If this fails then YAML is really not supported. Check this at 
-			   runtime because it could change under us..... */
-			r = getdns_yaml2dict(config_str, NULL);
-			if (r == GETDNS_RETURN_NOT_IMPLEMENTED) {
-				stubby_error("Support for YAML configuration files not available because\n"
-					     "the version of getdns used was not compiled with YAML support.");
-				return GETDNS_RETURN_NOT_IMPLEMENTED;
-			}
-		}
-	} else {
-		r = getdns_str2dict(config_str, &config_dict);
-	}
-	if (r) {
-		stubby_error("Could not parse config file %s, \"%s\"",
-		    config_str, stubby_getdns_strerror(r));
-		return r;
-	}
-	if (!(r = getdns_dict_get_list(
-	    config_dict, "listen_addresses", &list))) {
-		if (listen_list && !listen_dict) {
-			getdns_list_destroy(listen_list);
-			listen_list = NULL;
-		}
-		/* Strange construction to copy the list.
-		 * Needs to be done, because config dict
-		 * will get destroyed.
-		 */
-		if (!listen_dict &&
-		    !(listen_dict = getdns_dict_create())) {
-			stubby_error("Could not create listen_dict");
-			r = GETDNS_RETURN_MEMORY_ERROR;
-
-		} else if ((r = getdns_dict_set_list(
-		    listen_dict, "listen_list", list)))
-			stubby_error("Could not set listen_list");
-
-		else if ((r = getdns_dict_get_list(
-		    listen_dict, "listen_list", &listen_list)))
-			stubby_error("Could not get listen_list");
-
-		else if ((r = getdns_list_get_length(
-		    listen_list, &listen_count)))
-			stubby_error("Could not get listen_count");
-
-		(void) getdns_dict_remove_name(
-		    config_dict, "listen_addresses");
-	}
-	if (!r && (r = getdns_context_config(context, config_dict))) {
-		stubby_error("Could not configure context with "
-		    "config dict: %s", stubby_getdns_strerror(r));
-	}
-	getdns_dict_destroy(config_dict);
-	return r;
-}
-
-static getdns_return_t parse_config_file(const char *fn)
-{
-	FILE *fh;
-	char *config_file = NULL;
-	long config_file_sz;
-	size_t read_sz;
-	getdns_return_t r;
-
-	if (!(fh = fopen(fn, "r")))
-		return GETDNS_RETURN_IO_ERROR;
-
-	if (fseek(fh, 0,SEEK_END) == -1) {
-		perror("fseek");
-		fclose(fh);
-		return GETDNS_RETURN_IO_ERROR;
-	}
-	config_file_sz = ftell(fh);
-	if (config_file_sz <= 0) {
-		/* Empty config is no config */
-		fclose(fh);
-		return GETDNS_RETURN_IO_ERROR;
-	}
-	if (!(config_file = malloc(config_file_sz + 1))){
-		fclose(fh);
-		stubby_error("Could not allocate memory for \"%s\"", fn);
-		return GETDNS_RETURN_MEMORY_ERROR;
-	}
-	rewind(fh);
-	read_sz = fread(config_file, 1, config_file_sz + 1, fh);
-	if (read_sz > (size_t)config_file_sz || ferror(fh) || !feof(fh)) {
-		stubby_error("An error occurred while reading \"%s\": %s",
-			     fn, strerror(errno));
-		fclose(fh);
-		free(config_file);
-		return GETDNS_RETURN_IO_ERROR;
-	}
-	config_file[read_sz] = 0;
-	fclose(fh);
-	r = parse_config(config_file, strstr(fn, ".yml") != NULL
-	                           || strstr(fn, ".yaml") != NULL);
-	free(config_file);
-	if (r == GETDNS_RETURN_GOOD)
-		stubby_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_DEBUG,
-			   "Read config from file %s\n", fn);
-	return r;
 }
 
 typedef struct dns_msg {
@@ -722,9 +525,7 @@ error:
 int
 main(int argc, char **argv)
 {
-	char *conf_fn;
 	const char *custom_config_fn = NULL;
-	int found_conf = 0;
 	int print_api_info = 0;
 	int log_connections = 0;
 #if defined(STUBBY_ON_WINDOWS)
@@ -738,6 +539,7 @@ main(int argc, char **argv)
 	getdns_dict *api_information = NULL;
 	getdns_list *api_info_keys = NULL;
 	getdns_bindata *api_info_key = NULL;
+	const getdns_list *listen_list = NULL;
 
 	while ((opt = getopt(argc, argv, "C:ighlv:w:V")) != -1) {
 		switch (opt) {
@@ -794,46 +596,10 @@ main(int argc, char **argv)
 	if (log_connections)
 		stubby_set_getdns_logging(context, (int)log_level);
 
-	(void) parse_config(default_config, 0);
-	if (custom_config_fn) {
-		if ((r = parse_config_file(custom_config_fn))) {
-			stubby_error("Could not parse config file "
-			        "\"%s\": %s", custom_config_fn,
-			        stubby_getdns_strerror(r));
-			return r;
-		}
-	} else {
-		conf_fn = home_config_file();
-		if (!conf_fn) {
-			stubby_error("Error getting user config file");
-			exit(EXIT_FAILURE);
-		}
-		r = parse_config_file(conf_fn);
-		if (r == GETDNS_RETURN_GOOD)
-			found_conf = 1;
-		else if (r != GETDNS_RETURN_IO_ERROR)
-			stubby_error("Error parsing config file "
-				 "\"%s\": %s", conf_fn
-				 , stubby_getdns_strerror(r));
-		free(conf_fn);
-		if (!found_conf) {
-			conf_fn = system_config_file();
-			if (!conf_fn) {
-				stubby_error("Error getting system config file");
-				exit(EXIT_FAILURE);
-			}
-			r = parse_config_file(conf_fn);
-			if (r == GETDNS_RETURN_GOOD)
-				found_conf = 1;
-			else if (r != GETDNS_RETURN_IO_ERROR)
-				stubby_error("Error parsing config file "
-				         "\"%s\": %s", conf_fn
-				       , stubby_getdns_strerror(r));
-			free(conf_fn);
-		}
-		if (!found_conf)
-			stubby_warning("WARNING: No Stubby config file found... using minimal default config (Opportunistic Usage)");
-	}
+	init_config(context);
+	if ( !read_config(context, custom_config_fn) )
+		exit(EXIT_FAILURE);
+
 	if ((r = getdns_context_set_resolution_type(context, GETDNS_RESOLUTION_STUB))) {
 		stubby_error("Error while trying to configure stubby for "
 			     "stub resolution only: %s", stubby_getdns_strerror(r));
@@ -877,31 +643,18 @@ main(int argc, char **argv)
 		}
 	}
 	if (print_api_info) {
-		char *api_information_str;
-	       
-		if (listen_dict && !getdns_dict_get_list(
-		    listen_dict, "listen_list", &listen_list)) {
-
-			(void) getdns_dict_set_list(api_information,
-			    "listen_addresses", listen_list);
-		} else if (listen_list) {
-			(void) getdns_dict_set_list(api_information,
-			    "listen_addresses", listen_list);
-
-		} else if ((listen_list = getdns_list_create())) {
-			(void) getdns_dict_set_list(api_information,
-			    "listen_addresses", listen_list);
-			getdns_list_destroy(listen_list);
-			listen_list = NULL;
-		}
-		api_information_str =
-		    getdns_pretty_print_dict(api_information);
+		char *api_information_str = get_api_info(context);
 		fprintf(stdout, "%s\n", api_information_str);
 		free(api_information_str);
 		fprintf(stderr, "Result: Config file syntax is valid.\n");
-	} else if (listen_count && (r = getdns_context_set_listen_addresses(
+		r = EXIT_SUCCESS;
+		goto tidy_and_exit;
+	}
+
+	listen_list = get_config_listen_list();
+	if (listen_list && (r = getdns_context_set_listen_addresses(
 	    context, listen_list, NULL, incoming_request_handler)))
-		perror("error: Could not bind on given addresses");
+		stubby_error("error: Could not bind on given addresses: %s", strerror(errno));
 	else
 #if !defined(STUBBY_ON_WINDOWS) && !defined(GETDNS_ON_WINDOWS)
 	     if (!run_in_foreground) {
@@ -1004,13 +757,13 @@ main(int argc, char **argv)
 		getdns_context_run(context);
 	}
 
+tidy_and_exit:
 	if (api_info_keys)
 		getdns_list_destroy(api_info_keys);
 	getdns_dict_destroy(api_information);
 	getdns_context_destroy(context);
 
-	if (listen_list)
-		getdns_list_destroy(listen_list);
+	delete_config();
 
 	return r;
 }
