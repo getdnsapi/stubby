@@ -81,6 +81,14 @@ void stubby_warning(const char *fmt, ...)
         va_end(args);
 }
 
+void stubby_debug(const char *fmt, ...)
+{
+        va_list args;
+        va_start(args, fmt);
+        stubby_verror(GETDNS_LOG_DEBUG, fmt, args);
+        va_end(args);
+}
+
 void stubby_log(void *userarg, uint64_t system,
                 getdns_loglevel_type level, const char *fmt, ...)
 {
