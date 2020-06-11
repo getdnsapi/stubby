@@ -397,6 +397,7 @@ VOID SvcRemove()
 
         if ( DeleteService(schService) == 0 )
         {
+                CloseServiceHandle(schService);
                 CloseServiceHandle(schSCManager);
                 winlasterr("Delete service");
         }
@@ -546,6 +547,8 @@ VOID SvcInit( DWORD dwArgc, LPTSTR *lpszArgv)
         if ( ( r = getdns_context_create(&context, 1) ) ) {
                 stubby_error("Create context failed: %s", stubby_getdns_strerror(r));
                 ReportSvcStatus(SERVICE_STOPPED, NO_ERROR, 0);
+                CloseHandle(ghSvcStopEvent);
+                ghSvcStopEvent = NULL;
                 return;
         }
 
@@ -596,6 +599,8 @@ tidy_and_exit:
         ReportSvcStatus(SERVICE_STOPPED, NO_ERROR, 0);
         getdns_context_destroy(context);
         delete_config();
+        CloseHandle(ghSvcStopEvent);
+        ghSvcStopEvent = NULL;
 }
 
 VOID ReportSvcStatus( DWORD dwCurrentState,
