@@ -625,9 +625,9 @@ VOID SvcInit( DWORD dwArgc, LPTSTR *lpszArgv)
 
                 eventloop->vmt->run_once(eventloop, 1);
         }
+        ReportSvcStatus(SERVICE_STOPPED, 0, 0);
 
 tidy_and_exit:
-        ReportSvcStatus(SERVICE_STOPPED, NO_ERROR, 0);
         getdns_context_destroy(context);
         delete_config();
         CloseHandle(ghSvcStopEvent);
