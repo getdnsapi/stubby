@@ -662,7 +662,8 @@ VOID WINAPI SvcCtrlHandler(DWORD dwCtrl)
         {
         case SERVICE_CONTROL_STOP:
                 ReportSvcStatus(SERVICE_STOP_PENDING, 0, 0);
-                SetEvent(ghSvcStopEvent);
+                if ( !SetEvent(ghSvcStopEvent) )
+                        stubby_error("SetEvent failed");
                 break;
 
         case SERVICE_CONTROL_INTERROGATE:
