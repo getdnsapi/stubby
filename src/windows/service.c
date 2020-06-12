@@ -544,7 +544,7 @@ VOID WINAPI SvcMain(DWORD dwArgc, LPTSTR *lpszArgv)
 
         gSvcStatus.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
         gSvcStatus.dwServiceSpecificExitCode = 0;
-        ReportSvcStatus(SERVICE_START_PENDING, NO_ERROR, 3000);
+        ReportSvcStatus(SERVICE_START_PENDING, 0, 3000);
 
         SvcInit(dwArgc, lpszArgv);
 }
@@ -565,14 +565,14 @@ VOID SvcInit( DWORD dwArgc, LPTSTR *lpszArgv)
 
         if ( ghSvcStopEvent == NULL)
         {
-                ReportSvcStatus(SERVICE_STOPPED, NO_ERROR, 0);
+                ReportSvcStatus(SERVICE_STOPPED, 1, 0);
                 return;
         }
 
-        ReportSvcStatus(SERVICE_START_PENDING, NO_ERROR, 1000);
+        ReportSvcStatus(SERVICE_START_PENDING, 0, 1000);
         if ( ( r = getdns_context_create(&context, 1) ) ) {
                 stubby_error("Create context failed: %s", stubby_getdns_strerror(r));
-                ReportSvcStatus(SERVICE_STOPPED, NO_ERROR, 0);
+                ReportSvcStatus(SERVICE_STOPPED, 1, 0);
                 CloseHandle(ghSvcStopEvent);
                 ghSvcStopEvent = NULL;
                 return;
@@ -582,22 +582,25 @@ VOID SvcInit( DWORD dwArgc, LPTSTR *lpszArgv)
                 stubby_set_getdns_logging(context, lpszArgv[1][0] - '0');
 
         init_config(context);
-        ReportSvcStatus(SERVICE_START_PENDING, NO_ERROR, 1010);
+        ReportSvcStatus(SERVICE_START_PENDING, 0, 1010);
         if ( !read_config(context, NULL, &validate_dnssec) ) {
+                ReportSvcStatus(SERVICE_STOPPED, 1, 0);
                 goto tidy_and_exit;
         }
-        ReportSvcStatus(SERVICE_START_PENDING, NO_ERROR, 1020);
+        ReportSvcStatus(SERVICE_START_PENDING, 0, 1020);
         if ( !server_listen(context, dnssec_validation) ) {
+                ReportSvcStatus(SERVICE_STOPPED, 1, 0);
                 goto tidy_and_exit;
         }
 
-        ReportSvcStatus(SERVICE_START_PENDING, NO_ERROR, 1030);
+        ReportSvcStatus(SERVICE_START_PENDING, 0, 1030);
         if ( getdns_context_get_eventloop(context, &eventloop) ) {
                 report_getdnserr("Get event loop");
+                ReportSvcStatus(SERVICE_STOPPED, 1, 0);
                 goto tidy_and_exit;
         }
 
-        ReportSvcStatus(SERVICE_RUNNING, NO_ERROR, 0);
+        ReportSvcStatus(SERVICE_RUNNING, 0, 0);
 
         for(;;)
         {
@@ -658,11 +661,8 @@ VOID WINAPI SvcCtrlHandler(DWORD dwCtrl)
         switch(dwCtrl)
         {
         case SERVICE_CONTROL_STOP:
-                ReportSvcStatus(SERVICE_STOP_PENDING, NO_ERROR, 0);
-
-                // Signal the service to stop.
+                ReportSvcStatus(SERVICE_STOP_PENDING, 0, 0);
                 SetEvent(ghSvcStopEvent);
-                ReportSvcStatus(gSvcStatus.dwCurrentState, NO_ERROR, 0);
                 break;
 
         case SERVICE_CONTROL_INTERROGATE:
