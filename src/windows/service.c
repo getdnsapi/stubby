@@ -99,6 +99,8 @@ void windows_service_command(const TCHAR* arg, int loglevel)
                 SvcStart(loglevel);
         else if ( lstrcmpi(arg, TEXT("stop")) == 0 )
                 SvcStop();
+        else if ( lstrcmpi(arg, TEXT("status")) == 0 )
+                exit(SvcStatus());
         else
         {
                 fprintf(stderr, "Unknown Windows option '%s'\n", arg);
@@ -538,6 +540,69 @@ VOID SvcStop()
         CloseServiceHandle(schSCManager);
 
         printf("Service stopped successfully\n");
+}
+
+int SvcStatus()
+{
+        SC_HANDLE schSCManager;
+        SC_HANDLE schService;
+
+        schSCManager = OpenSCManager(
+                NULL,                    // local computer
+                NULL,                    // ServicesActive database
+                STANDARD_RIGHTS_READ);   // Just read
+
+        if (NULL == schSCManager)
+                winlasterr("Open service manager");
+
+        schService = OpenService(
+                schSCManager,              // SCM database
+                SVCNAME,                   // name of service
+                SERVICE_QUERY_STATUS);     // intention
+
+        if (schService == NULL)
+        {
+                CloseServiceHandle(schSCManager);
+                winlasterr("Open service");
+        }
+
+        SERVICE_STATUS st;
+
+        if ( QueryServiceStatus(
+                     schService,                // service
+                     &st                        // result
+                     ) == 0 )
+        {
+                CloseServiceHandle(schService);
+                CloseServiceHandle(schSCManager);
+                winlasterr("Query service");
+        }
+
+        CloseServiceHandle(schService);
+        CloseServiceHandle(schSCManager);
+
+        switch (st.dwCurrentState)
+        {
+        case SERVICE_RUNNING:
+                printf("Running");
+                return 0;
+
+        case SERVICE_START_PENDING:
+                printf("Start pending");
+                return 1;
+
+        case SERVICE_STOP_PENDING:
+                printf("Stop pending");
+                return 2;
+
+        case SERVICE_STOPPED:
+                printf("Stopped");
+                return 3;
+
+        default:
+                printf("Unexpected status: %d", st.dwCurrentState);
+                return 99;
+        }
 }
 
 VOID WINAPI SvcMain(DWORD dwArgc, LPTSTR *lpszArgv)
