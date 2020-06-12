@@ -369,7 +369,7 @@ VOID SvcInstall()
         schSCManager = OpenSCManager(
                 NULL,                    // local computer
                 NULL,                    // ServicesActive database
-                SC_MANAGER_ALL_ACCESS);  // full access rights
+                GENERIC_WRITE);          // modify service install
 
         if (NULL == schSCManager)
         {
@@ -417,7 +417,7 @@ VOID SvcRemove()
         schSCManager = OpenSCManager(
                 NULL,                    // local computer
                 NULL,                    // ServicesActive database
-                SC_MANAGER_ALL_ACCESS);  // full access rights
+                GENERIC_WRITE);          // modify service install
 
         if (NULL == schSCManager)
                 winlasterr("Open service manager");
@@ -455,7 +455,7 @@ VOID SvcStart(int loglevel)
         schSCManager = OpenSCManager(
                 NULL,                    // local computer
                 NULL,                    // ServicesActive database
-                SC_MANAGER_ALL_ACCESS);  // full access rights
+                STANDARD_RIGHTS_WRITE);  // send commands
 
         if (NULL == schSCManager)
                 winlasterr("Open service manager");
@@ -505,7 +505,7 @@ VOID SvcStop()
         schSCManager = OpenSCManager(
                 NULL,                    // local computer
                 NULL,                    // ServicesActive database
-                SC_MANAGER_ALL_ACCESS);  // full access rights
+                STANDARD_RIGHTS_WRITE);  // send commands
 
         if (NULL == schSCManager)
                 winlasterr("Open service manager");
