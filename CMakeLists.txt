@@ -63,12 +63,16 @@ find_package(Libyaml REQUIRED)
 if (STUBBY_ON_WINDOWS)
   check_include_file(windows.h HAVE_WINDOWS_H)
 
+  option(ENABLE_WINDOWS_SERVICE "Enable Windows service interface." ON)
+
   find_program(CMAKE_MC_COMPILER mc.exe DOC "path to message compiler")
   if (NOT CMAKE_MC_COMPILER)
     message(FATAL_ERROR "message compiler not found: required to build")
   endif (NOT CMAKE_MC_COMPILER)
   message(STATUS "Found message compiler: ${CMAKE_MC_COMPILER}")
   mark_as_advanced(CMAKE_MC_COMPILER)
+else ()
+  set(ENABLE_WINDOWS_SERVICE OFF)
 endif ()
 
 check_include_file(os/log.h HAVE_OS_LOG_H)
@@ -78,6 +82,7 @@ check_include_file(sys/types.h HAVE_SYS_TYPES_H)
 option(ENABLE_DEBUG_ALL "Enable all debugging messages.")
 cmake_dependent_option(ENABLE_DEBUG_SERVER "Enable server debugging messages." OFF "NOT ENABLE_DEBUG_ALL" ON)
 set(SERVER_DEBUG ${ENABLE_DEBUG_SERVER})
+
 
 
 check_symbol_exists(getopt "unistd.h" HAVE_GETOPT)
@@ -121,7 +126,7 @@ if (NOT HAVE_GETOPT)
   target_sources(stubby PRIVATE src/compat/getopt.c)
   target_include_directories(stubby PRIVATE src/compat)
 endif ()
-if (STUBBY_ON_WINDOWS)
+if (ENABLE_WINDOWS_SERVICE)
   target_sources(stubby PRIVATE src/windows/service.c)
   target_include_directories(stubby PRIVATE src/windows)
   target_sources(stubby PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/service.rc)

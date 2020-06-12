@@ -48,7 +48,7 @@
 #include "server.h"
 #include "util.h"
 
-#if defined(STUBBY_ON_WINDOWS)
+#if defined(ENABLE_WINDOWS_SERVICE)
 #include "windowsservice.h"
 #else
 #define STUBBYPIDFILE RUNSTATEDIR"/stubby.pid"
@@ -72,7 +72,7 @@ print_usage(FILE *out)
 	fprintf(out, "\t\t\t\"%s\"\n", system_conf_fn);
 	fprintf(out, "\t\tA default file (Using Strict mode) is installed as\n");
 	fprintf(out, "\t\t\t\"%s\"\n", system_conf_fn);
-#if !defined(STUBBY_ON_WINDOWS) && !defined(GETDNS_ON_WINDOWS)
+#if !defined(STUBBY_ON_WINDOWS)
 	fprintf(out, "\t-g\tRun stubby in background (default is foreground)\n");
 #endif
 	fprintf(out, "\t-h\tPrint this help\n");
@@ -107,7 +107,7 @@ main(int argc, char **argv)
 	int run_in_foreground = 0;
 	int log_connections = 0;
 	int dnssec_validation = 0;
-#if defined(STUBBY_ON_WINDOWS)
+#if defined(ENABLE_WINDOWS_SERVICE)
 	int windows_service = 0;
 	const char *windows_service_arg = NULL;
 #endif
@@ -145,7 +145,7 @@ main(int argc, char **argv)
 				exit(EXIT_FAILURE);
 			}
 			break;
-#if defined(STUBBY_ON_WINDOWS)
+#if defined(ENABLE_WINDOWS_SERVICE)
 		case 'w':
 			windows_service = 1;
 			windows_service_arg = optarg;
@@ -163,7 +163,7 @@ main(int argc, char **argv)
 	stubby_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_INFO,
 		   "Stubby version: %s", STUBBY_PACKAGE_STRING);
 
-#if defined(STUBBY_ON_WINDOWS)
+#if defined(ENABLE_WINDOWS_SERVICE)
 	if ( windows_service ) {
 		windows_service_command(windows_service_arg, log_connections ? log_level : 0);
 		exit(EXIT_SUCCESS);
