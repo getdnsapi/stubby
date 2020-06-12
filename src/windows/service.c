@@ -606,9 +606,10 @@ VOID SvcInit( DWORD dwArgc, LPTSTR *lpszArgv)
         {
                 switch ( WaitForSingleObject(ghSvcStopEvent, 0) )
                 {
-                case WAIT_OBJECT_0:
+                case WAIT_TIMEOUT:
                         break;
 
+                case WAIT_ABANDONED:
                 case WAIT_FAILED:
                         more = 0;
                         report_winerr("WaitForSingleObject");
@@ -623,7 +624,7 @@ VOID SvcInit( DWORD dwArgc, LPTSTR *lpszArgv)
                 if ( !more )
                         break;
 
-                eventloop->vmt->run_once(eventloop, 1);
+                eventloop->vmt->run_once(eventloop, 0);
         }
         ReportSvcStatus(SERVICE_STOPPED, 0, 0);
 
