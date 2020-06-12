@@ -129,7 +129,12 @@ endif ()
 if (ENABLE_WINDOWS_SERVICE)
   target_sources(stubby PRIVATE src/windows/service.c)
   target_include_directories(stubby PRIVATE src/windows)
-  target_sources(stubby PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/service.rc)
+
+  add_library(stubres SHARED
+    src/windows/stubres.c
+    ${CMAKE_CURRENT_BINARY_DIR}/service.rc
+    )
+  set_property(TARGET stubres PROPERTY C_STANDARD 11)
 endif()
 
 target_include_directories(stubby PRIVATE src ${CMAKE_CURRENT_BINARY_DIR})

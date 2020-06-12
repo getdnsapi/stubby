@@ -348,15 +348,23 @@ VOID SvcInstall()
         SC_HANDLE schSCManager;
         SC_HANDLE schService;
         TCHAR modpath[MAX_PATH];
+        TCHAR respath[MAX_PATH];
         const TCHAR ARG[] = "-w service";
         TCHAR cmd[MAX_PATH + 3 + sizeof(ARG)];
         SERVICE_DESCRIPTION description;
+        HMODULE stubres;
 
-        if( !GetModuleFileName(NULL, modpath, MAX_PATH) )
+        stubres = LoadLibrary("stubres");
+        if ( stubres == NULL )
+                winlasterr("Loading stubres.dll");
+        if( !GetModuleFileName(stubres, respath, sizeof(respath)) )
+                winlasterr("GetModuleFileName");
+        FreeLibrary(stubres);
+        if( !GetModuleFileName(NULL, modpath, sizeof(modpath)) )
                 winlasterr("GetModuleFileName");
         snprintf(cmd, sizeof(cmd), "\"%s\" %s", modpath, ARG);
 
-        createRegistryEntries(modpath);
+        createRegistryEntries(respath);
 
         schSCManager = OpenSCManager(
                 NULL,                    // local computer
@@ -364,7 +372,10 @@ VOID SvcInstall()
                 SC_MANAGER_ALL_ACCESS);  // full access rights
 
         if (NULL == schSCManager)
+        {
+                deleteRegistryEntries();
                 winlasterr("Open service manager");
+        }
 
         schService = CreateService(
                 schSCManager,              // SCM database
@@ -384,6 +395,7 @@ VOID SvcInstall()
         if (schService == NULL)
         {
                 CloseServiceHandle(schSCManager);
+                deleteRegistryEntries();
                 winlasterr("Create service");
         }
 
