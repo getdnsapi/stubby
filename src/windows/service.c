@@ -626,12 +626,19 @@ VOID WINAPI SvcMain(DWORD dwArgc, LPTSTR *lpszArgv)
         SvcInit(dwArgc, lpszArgv);
 }
 
+static void timeout_callback(void* userarg)
+{
+        (void) userarg;
+}
+
 VOID SvcInit( DWORD dwArgc, LPTSTR *lpszArgv)
 {
         getdns_context *context = NULL;
         getdns_return_t r;
         int more = 1;
         getdns_eventloop *eventloop;
+        getdns_eventloop_event eventloop_event;
+
         int validate_dnssec;
 
         ghSvcStopEvent = CreateEvent(
@@ -679,6 +686,10 @@ VOID SvcInit( DWORD dwArgc, LPTSTR *lpszArgv)
 
         ReportSvcStatus(SERVICE_RUNNING, 0, 0);
 
+        eventloop_event.userarg = NULL;
+        eventloop_event.read_cb = eventloop_event.write_cb = NULL;
+        eventloop_event.timeout_cb = timeout_callback;
+
         for(;;)
         {
                 switch ( WaitForSingleObject(ghSvcStopEvent, 0) )
@@ -701,7 +712,14 @@ VOID SvcInit( DWORD dwArgc, LPTSTR *lpszArgv)
                 if ( !more )
                         break;
 
-                eventloop->vmt->run_once(eventloop, 0);
+                /*
+                 * Run the getdns eventloop blocking, but ensure we go back
+                 * to check the event after 0.25s.
+                 */
+                if ( eventloop->vmt->schedule(eventloop, -1, 250, &eventloop_event) )
+                                        report_getdnserr("Set event timeout");
+
+                eventloop->vmt->run_once(eventloop, 1);
         }
         ReportSvcStatus(SERVICE_STOPPED, 0, 0);
 
