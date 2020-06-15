@@ -23,12 +23,19 @@
     <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
       <Component Id="stubby.exe">
         <File Id="stubby.exe" Source="Stubby/stubby.exe"  KeyPath="yes" Checksum="yes"/>
+        <ServiceInstall Id="ServiceInstaller" Type="ownProcess" Name="Stubby" DisplayName="Stubby DNS Privacy Proxy"
+                        Description="Enable performing DNS name lookups over secure channels."
+                        Start="demand" ErrorControl="normal" Account="NT AUTHORITY\LocalService" />
+        <ServiceControl Id="StopService" Stop="both" Remove="uninstall" Name="Stubby" Wait="yes" />
       </Component>
       <Component Id="getdns_query.exe">
         <File Id="getdns_query.exe" Source="Stubby/getdns_query.exe"  KeyPath="yes" Checksum="yes"/>
       </Component>
       <Component Id="getdns_server_mon.exe">
         <File Id="getdns_server_mon.exe" Source="Stubby/getdns_server_mon.exe"  KeyPath="yes" Checksum="yes"/>
+      </Component>
+      <Component Id="stubres.dll">
+        <File Id="stubres.dll" Source="Stubby/stubres.dll"  KeyPath="yes" Checksum="yes"/>
       </Component>
       <Component Id="yaml.dll">
         <File Id="yaml.dll" Source="Stubby/yaml.dll"  KeyPath="yes" Checksum="yes"/>
