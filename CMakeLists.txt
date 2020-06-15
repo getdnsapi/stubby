@@ -13,7 +13,10 @@ endif ()
 
 set(PACKAGE "stubby")
 set(PACKAGE_NAME "Stubby")
-set(PACKAGE_VERSION "0.3.0")
+set(PACKAGE_VERSION_MAJOR 0)
+set(PACKAGE_VERSION_MINOR 3)
+set(PACKAGE_VERSION_RELEASE 0)
+set(PACKAGE_VERSION "${PACKAGE_VERSION_MAJOR}.${PACKAGE_VERSION_MINOR}.${PACKAGE_VERSION_RELEASE}")
 set(PACKAGE_BUGREPORT "team@getdnsapi.net")
 set(RELEASE_CANDIDATE "")
 
@@ -103,6 +106,13 @@ set(ETCDIR "${STUBBYCONFDIR}")
 configure_file(doc/stubby.1.in stubby.1 @ONLY)
 
 if (STUBBY_ON_WINDOWS)
+  set(VER_PRODUCTVERSION "${PACKAGE_VERSION_MAJOR},${PACKAGE_VERSION_MINOR},${PACKAGE_VERSION_RELEASE},0")
+  set(VER_PRODUCTVERSION_STR "${PACKAGE_VERSION}${RELEASE_CANDIDATE}")
+  configure_file(src/windows/stubby.rc.in stubby.rc @ONLY)
+  if (ENABLE_WINDOWS_SERVICE)
+    configure_file(src/windows/stubres.rc.in stubres.rc @ONLY)
+  endif ()
+
   add_custom_command(
     OUTPUT service.rc
     MAIN_DEPENDENCY src/windows/service.mc
@@ -126,6 +136,9 @@ if (NOT HAVE_GETOPT)
   target_sources(stubby PRIVATE src/compat/getopt.c)
   target_include_directories(stubby PRIVATE src/compat)
 endif ()
+if (STUBBY_ON_WINDOWS)
+  target_sources(stubby PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/stubby.rc)
+endif ()
 if (ENABLE_WINDOWS_SERVICE)
   target_sources(stubby PRIVATE src/windows/service.c)
   target_include_directories(stubby PRIVATE src/windows)
@@ -133,6 +146,7 @@ if (ENABLE_WINDOWS_SERVICE)
   add_library(stubres SHARED
     src/windows/stubres.c
     ${CMAKE_CURRENT_BINARY_DIR}/service.rc
+    ${CMAKE_CURRENT_BINARY_DIR}/stubres.rc
     )
   set_property(TARGET stubres PROPERTY C_STANDARD 11)
 endif()
