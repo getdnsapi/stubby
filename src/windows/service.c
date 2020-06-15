@@ -382,7 +382,7 @@ VOID SvcInstall()
         schService = CreateService(
                 schSCManager,              // SCM database
                 SVCNAME,                   // name of service
-                "Stubby Secure DNS Proxy", // service name to display
+                "Stubby DNS Privacy Proxy", // service name to display
                 SERVICE_ALL_ACCESS,        // desired access
                 SERVICE_WIN32_OWN_PROCESS, // service type
                 SERVICE_DEMAND_START,      // start type
