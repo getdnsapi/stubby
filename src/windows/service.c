@@ -638,6 +638,7 @@ VOID SvcInit( DWORD dwArgc, LPTSTR *lpszArgv)
         int more = 1;
         getdns_eventloop *eventloop;
         getdns_eventloop_event eventloop_event;
+        int can_block;
 
         int validate_dnssec;
 
@@ -714,12 +715,15 @@ VOID SvcInit( DWORD dwArgc, LPTSTR *lpszArgv)
 
                 /*
                  * Run the getdns eventloop blocking, but ensure we go back
-                 * to check the event after 0.25s.
+                 * to check the event after 0.25s. In case we can't set
+                 * a timeout, run non-blocking until we can.
                  */
-                if ( eventloop->vmt->schedule(eventloop, -1, 250, &eventloop_event) )
-                                        report_getdnserr("Set event timeout");
-
-                eventloop->vmt->run_once(eventloop, 1);
+                can_block = ( eventloop->vmt->schedule(eventloop, -1, 250, &eventloop_event) == GETDNS_RETURN_GOOD );
+                if ( !can_block )
+                        report_getdnserr("Set event timeout");
+                eventloop->vmt->run_once(eventloop, can_block);
+                if ( can_block && eventloop->vmt->clear(eventloop, &eventloop_event) != GETDNS_RETURN_GOOD )
+                        report_getdnserr("Clear event timeout");
         }
         ReportSvcStatus(SERVICE_STOPPED, 0, 0);
 
