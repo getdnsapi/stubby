@@ -628,7 +628,7 @@ static void timeout_callback(void* userarg)
         (void) userarg;
 }
 
-VOID SvcInit( DWORD dwArgc, LPTSTR *lpszArgv)
+VOID SvcInit(DWORD dwArgc, LPTSTR* lpszArgv)
 {
         getdns_context *context = NULL;
         getdns_return_t r;
@@ -734,9 +734,9 @@ tidy_and_exit:
         ghSvcStopEvent = NULL;
 }
 
-VOID ReportSvcStatus( DWORD dwCurrentState,
-                      DWORD dwWin32ExitCode,
-                      DWORD dwWaitHint)
+VOID ReportSvcStatus(DWORD dwCurrentState,
+                     DWORD dwWin32ExitCode,
+                     DWORD dwWaitHint)
 {
         static DWORD dwCheckPoint = 1;
 
