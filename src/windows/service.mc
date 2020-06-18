@@ -22,7 +22,7 @@ Severity=Error
 Facility=Runtime
 SymbolicName=SVC_EMERGENCY
 Language=English
-Emergency: %2.
+Emergency: %1.
 .
 
 MessageId=0x2
@@ -30,7 +30,7 @@ Severity=Error
 Facility=Runtime
 SymbolicName=SVC_ALERT
 Language=English
-Alert: %2.
+Alert: %1.
 .
 
 MessageId=0x3
@@ -38,7 +38,7 @@ Severity=Error
 Facility=Runtime
 SymbolicName=SVC_CRITICAL
 Language=English
-Critical: %2.
+Critical: %1.
 .
 
 MessageId=0x4
@@ -46,7 +46,7 @@ Severity=Error
 Facility=Runtime
 SymbolicName=SVC_ERROR
 Language=English
-Error: %2.
+Error: %1.
 .
 
 MessageId=0x5
@@ -54,7 +54,7 @@ Severity=Warning
 Facility=Runtime
 SymbolicName=SVC_WARNING
 Language=English
-Warning: %2.
+Warning: %1.
 .
 
 MessageId=0x6
@@ -62,7 +62,7 @@ Severity=Warning
 Facility=Runtime
 SymbolicName=SVC_NOTICE
 Language=English
-Notice: %2.
+Notice: %1.
 .
 
 MessageId=0x7
@@ -70,7 +70,7 @@ Severity=Informational
 Facility=Runtime
 SymbolicName=SVC_INFO
 Language=English
-Info: %2.
+Info: %1.
 .
 
 MessageId=0x8
@@ -78,7 +78,7 @@ Severity=Informational
 Facility=Runtime
 SymbolicName=SVC_DEBUG
 Language=English
-Debug: %2.
+Debug: %1.
 .
 
 ; // A message file must end with a period on its own line

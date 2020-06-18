@@ -114,7 +114,7 @@ void report_verror(getdns_loglevel_type level, const char *fmt, va_list ap)
 {
         char buf[256];
         HANDLE hEventSource;
-        LPCTSTR lpszStrings[2];
+        LPCTSTR lpszStrings[1];
         WORD eventType;
         DWORD eventId;
 
@@ -168,15 +168,14 @@ void report_verror(getdns_loglevel_type level, const char *fmt, va_list ap)
 
         vsnprintf(buf, sizeof(buf), fmt, ap);
 
-        lpszStrings[0] = SVCNAME;
-        lpszStrings[1] = buf;
+        lpszStrings[0] = buf;
 
         ReportEvent(hEventSource,        // event log handle
                     eventType,           // event type
                     0,                   // event category
                     eventId,             // event identifier
                     NULL,                // no security identifier
-                    2,                   // size of lpszStrings array
+                    1,                   // size of lpszStrings array
                     0,                   // no binary data
                     lpszStrings,         // array of strings
                     NULL);               // no binary data
