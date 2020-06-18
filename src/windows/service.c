@@ -77,17 +77,17 @@ int                     dnssec_validation = 0;
 VOID SvcInstall(void);
 VOID SvcRemove(void);
 VOID SvcService(void);
-VOID SvcStart(int loglevel);
+VOID SvcStart(int loglevel, const char* config_file);
 VOID SvcStop(void);
-VOID WINAPI SvcCtrlHandler( DWORD );
-VOID WINAPI SvcMain( DWORD, LPTSTR * );
+VOID WINAPI SvcCtrlHandler(DWORD);
+VOID WINAPI SvcMain(DWORD, LPTSTR*);
 
-VOID ReportSvcStatus( DWORD, DWORD, DWORD );
-VOID SvcInit( DWORD, LPTSTR * );
-VOID SvcReportEvent( LPTSTR );
+VOID ReportSvcStatus(DWORD, DWORD, DWORD);
+VOID SvcInit(DWORD, LPTSTR*);
+VOID SvcReportEvent(LPTSTR);
 
 
-void windows_service_command(const TCHAR* arg, int loglevel)
+void windows_service_command(const TCHAR* arg, int loglevel, const char* config_file)
 {
         if ( lstrcmpi(arg, TEXT("install")) == 0 )
                 SvcInstall();
@@ -96,7 +96,7 @@ void windows_service_command(const TCHAR* arg, int loglevel)
         else if ( lstrcmpi(arg, TEXT("service")) == 0 )
                 SvcService();
         else if ( lstrcmpi(arg, TEXT("start")) == 0 )
-                SvcStart(loglevel);
+                SvcStart(loglevel, config_file);
         else if ( lstrcmpi(arg, TEXT("stop")) == 0 )
                 SvcStop();
         else if ( lstrcmpi(arg, TEXT("status")) == 0 )
@@ -449,7 +449,7 @@ VOID SvcRemove()
         printf("Service removed successfully\n");
 }
 
-VOID SvcStart(int loglevel)
+VOID SvcStart(int loglevel, const char* config_file)
 {
         SC_HANDLE schSCManager;
         SC_HANDLE schService;
@@ -478,15 +478,12 @@ VOID SvcStart(int loglevel)
         loglevelstr[1] = '\0';
 
         LPCTSTR args[2] = {
-                SVCNAME,
-                loglevelstr
+                loglevelstr,
+                config_file
         };
+        int nargs = config_file ? 2 : 1;
 
-        if ( StartService(
-                     schService,        // Service
-                     2,                 // number of args
-                     args               // args
-                     ) == 0 )
+        if ( StartService(schService, nargs, args) == 0 )
         {
                 CloseServiceHandle(schService);
                 CloseServiceHandle(schSCManager);
@@ -641,6 +638,7 @@ VOID SvcInit( DWORD dwArgc, LPTSTR *lpszArgv)
         int can_block;
 
         int validate_dnssec;
+        const char* config_file = NULL;
 
         ghSvcStopEvent = CreateEvent(
                 NULL,    // default security attributes
@@ -665,10 +663,12 @@ VOID SvcInit( DWORD dwArgc, LPTSTR *lpszArgv)
 
         if ( dwArgc > 1 )
                 stubby_set_getdns_logging(context, lpszArgv[1][0] - '0');
+        if ( dwArgc > 2 )
+                config_file = lpszArgv[2];
 
         init_config(context);
         ReportSvcStatus(SERVICE_START_PENDING, 0, 1010);
-        if ( !read_config(context, NULL, &validate_dnssec) ) {
+        if ( !read_config(context, config_file, &validate_dnssec) ) {
                 ReportSvcStatus(SERVICE_STOPPED, 1, 0);
                 goto tidy_and_exit;
         }

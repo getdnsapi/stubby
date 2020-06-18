@@ -30,6 +30,6 @@
 
 #include <tchar.h>
 
-void windows_service_command(const TCHAR* arg, int validate_dnssec);
+void windows_service_command(const TCHAR* arg, int loglevel, const char* config_file);
 
 #endif

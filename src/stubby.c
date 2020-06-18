@@ -165,7 +165,7 @@ main(int argc, char **argv)
 
 #if defined(ENABLE_WINDOWS_SERVICE)
 	if ( windows_service ) {
-		windows_service_command(windows_service_arg, log_connections ? log_level : 0);
+		windows_service_command(windows_service_arg, log_connections ? log_level : 0, custom_config_fn);
 		exit(EXIT_SUCCESS);
 	}
 #endif
