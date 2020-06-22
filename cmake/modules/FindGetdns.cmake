@@ -26,6 +26,14 @@ This module will set the following variables in your project:
 ``GETDNS_VERSION``
   the version of the Getdns library found
 
+Hints
+^^^^^
+
+``GETDNS_DIR``
+  look here for a getdns install tree (include/ and lib/)
+``GETDNS_STATIC``
+  on Windows, find the static library.
+
 #]=======================================================================]
 
 find_path(GETDNS_INCLUDE_DIR getdns/getdns.h
@@ -34,11 +42,19 @@ find_path(GETDNS_INCLUDE_DIR getdns/getdns.h
   "${GETDNS_DIR}/include"
   )
 
-find_library(GETDNS_LIBRARY NAMES getdns libgetdns
-  HINTS
-  "${GETDNS_DIR}"
-  "${GETDNS_DIR}/lib"
-  )
+if (${GETDNS_STATIC} AND (WIN32 OR MINGW OR MSYS OR CYGWIN))
+  find_library(GETDNS_LIBRARY NAMES getdns_static
+    HINTS
+    "${GETDNS_DIR}"
+    "${GETDNS_DIR}/lib"
+    )
+else()
+  find_library(GETDNS_LIBRARY NAMES getdns libgetdns
+    HINTS
+    "${GETDNS_DIR}"
+    "${GETDNS_DIR}/lib"
+    )
+endif()
 
 set(GETDNS_LIBRARIES "")
 
