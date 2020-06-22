@@ -119,6 +119,7 @@ if (STUBBY_ON_WINDOWS)
     MAIN_DEPENDENCY src/windows/service.mc
     COMMAND ${CMAKE_MC_COMPILER}
     ARGS -U
+         -n
          -r ${CMAKE_CURRENT_BINARY_DIR}
          ${CMAKE_CURRENT_SOURCE_DIR}/src/windows/service.mc
     )
