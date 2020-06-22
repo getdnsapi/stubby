@@ -79,6 +79,7 @@ VOID SvcRemove(void);
 VOID SvcService(void);
 VOID SvcStart(int loglevel, const char* config_file);
 VOID SvcStop(void);
+int SvcStatus(void);
 VOID WINAPI SvcCtrlHandler(DWORD);
 VOID WINAPI SvcMain(DWORD, LPTSTR*);
 
@@ -215,7 +216,7 @@ VOID report_getdnserr(LPTSTR operation)
         stubby_error("%s: %s", operation, stubby_getdns_strerror());
 }
 
-VOID SvcService()
+VOID SvcService(void)
 {
         SERVICE_TABLE_ENTRY DispatchTable[] = {
                 { SVCNAME, (LPSERVICE_MAIN_FUNCTION) SvcMain },
@@ -344,7 +345,7 @@ static void deleteRegistryEntries(void)
         RegCloseKey(hkey);
 }
 
-VOID SvcInstall()
+VOID SvcInstall(void)
 {
         SC_HANDLE schSCManager;
         SC_HANDLE schService;
@@ -410,7 +411,7 @@ VOID SvcInstall()
         CloseServiceHandle(schSCManager);
 }
 
-VOID SvcRemove()
+VOID SvcRemove(void)
 {
         SC_HANDLE schSCManager;
         SC_HANDLE schService;
@@ -495,7 +496,7 @@ VOID SvcStart(int loglevel, const char* config_file)
         printf("Service started successfully\n");
 }
 
-VOID SvcStop()
+VOID SvcStop(void)
 {
         SC_HANDLE schSCManager;
         SC_HANDLE schService;
@@ -538,7 +539,7 @@ VOID SvcStop()
         printf("Service stopped successfully\n");
 }
 
-int SvcStatus()
+int SvcStatus(void)
 {
         SC_HANDLE schSCManager;
         SC_HANDLE schService;
