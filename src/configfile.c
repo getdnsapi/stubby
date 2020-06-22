@@ -71,7 +71,7 @@ getdns_yaml2dict(const char *str, getdns_dict **dict)
 
 static char *make_config_file_path(const char *dir, const char *fname)
 {
-        int reslen = strlen(dir) + strlen(fname) + 1;
+        size_t reslen = strlen(dir) + strlen(fname) + 1;
         char *res = malloc(reslen);
 
         if (res == NULL)
