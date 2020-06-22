@@ -30,6 +30,11 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+#if defined(STUBBY_ON_WINDOWS)
+#include <sys/types.h>
+#include <sys/timeb.h>
+#endif
+
 #include "log.h"
 
 static void default_stubby_verror(getdns_loglevel_type level, const char *fmt, va_list ap)
@@ -47,11 +52,13 @@ static void default_stubby_vlog(void *userarg, uint64_t system,
         struct tm tm;
         char buf[10];
 #if defined(STUBBY_ON_WINDOWS)
+        struct _timeb timeb;
         time_t tsec;
 
-        gettimeofday(&tv, NULL);
-        tsec = (time_t) tv.tv_sec;
-        gmtime_s(&tm, (const time_t *) &tsec);
+        _ftime_s(&timeb);
+        tsec = (time_t)timeb.time;
+        tv.tv_usec = timeb.millitm * 1000;
+        gmtime_s(&tm, &tsec);
 #else
         gettimeofday(&tv, NULL);
         gmtime_r(&tv.tv_sec, &tm);
