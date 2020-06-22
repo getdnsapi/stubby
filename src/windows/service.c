@@ -38,6 +38,7 @@
 #include "configfile.h"
 #include "log.h"
 #include "server.h"
+#include "util.h"
 
 #include "service.h"
 
@@ -211,9 +212,9 @@ VOID report_winerr(LPTSTR operation)
                 stubby_error("Error: %s: %s\n", operation, msg);
 }
 
-VOID report_getdnserr(LPTSTR operation)
+VOID report_getdnserr(LPTSTR operation, getdns_return_t r)
 {
-        stubby_error("%s: %s", operation, stubby_getdns_strerror());
+        stubby_error("%s: %s", operation, stubby_getdns_strerror(r));
 }
 
 VOID SvcService(void)
@@ -678,8 +679,9 @@ VOID SvcInit(DWORD dwArgc, LPTSTR* lpszArgv)
         }
 
         ReportSvcStatus(SERVICE_START_PENDING, 0, 1030);
-        if ( getdns_context_get_eventloop(context, &eventloop) ) {
-                report_getdnserr("Get event loop");
+        r = getdns_context_get_eventloop(context, &eventloop);
+        if ( r != GETDNS_RETURN_GOOD ) {
+                report_getdnserr("Get event loop", r);
                 ReportSvcStatus(SERVICE_STOPPED, 1, 0);
                 goto tidy_and_exit;
         }
@@ -717,12 +719,16 @@ VOID SvcInit(DWORD dwArgc, LPTSTR* lpszArgv)
                  * to check the event after 0.25s. In case we can't set
                  * a timeout, run non-blocking until we can.
                  */
-                can_block = ( eventloop->vmt->schedule(eventloop, -1, 250, &eventloop_event) == GETDNS_RETURN_GOOD );
+                r = eventloop->vmt->schedule(eventloop, -1, 250, &eventloop_event);
+                can_block = ( r == GETDNS_RETURN_GOOD );
                 if ( !can_block )
-                        report_getdnserr("Set event timeout");
+                        report_getdnserr("Set event timeout", r);
                 eventloop->vmt->run_once(eventloop, can_block);
-                if ( can_block && eventloop->vmt->clear(eventloop, &eventloop_event) != GETDNS_RETURN_GOOD )
-                        report_getdnserr("Clear event timeout");
+                if ( can_block ) {
+                        r = eventloop->vmt->clear(eventloop, &eventloop_event);
+                        if ( r != GETDNS_RETURN_GOOD )
+                                report_getdnserr("Clear event timeout", r);
+                }
         }
         ReportSvcStatus(SERVICE_STOPPED, 0, 0);
 
