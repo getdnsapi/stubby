@@ -260,7 +260,7 @@ static void createRegistryEntries(const TCHAR* path)
                 0,                         // Reserved
                 REG_EXPAND_SZ,             // It's a string
                 (const BYTE*) path,        // with this value
-                strlen(path) + 1           // and this long
+                (DWORD)(strlen(path) + 1)  // and this long
                 );
         if ( status != ERROR_SUCCESS )
         {
@@ -274,7 +274,7 @@ static void createRegistryEntries(const TCHAR* path)
                 0,                         // Reserved
                 REG_EXPAND_SZ,             // It's a string
                 (const BYTE*) path,        // with this value
-                strlen(path) + 1           // and this long
+                (DWORD)(strlen(path) + 1)  // and this long
                 );
         if ( status != ERROR_SUCCESS )
         {
@@ -318,7 +318,6 @@ static void createRegistryEntries(const TCHAR* path)
 static void deleteRegistryEntries(void)
 {
         HKEY hkey;
-        DWORD t;
         LSTATUS status;
 
         status = RegCreateKeyEx(
