@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
-  <Product Id="*" Name="Stubby" Language="1033" Version="Version" Manufacturer="Sinodun Internet Technologies Ltd." UpgradeCode="af30ca25-b1c5-404b-b1f1-d988dc7ca1a7">
+  <Product Id="*" Name="Stubby" Language="1033" Version="@PACKAGE_VERSION@" Manufacturer="Sinodun Internet Technologies Ltd." UpgradeCode="af30ca25-b1c5-404b-b1f1-d988dc7ca1a7">
     <Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
 
     <MajorUpgrade AllowSameVersionUpgrades="yes" DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
@@ -40,11 +40,11 @@
       <Component Id="yaml.dll">
         <File Id="yaml.dll" Source="Stubby/yaml.dll"  KeyPath="yes" Checksum="yes"/>
       </Component>
-      <Component Id="ssleay32.dll">
-        <File Id="ssleay32.dll" Source="Stubby/ssleay32.dll"  KeyPath="yes" Checksum="yes"/>
+      <Component Id="libssl.dll">
+        <File Id="libssl.dll" Source="Stubby/libssl-1_1-x64.dll"  KeyPath="yes" Checksum="yes"/>
       </Component>
-      <Component Id="libeay32.dll">
-        <File Id="libeay32.dll" Source="Stubby/libeay32.dll"  KeyPath="yes" Checksum="yes"/>
+      <Component Id="libcrypto.dll">
+        <File Id="libcrypto.dll" Source="Stubby/libcrypto-1_1-x64.dll"  KeyPath="yes" Checksum="yes"/>
       </Component>
       <Component Id="stubby.yml">
         <File Id="stubby.yml" Source="Stubby/stubby.yml"  KeyPath="yes" Checksum="yes" />
