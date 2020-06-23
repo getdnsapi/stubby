@@ -45,6 +45,10 @@ find_package(Libsystemd)
 if (Libsystemd_FOUND)
   option(ENABLE_SYSTEMD "Enable systemd support." ON)
 endif()
+option(ENABLE_GETDNS_STATIC_LINK "Link GetDNS statically." ON)
+if (ENABLE_GETDNS_STATIC_LINK)
+  set(GETDNS_STATIC ON)
+endif ()
 
 # Directories
 if (DEFINED CMAKE_INSTALL_FULL_RUNSTATEDIR)
