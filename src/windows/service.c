@@ -668,6 +668,7 @@ VOID SvcInit(DWORD dwArgc, LPTSTR* lpszArgv)
 
         init_config(context);
         ReportSvcStatus(SERVICE_START_PENDING, 0, 1010);
+        stubby_debug("Starting %s with config file %s", STUBBY_PACKAGE_STRING, config_file);
         if ( !read_config(context, config_file, &validate_dnssec) ) {
                 ReportSvcStatus(SERVICE_STOPPED, 1, 0);
                 goto tidy_and_exit;
