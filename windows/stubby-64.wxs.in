@@ -6,8 +6,8 @@
     <MajorUpgrade AllowSameVersionUpgrades="yes" DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
     <MediaTemplate EmbedCab="yes" />
 
-    <Feature Id="ProductFeature" Title="Stubby" Level="1">
-      <ComponentGroupRef Id="ProductComponents" />
+    <Feature Id="StubbyFeature" Title="Stubby" Level="1">
+      <ComponentGroupRef Id="StubbyComponents" />
     </Feature>
   </Product>
 
@@ -20,7 +20,7 @@
   </Fragment>
 
   <Fragment>
-    <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+    <ComponentGroup Id="StubbyComponents" Directory="INSTALLFOLDER">
       <Component Id="stubby.exe">
         <File Id="stubby.exe" Source="Stubby/stubby.exe"  KeyPath="yes" Checksum="yes"/>
         <ServiceInstall Id="ServiceInstaller" Type="ownProcess" Name="Stubby" DisplayName="Stubby DNS Privacy Proxy"
