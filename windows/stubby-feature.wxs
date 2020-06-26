@@ -73,6 +73,16 @@
       <Component Id="stubby.xml">
         <File Id="stubby.xml" Source="Stubby/stubby.xml"  KeyPath="yes" Checksum="yes"/>
       </Component>
+
+      <Component Id="ServiceRegistryEntries">
+        <RegistryKey Root="HKLM"
+                     Key="SYSTEM\CurrentControlSet\Services\EventLog\Application\Stubby">
+          <RegistryValue Type="string" Name="EventMessageFile" Value="[INSTALLDIR]\stubres.dll" KeyPath="yes" />
+          <RegistryValue Type="string" Name="CategoryMessageFile" Value="[INSTALLDIR]\stubres.dll" />
+          <RegistryValue Type="integer" Name="TypesSupported" Value="7" />
+          <RegistryValue Type="integer" Name="CategoryCount" Value="1" />
+        </RegistryKey>
+      </Component>
     </ComponentGroup>
   </Fragment>
 </Wix>
