@@ -311,7 +311,7 @@ static void createRegistryEntries(const TCHAR* path)
         if ( status != ERROR_SUCCESS )
         {
                 RegCloseKey(hkey);
-                winerr("Set TypesSupported", status);
+                winerr("Set CategoryCount", status);
         }
         RegCloseKey(hkey);
 }
