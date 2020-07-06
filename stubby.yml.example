@@ -154,9 +154,10 @@ listen_addresses:
 # in milliseconds (which defaults to two and a half seconds).
 # trust_anchors_backoff_time: 2500
 
-# Specify the location of the installed trust anchor file to override the 
+# Specify the location of the installed trust anchor files to override the
 # default location (see above)
-# dnssec_trust_anchors: "/etc/unbound/getdns-root.key"
+# dnssec_trust_anchors:
+#   - "/etc/unbound/getdns-root.key"
 
 
 ##################################  UPSTREAMS  ################################
