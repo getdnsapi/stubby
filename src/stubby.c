@@ -104,7 +104,7 @@ main(int argc, char **argv)
 {
 	const char *custom_config_fn = NULL;
 	int print_api_info = 0;
-	int run_in_foreground = 0;
+	int run_in_foreground = 1;
 	int log_connections = 0;
 	int dnssec_validation = 0;
 #if defined(ENABLE_WINDOWS_SERVICE)
