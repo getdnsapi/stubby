@@ -191,6 +191,8 @@ Or via the GUI:
 
 ## Windows 8 and later
 
+See the file windows/README.txt for a detailed description of building and using Stubby on windows.
+
 Powershell scripts are provided in the the windows directory of the source code that can be used to update the system resolvers. 
 Instructions for how to update the resolvers manually are provided are also provided - see https://dnsprivacy.org/wiki/display/DP/Windows+installer+for+Stubby 
 Stubby has been reported to work on Windows 7, but we don't officially support it. 

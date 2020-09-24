@@ -6,6 +6,9 @@ tested on Windows 10 and Windows 8. There is limited support for Windows 7
 welcomed via github!
 https://github.com/getdnsapi/stubby
 
+A development version of a Windows GUI for Stubby is also available, see
+https://dnsprivacy.org/wiki/display/DP/DNS+Privacy+Daemon+-+Stubby
+
 Installation
 --------------------
 Download and run the installer.
@@ -61,7 +64,7 @@ for details of available levels).
 A different location for the configuration file can be specified by adding:
 -C "<full path to stubby.yml>"
 
-We are working on support for running stubby as a service on Windows 10
+See below for details of running stubby as a service on Windows 10
 
 Test Stubby
 --------------------
@@ -122,6 +125,19 @@ task just run
 
 schtasks /create /tn Stubby /XML "C:\Program Files\Stubby\stubby.xml" /RU <you_user_name>
 
+Running as a Windows service
+----------------------------
+Stubby can now also be installed as a windows service by using the command
+
+stubby -w install
+
+It can then be controlled via the Windows Service Manager or directly on the command
+line by replacing 'install' with 'start', 'stop' or 'remove' in the above command. 
+The start command can take 2 parameters, the logging level and a custom configuration file.
+
+NOTE: When running as a service, stubby will read its default configuration from 
+
+C:\Program Files\Stubby\stubbyservice.yml
 
 Known Issues
 --------------------
