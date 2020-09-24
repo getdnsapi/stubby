@@ -105,6 +105,18 @@ char *system_config_file(void)
         return folder_config_file(CSIDL_PROGRAM_FILES);
 }
 
+char *system_service_config_file(void)
+{
+        int csidl = CSIDL_PROGRAM_FILES;
+        TCHAR szPath[MAX_PATH];
+
+        if (!SUCCEEDED(SHGetFolderPath(NULL,
+            csidl | CSIDL_FLAG_CREATE, NULL, 0, szPath)))
+                return NULL;
+
+        return make_config_file_path(szPath, "\\Stubby\\stubbyservice.yml");        
+}
+
 #else
 
 char *home_config_file(void)

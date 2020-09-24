@@ -382,7 +382,7 @@ VOID SvcInstall(void)
         schService = CreateService(
                 schSCManager,              // SCM database
                 SVCNAME,                   // name of service
-                "Stubby DNS Privacy Proxy", // service name to display
+                "Stubby DNS Privacy stub resolver", // service name to display
                 SERVICE_ALL_ACCESS,        // desired access
                 SERVICE_WIN32_OWN_PROCESS, // service type
                 SERVICE_DEMAND_START,      // start type
@@ -401,7 +401,7 @@ VOID SvcInstall(void)
                 winlasterr("Create service");
         }
 
-        description.lpDescription = TEXT("Enable performing DNS name lookups over secure channels.");
+        description.lpDescription = TEXT("Enable performing DNS name lookups over encrypted channels.");
         ChangeServiceConfig2(schService, SERVICE_CONFIG_DESCRIPTION,
                              (LPVOID) &description);
 
@@ -602,6 +602,50 @@ int SvcStatus(void)
         }
 }
 
+static void set_startup(DWORD start_type) {
+
+        SC_HANDLE schSCManager;
+        SC_HANDLE schService;
+        stubby_debug("set_startup");  
+
+        schSCManager = OpenSCManager(
+                NULL,                    // local computer
+                NULL,                    // ServicesActive database
+                GENERIC_WRITE);           // modify service
+
+        if (NULL == schSCManager)
+                winlasterr("Open service manager");
+
+        schService = OpenService(
+                schSCManager,              // SCM database
+                SVCNAME,                   // name of service
+                SERVICE_CHANGE_CONFIG);     // intention
+
+        if (schService == NULL)
+        {
+                CloseServiceHandle(schSCManager);
+                winlasterr("Open service");
+        }
+
+
+         if (! ChangeServiceConfig( 
+                schService,                // service handle
+                SERVICE_NO_CHANGE,         // service type
+                start_type,                // start type
+                SERVICE_NO_CHANGE,         // error control type
+                NULL,                      // path to service's binary
+                NULL,                      // no load ordering group
+                NULL,                      // no tag identifier
+                NULL,                      // no dependencies
+                NULL,                      // account name: no change 
+                NULL,                      // password: no change 
+                NULL) )                    // display name: no change
+        {
+                stubby_debug("ChangeServiceConfig failed (%d)\n", GetLastError()); 
+        }
+        else stubby_debug("Service start type changed successfully.\n");               
+}
+
 VOID WINAPI SvcMain(DWORD dwArgc, LPTSTR *lpszArgv)
 {
         stubby_set_log_funcs(report_verror, report_vlog);
@@ -620,6 +664,7 @@ VOID WINAPI SvcMain(DWORD dwArgc, LPTSTR *lpszArgv)
         gSvcStatus.dwServiceSpecificExitCode = 0;
         ReportSvcStatus(SERVICE_START_PENDING, 0, 3000);
 
+        set_startup(SERVICE_AUTO_START);
         SvcInit(dwArgc, lpszArgv);
 }
 
@@ -665,6 +710,9 @@ VOID SvcInit(DWORD dwArgc, LPTSTR* lpszArgv)
                 stubby_set_getdns_logging(context, lpszArgv[1][0] - '0');
         if ( dwArgc > 2 )
                 config_file = lpszArgv[2];
+        else
+                // have the service default to a dedicated file in its own directory
+                config_file = system_service_config_file();
 
         init_config(context);
         ReportSvcStatus(SERVICE_START_PENDING, 0, 1010);
@@ -709,6 +757,7 @@ VOID SvcInit(DWORD dwArgc, LPTSTR* lpszArgv)
                 default:
                         more = 0;
                         stubby_debug("Stop object signalled");
+                        set_startup(SERVICE_DEMAND_START);
                         break;
                 }
 

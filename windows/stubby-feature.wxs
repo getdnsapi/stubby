@@ -18,8 +18,8 @@
       <Component Id="stubby.exe">
         <File Id="stubby.exe" Source="Stubby/stubby.exe"  KeyPath="yes" Checksum="yes"/>
         <ServiceInstall Id="ServiceInstaller" Type="ownProcess"
-                        Name="Stubby" DisplayName="Stubby DNS Privacy Proxy"
-                        Description="Enable performing DNS name lookups over secure channels."
+                        Name="Stubby" DisplayName="Stubby DNS Privacy stub resolver"
+                        Description="Enable performing DNS name lookups over encrypted channels."
                         Start="demand"
                         ErrorControl="normal"
                         Arguments="-w service">
@@ -52,6 +52,9 @@
       </Component>
       <Component Id="stubby.yml">
         <File Id="stubby.yml" Source="Stubby/stubby.yml"  KeyPath="yes" Checksum="yes" />
+      </Component>
+      <Component Id="stubbyservice.yml">
+        <File Id="stubbyservice.yml" Name="stubbyservice.yml" Source="Stubby/stubby.yml"  KeyPath="yes" Checksum="yes" />
       </Component>
       <Component Id="README.txt">
         <File Id="README.txt" Source="Stubby/README.txt"  KeyPath="yes" Checksum="yes"/>

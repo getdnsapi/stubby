@@ -32,6 +32,9 @@
 
 char *home_config_file(void);
 char *system_config_file(void);
+#if defined(STUBBY_ON_WINDOWS)
+char *system_service_config_file(void);
+#endif
 
 void init_config(getdns_context *context);
 void delete_config(void);
