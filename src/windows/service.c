@@ -606,7 +606,6 @@ static void set_startup(DWORD start_type) {
 
         SC_HANDLE schSCManager;
         SC_HANDLE schService;
-        stubby_debug("set_startup");  
 
         schSCManager = OpenSCManager(
                 NULL,                    // local computer
@@ -643,7 +642,7 @@ static void set_startup(DWORD start_type) {
         {
                 stubby_debug("ChangeServiceConfig failed (%d)\n", GetLastError()); 
         }
-        else stubby_debug("Service start type changed successfully.\n");               
+        //else stubby_debug("Service start type changed successfully.\n");               
 }
 
 VOID WINAPI SvcMain(DWORD dwArgc, LPTSTR *lpszArgv)

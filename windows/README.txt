@@ -7,7 +7,11 @@ welcomed via github!
 https://github.com/getdnsapi/stubby
 
 A development version of a Windows GUI for Stubby is also available, see
-https://dnsprivacy.org/wiki/display/DP/DNS+Privacy+Daemon+-+Stubby
+https://dnsprivacy.org/wiki/display/DP/DNS+Privacy+Daemon+-+Stubby. Note that this
+manages Stubby running as a Windows service. To avoid conflicts with existing installs
+the Stubby Manager GUI will write its default configuration to
+
+C:\Program Files\Stubby\stubbyservice.yml
 
 Installation
 --------------------
@@ -135,7 +139,8 @@ It can then be controlled via the Windows Service Manager or directly on the com
 line by replacing 'install' with 'start', 'stop' or 'remove' in the above command. 
 The start command can take 2 parameters, the logging level and a custom configuration file.
 
-NOTE: When running as a service, stubby will read its default configuration from 
+NOTE: To avoid conflicts with existing installs, when running as a service, stubby will
+read its default configuration from
 
 C:\Program Files\Stubby\stubbyservice.yml
 
