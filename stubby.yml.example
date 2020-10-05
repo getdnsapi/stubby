@@ -246,11 +246,67 @@ upstream_recursive_servers:
 #  - address_data: 1.0.0.1
 #    tls_auth_name: "cloudflare-dns.com"
 ## The Uncensored DNS servers
+#  - address_data: 91.239.100.100
+#    tls_auth_name: "anycast.censurfridns.dk"
+#    tls_pubkey_pinset:
+#      - digest: "sha256"
+#        value: 97tijP/z/JpGmYN3fuWTuTYl6zYripxVOEv2V2iBa8Y=
+#      - digest: "sha256"
+#        value: 9FmNCbxBrYzAlges3DXuWICjvUSMY/vxlNSeqDleLTw=
+#      - digest: "sha256"
+#        value: 2JjZgBZkfjSjs117vX+AnyKeYzJNM38zwsaxHwStWsg=
+#      - digest: "sha256"
+#        value: UXs8xWXai9ZXBAjDKYDiYl/jbIYtyV/bY2w3F1FFTDs=
+#      - digest: "sha256"
+#        value: oDxJrI/lG1Jhl1J7LvapMlYwlHMphZUODvCDBm0nof8=
+#      - digest: "sha256"
+#        value: iYkCUwXdH7sT8qh26zt+r5dbTySL43wgJtLCTHaSH9M=
+#      - digest: "sha256"
+#        value: Clii3HzZr48onFoog7I0ma5QmMPSpOBpCykXqgA0Wn0=
+#      - digest: "sha256"
+#        value: 6eW98h0+xxuaGQkgNalEU5e/hbgKyUoydpPMY6xcKyY=
+#      - digest: "sha256"
+#        value: Y4gU6vmrYSpNykdq0S1Po7Ar9sBFj26KAOKIcJQyoX8=
+#      - digest: "sha256"
+#        value: x72/vIQoOu7mCuu1cSbeqOZNv9u+mK/2UtKjXDi0hto=
+#  - address_data: 2001:67c:28a4::0
+#    tls_auth_name: "anycast.censurfridns.dk"
+#    tls_pubkey_pinset:
+#      - digest: "sha256"
+#        value: 97tijP/z/JpGmYN3fuWTuTYl6zYripxVOEv2V2iBa8Y=
+#      - digest: "sha256"
+#        value: 9FmNCbxBrYzAlges3DXuWICjvUSMY/vxlNSeqDleLTw=
+#      - digest: "sha256"
+#        value: 2JjZgBZkfjSjs117vX+AnyKeYzJNM38zwsaxHwStWsg=
+#      - digest: "sha256"
+#        value: UXs8xWXai9ZXBAjDKYDiYl/jbIYtyV/bY2w3F1FFTDs=
+#      - digest: "sha256"
+#        value: oDxJrI/lG1Jhl1J7LvapMlYwlHMphZUODvCDBm0nof8=
+#      - digest: "sha256"
+#        value: iYkCUwXdH7sT8qh26zt+r5dbTySL43wgJtLCTHaSH9M=
+#      - digest: "sha256"
+#        value: Clii3HzZr48onFoog7I0ma5QmMPSpOBpCykXqgA0Wn0=
+#      - digest: "sha256"
+#        value: 6eW98h0+xxuaGQkgNalEU5e/hbgKyUoydpPMY6xcKyY=
+#      - digest: "sha256"
+#        value: Y4gU6vmrYSpNykdq0S1Po7Ar9sBFj26KAOKIcJQyoX8=
+#      - digest: "sha256"
+#        value: x72/vIQoOu7mCuu1cSbeqOZNv9u+mK/2UtKjXDi0hto=
 #  - address_data: 89.233.43.71
 #    tls_auth_name: "unicast.censurfridns.dk"
 #    tls_pubkey_pinset:
 #      - digest: "sha256"
 #        value: wikE3jYAA6jQmXYTr/rbHeEPmC78dQwZbQp6WdrseEs=
+#      - digest: "sha256"
+#        value: INSZEZpDoWKiavosV2/xVT8O83vk/RRwS+LTiL+IpHs=
+#  - address_data: 2a01:3a0:53:53::0
+#    tls_auth_name: "unicast.censurfridns.dk"
+#    tls_pubkey_pinset:
+#      - digest: "sha256"
+#        value: wikE3jYAA6jQmXYTr/rbHeEPmC78dQwZbQp6WdrseEs=
+#      - digest: "sha256"
+#        value: INSZEZpDoWKiavosV2/xVT8O83vk/RRwS+LTiL+IpHs=
+#
 ## Fondation RESTENA (NREN for Luxembourg)
 #  - address_data: 158.64.1.29
 #    tls_auth_name: "kaitain.restena.lu"
