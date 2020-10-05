@@ -409,7 +409,7 @@ upstream_recursive_servers:
 #      - digest: "sha256"
 #        value: sG6kj+XJToXwt1M6+9BeCz1SOj/1/mdZn56OZvCyZZc=
 ## Foundation for Applied Privacy 
-#  - address_data: 2a01:4f8:c0c:83ed::1
+#  - address_data: 2a02:1b8:10:234::2
 #    tls_auth_name: "dot1.applied-privacy.net"
 
 ####### Servers that listen on port 443 (IPv4 and IPv6) #######
@@ -488,6 +488,6 @@ upstream_recursive_servers:
 #  - address_data: 146.255.56.98
 #    tls_port: 443
 #    tls_auth_name: "dot1.applied-privacy.net"
-#  - address_data: 2a01:4f8:c0c:83ed::1
+#  - address_data: 2a02:1b8:10:234::2
 #    tls_port: 443
 #    tls_auth_name: "dot1.applied-privacy.net"
