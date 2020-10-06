@@ -46,6 +46,7 @@ dns_transport_list:
 
 # Selects Strict or Opportunistic Usage profile as described in
 # https://datatracker.ietf.org/doc/draft-ietf-dprive-dtls-and-tls-profiles/
+# ONLY for the case when TLS is the one and only transport specified above.
 # Strict mode requires that authentication information for the upstreams is
 # specified below. Opportunistic may fallback to clear text DNS if UDP or TCP
 # is included in the transport list above.

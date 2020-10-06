@@ -3,6 +3,7 @@
   * Update IPs for dot1.applied-privacy.net
   * Remove the secure.eu entries in the stubby config file
   * Bugfix: Make `run_in_foreground = 1` the default again
+  * Support yaml config files that do not use quotes
 
 * 2020-02-28: Version 0.3.0
   * Correct the applied-privacy.net details and remove ibksturm server in stubby.yml.example.
