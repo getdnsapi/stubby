@@ -270,6 +270,10 @@ upstream_recursive_servers:
 #        value: Y4gU6vmrYSpNykdq0S1Po7Ar9sBFj26KAOKIcJQyoX8=
 #      - digest: "sha256"
 #        value: x72/vIQoOu7mCuu1cSbeqOZNv9u+mK/2UtKjXDi0hto=
+#      - digest: "sha256"
+#        value: sp2Low3+oTsQljNzs3gkYgLRYo7o91t3XGka+pwX//4=
+#      - digest: "sha256"
+#        value: /NPc7sIUzKLAQbsvRRhK6Ul3jip6Gi49bxutfrzpsQM=
 #  - address_data: 2001:67c:28a4::0
 #    tls_auth_name: "anycast.censurfridns.dk"
 #    tls_pubkey_pinset:
@@ -293,6 +297,10 @@ upstream_recursive_servers:
 #        value: Y4gU6vmrYSpNykdq0S1Po7Ar9sBFj26KAOKIcJQyoX8=
 #      - digest: "sha256"
 #        value: x72/vIQoOu7mCuu1cSbeqOZNv9u+mK/2UtKjXDi0hto=
+#      - digest: "sha256"
+#        value: sp2Low3+oTsQljNzs3gkYgLRYo7o91t3XGka+pwX//4=
+#      - digest: "sha256"
+#        value: /NPc7sIUzKLAQbsvRRhK6Ul3jip6Gi49bxutfrzpsQM=
 #  - address_data: 89.233.43.71
 #    tls_auth_name: "unicast.censurfridns.dk"
 #    tls_pubkey_pinset:
