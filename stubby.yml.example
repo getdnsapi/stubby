@@ -256,24 +256,32 @@ upstream_recursive_servers:
 #        value: 9FmNCbxBrYzAlges3DXuWICjvUSMY/vxlNSeqDleLTw=
 #      - digest: "sha256"
 #        value: 2JjZgBZkfjSjs117vX+AnyKeYzJNM38zwsaxHwStWsg=
+#        comment: "deic-ore.anycast.censurfridns.dk RSA"
 #      - digest: "sha256"
 #        value: UXs8xWXai9ZXBAjDKYDiYl/jbIYtyV/bY2w3F1FFTDs=
+#        comment: "deic-ore.anycast.censurfridns.dk ECDSA"
 #      - digest: "sha256"
 #        value: oDxJrI/lG1Jhl1J7LvapMlYwlHMphZUODvCDBm0nof8=
+#        comment: "deic-lgb.anycast.censurfridns.dk RSA"
 #      - digest: "sha256"
 #        value: iYkCUwXdH7sT8qh26zt+r5dbTySL43wgJtLCTHaSH9M=
+#        comment: "deic-lgb.anycast.censurfridns.dk ECDSA"
 #      - digest: "sha256"
 #        value: Clii3HzZr48onFoog7I0ma5QmMPSpOBpCykXqgA0Wn0=
+#        comment: "kracon.anycast.censurfridns.dk RSA"
 #      - digest: "sha256"
 #        value: 6eW98h0+xxuaGQkgNalEU5e/hbgKyUoydpPMY6xcKyY=
+#        comment: "kracon.anycast.censurfridns.dk ECDSA"
 #      - digest: "sha256"
 #        value: Y4gU6vmrYSpNykdq0S1Po7Ar9sBFj26KAOKIcJQyoX8=
 #      - digest: "sha256"
 #        value: x72/vIQoOu7mCuu1cSbeqOZNv9u+mK/2UtKjXDi0hto=
 #      - digest: "sha256"
 #        value: sp2Low3+oTsQljNzs3gkYgLRYo7o91t3XGka+pwX//4=
+#        comment: "rgnet-iad.anycast.censurfridns.dk RSA"
 #      - digest: "sha256"
 #        value: /NPc7sIUzKLAQbsvRRhK6Ul3jip6Gi49bxutfrzpsQM=
+#        comment: "rgnet-iad.anycast.censurfridns.dk ECDSA"
 #  - address_data: 2001:67c:28a4::0
 #    tls_auth_name: "anycast.censurfridns.dk"
 #    tls_pubkey_pinset:
@@ -283,38 +291,50 @@ upstream_recursive_servers:
 #        value: 9FmNCbxBrYzAlges3DXuWICjvUSMY/vxlNSeqDleLTw=
 #      - digest: "sha256"
 #        value: 2JjZgBZkfjSjs117vX+AnyKeYzJNM38zwsaxHwStWsg=
+#        comment: "deic-ore.anycast.censurfridns.dk RSA"
 #      - digest: "sha256"
 #        value: UXs8xWXai9ZXBAjDKYDiYl/jbIYtyV/bY2w3F1FFTDs=
+#        comment: "deic-ore.anycast.censurfridns.dk ECDSA"
 #      - digest: "sha256"
 #        value: oDxJrI/lG1Jhl1J7LvapMlYwlHMphZUODvCDBm0nof8=
+#        comment: "deic-lgb.anycast.censurfridns.dk RSA"
 #      - digest: "sha256"
 #        value: iYkCUwXdH7sT8qh26zt+r5dbTySL43wgJtLCTHaSH9M=
+#        comment: "deic-lgb.anycast.censurfridns.dk ECDSA"
 #      - digest: "sha256"
 #        value: Clii3HzZr48onFoog7I0ma5QmMPSpOBpCykXqgA0Wn0=
+#        comment: "kracon.anycast.censurfridns.dk RSA"
 #      - digest: "sha256"
 #        value: 6eW98h0+xxuaGQkgNalEU5e/hbgKyUoydpPMY6xcKyY=
+#        comment: "kracon.anycast.censurfridns.dk ECDSA"
 #      - digest: "sha256"
 #        value: Y4gU6vmrYSpNykdq0S1Po7Ar9sBFj26KAOKIcJQyoX8=
 #      - digest: "sha256"
 #        value: x72/vIQoOu7mCuu1cSbeqOZNv9u+mK/2UtKjXDi0hto=
 #      - digest: "sha256"
 #        value: sp2Low3+oTsQljNzs3gkYgLRYo7o91t3XGka+pwX//4=
+#        comment: "rgnet-iad.anycast.censurfridns.dk RSA"
 #      - digest: "sha256"
 #        value: /NPc7sIUzKLAQbsvRRhK6Ul3jip6Gi49bxutfrzpsQM=
+#        comment: "rgnet-iad.anycast.censurfridns.dk ECDSA"
 #  - address_data: 89.233.43.71
 #    tls_auth_name: "unicast.censurfridns.dk"
 #    tls_pubkey_pinset:
 #      - digest: "sha256"
 #        value: wikE3jYAA6jQmXYTr/rbHeEPmC78dQwZbQp6WdrseEs=
+#        comment: "unicast.censurfridns.dk RSA"
 #      - digest: "sha256"
 #        value: INSZEZpDoWKiavosV2/xVT8O83vk/RRwS+LTiL+IpHs=
+#        comment: "unicast.censurfridns.dk ECDSA"
 #  - address_data: 2a01:3a0:53:53::0
 #    tls_auth_name: "unicast.censurfridns.dk"
 #    tls_pubkey_pinset:
 #      - digest: "sha256"
 #        value: wikE3jYAA6jQmXYTr/rbHeEPmC78dQwZbQp6WdrseEs=
+#        comment: "unicast.censurfridns.dk RSA"
 #      - digest: "sha256"
 #        value: INSZEZpDoWKiavosV2/xVT8O83vk/RRwS+LTiL+IpHs=
+#        comment: "unicast.censurfridns.dk ECDSA"
 #
 ## Fondation RESTENA (NREN for Luxembourg)
 #  - address_data: 158.64.1.29
