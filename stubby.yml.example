@@ -251,10 +251,6 @@ upstream_recursive_servers:
 #    tls_auth_name: "anycast.censurfridns.dk"
 #    tls_pubkey_pinset:
 #      - digest: "sha256"
-#        value: 97tijP/z/JpGmYN3fuWTuTYl6zYripxVOEv2V2iBa8Y=
-#      - digest: "sha256"
-#        value: 9FmNCbxBrYzAlges3DXuWICjvUSMY/vxlNSeqDleLTw=
-#      - digest: "sha256"
 #        value: 2JjZgBZkfjSjs117vX+AnyKeYzJNM38zwsaxHwStWsg=
 #        comment: "deic-ore.anycast.censurfridns.dk RSA"
 #      - digest: "sha256"
@@ -272,10 +268,6 @@ upstream_recursive_servers:
 #      - digest: "sha256"
 #        value: 6eW98h0+xxuaGQkgNalEU5e/hbgKyUoydpPMY6xcKyY=
 #        comment: "kracon.anycast.censurfridns.dk ECDSA"
-#      - digest: "sha256"
-#        value: Y4gU6vmrYSpNykdq0S1Po7Ar9sBFj26KAOKIcJQyoX8=
-#      - digest: "sha256"
-#        value: x72/vIQoOu7mCuu1cSbeqOZNv9u+mK/2UtKjXDi0hto=
 #      - digest: "sha256"
 #        value: sp2Low3+oTsQljNzs3gkYgLRYo7o91t3XGka+pwX//4=
 #        comment: "rgnet-iad.anycast.censurfridns.dk RSA"
@@ -286,10 +278,6 @@ upstream_recursive_servers:
 #    tls_auth_name: "anycast.censurfridns.dk"
 #    tls_pubkey_pinset:
 #      - digest: "sha256"
-#        value: 97tijP/z/JpGmYN3fuWTuTYl6zYripxVOEv2V2iBa8Y=
-#      - digest: "sha256"
-#        value: 9FmNCbxBrYzAlges3DXuWICjvUSMY/vxlNSeqDleLTw=
-#      - digest: "sha256"
 #        value: 2JjZgBZkfjSjs117vX+AnyKeYzJNM38zwsaxHwStWsg=
 #        comment: "deic-ore.anycast.censurfridns.dk RSA"
 #      - digest: "sha256"
@@ -307,10 +295,6 @@ upstream_recursive_servers:
 #      - digest: "sha256"
 #        value: 6eW98h0+xxuaGQkgNalEU5e/hbgKyUoydpPMY6xcKyY=
 #        comment: "kracon.anycast.censurfridns.dk ECDSA"
-#      - digest: "sha256"
-#        value: Y4gU6vmrYSpNykdq0S1Po7Ar9sBFj26KAOKIcJQyoX8=
-#      - digest: "sha256"
-#        value: x72/vIQoOu7mCuu1cSbeqOZNv9u+mK/2UtKjXDi0hto=
 #      - digest: "sha256"
 #        value: sp2Low3+oTsQljNzs3gkYgLRYo7o91t3XGka+pwX//4=
 #        comment: "rgnet-iad.anycast.censurfridns.dk RSA"
