@@ -1,4 +1,4 @@
-*2020- : Version 0.4.0
+* 2021-05-28: Version 0.4.0-rc1
   * Add ability to run Stubby as a full Windows service
   * Update IPs for dot1.applied-privacy.net
   * Remove the secure.eu entries in the stubby config file
