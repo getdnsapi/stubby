@@ -1,4 +1,4 @@
-* 2021-06-??: Version 0.4.0
+* 2021-06-04: Version 0.4.0
   * We announce the intention to remove the dnsovertls*.sinodun.com 
     servers from the default resolver list in the next release,
     see https://github.com/getdnsapi/stubby/issues/286 for details.
