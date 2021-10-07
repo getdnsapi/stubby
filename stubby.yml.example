@@ -367,11 +367,6 @@ upstream_recursive_servers:
 #        value: 3IOHSS48KOc/zlkKGtI46a9TY9PPKDVGhE3W2ZS4JZo=
 #      - digest: "sha256"
 #        value: 5zFN3smRPuHIlM/8L+hANt99LW26T97RFHqHv90awjo=
-## Lorraine Data Network  (self-signed cert).
-#  - address_data: 80.67.188.188
-#    tls_pubkey_pinset:
-#      - digest: "sha256"
-#        value: WaG0kHUS5N/ny0labz85HZg+v+f0b/UQ73IZjFep0nM=
 ## dns.neutopia.org
 #  - address_data: 89.234.186.112
 #    tls_auth_name: "dns.neutopia.org"
@@ -461,11 +456,6 @@ upstream_recursive_servers:
 #    tls_pubkey_pinset:
 #      - digest: "sha256"
 #        value: g5lqtwHia/plKqWU/Fe2Woh4+7MO3d0JYqYJpj/iYAw=
-## Lorraine Data Network  (self-signed cert).
-#  - address_data: 2001:913::8
-#    tls_pubkey_pinset:
-#      - digest: "sha256"
-#        value: WaG0kHUS5N/ny0labz85HZg+v+f0b/UQ73IZjFep0nM=
 ## dns.neutopia.org
 #  - address_data: 2a00:5884:8209::2
 #    tls_auth_name: "dns.neutopia.org"
@@ -505,12 +495,6 @@ upstream_recursive_servers:
 #        value: 3IOHSS48KOc/zlkKGtI46a9TY9PPKDVGhE3W2ZS4JZo=
 #      - digest: "sha256"
 #        value: 5zFN3smRPuHIlM/8L+hANt99LW26T97RFHqHv90awjo=
-## Lorraine Data Network  (self-signed cert)
-#  - address_data: 80.67.188.188
-#    tls_port: 443
-#    tls_pubkey_pinset:
-#      - digest: "sha256"
-#        value: WaG0kHUS5N/ny0labz85HZg+v+f0b/UQ73IZjFep0nM=
 ## dns.neutopia.org
 #  - address_data: 89.234.186.112
 #    tls_port: 443
@@ -540,12 +524,6 @@ upstream_recursive_servers:
 #        value: 3IOHSS48KOc/zlkKGtI46a9TY9PPKDVGhE3W2ZS4JZo=
 #      - digest: "sha256"
 #        value: 5zFN3smRPuHIlM/8L+hANt99LW26T97RFHqHv90awjo=
-## Lorraine Data Network (self-signed cert)
-#  - address_data: 2001:913::8
-#    tls_port: 443
-#    tls_pubkey_pinset:
-#      - digest: "sha256"
-#        value: WaG0kHUS5N/ny0labz85HZg+v+f0b/UQ73IZjFep0nM=
 ## dns.neutopia.org
 #  - address_data: 2a00:5884:8209::2
 #    tls_port: 443
