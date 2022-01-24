@@ -51,6 +51,11 @@ cd stubby
 cmake .
 make
 ````
+If you get an error `Could NOT find Getdns (missing: GETDNS_LIBRARIES GETDNS_INCLUDE_DIR)` then you need to set the following 2 variable as arguements to `cmake`:
+```
+cmake -DGETDNS_LIBRARY=<path to libgetdns> -DGETDNS_INCLUDE_DIR=<path to getdns.h header file> .
+```
+A quick start guide to [using `cmake` with getdns is here.](https://getdnsapi.net/quick-start/cmake-quick-start/)
 
 # Configure Stubby
 
