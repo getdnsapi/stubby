@@ -84,7 +84,7 @@ The config file below will configure Stubby in the following ways:
 *  `tls_query_padding_blocksize`: Use the EDNS0 padding option to pad DNS queries to hide their size
 *  `edns_client_subnet_private`: Use EDNS0 Client Subnet privacy so the client subnet is not sent to authoritative servers
 * ` idle_timeout`:  Use an EDNS0 Keepalive idle timeout of 10s unless overridden by the server. This keeps idle TLS connections open to avoid the overhead of opening a new connection for every query.
-*  `listen_address`: have the Stubbby daemon listen on IPv4 and IPv6 on port 53 on the loopback address
+*  `listen_address`: have the Stubby daemon listen on IPv4 and IPv6 on port 53 on the loopback address
 *   `round_robin_upstreams`: Round robin queries across all the configured upstream servers. Without this option Stubby will use each upstream server sequentially until it becomes unavailable and then move on to use the next. 
 *  `upstream_recursive_servers`: Use the NLnet labs test DNS Privacy Server for outgoing queries. In Strict Privacy mode, at least one of the following is required for each nameserver:
   *  `tls_auth_name`: This is the authentication domain name that will be verified against the presented certificate. 
