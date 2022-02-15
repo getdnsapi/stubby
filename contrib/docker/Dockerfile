@@ -1,9 +1,3 @@
-# Usage:
-# When lauching containers, use the -p switch to expose ports on the desired
-# bind address/port/protocol.
-# Example exposes internal port 53 on host's 127.0.0.1:5353 for both TCP & UDP:
-# $ docker run --rm -it -p 127.0.0.1:5353:53/tcp -p 127.0.0.1:5353:53/udp stubby
-
 # Build stage.
 FROM debian:bullseye AS builder
 
