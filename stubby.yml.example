@@ -175,10 +175,14 @@ listen_addresses:
 # Specify the list of upstream recursive name servers to send queries to
 # In Strict mode upstreams need either a tls_auth_name or a tls_pubkey_pinset
 # so the upstream can be authenticated.
-# The list below includes all the available test servers but only has the subset
-# operated the stubby/getdns developers enabled. You can enable any of the
-# others you want to use by uncommenting the relevant section. See:
-# https://dnsprivacy.org/wiki/display/DP/DNS+Privacy+Test+Servers
+# The list below includes various public resolvers and some of the available test
+# servers but only has the getdns developer operated upstream enabled by default. 
+###############################################################################
+####  Users are recommended to use more than one upstream for robustness  #####
+###############################################################################
+# You can enable other resolvers by uncommenting the relevant 
+# section below or adding their information directly. Also see this list for
+# other test servers: https://dnsprivacy.org/wiki/display/DP/DNS+Privacy+Test+Servers
 # If you don't have IPv6 then comment then out those upstreams.
 # In Opportunistic mode they only require an IP address in address_data.
 # The information for an upstream can include the following:
@@ -200,20 +204,9 @@ listen_addresses:
 # 3) Remove all the upstream_recursive_servers listed below
 
 upstream_recursive_servers:
-############################ DEFAULT UPSTREAMS  ################################
+############################ DEFAULT UPSTREAM  ################################
 ####### IPv4 addresses ######
 ### Test servers ###
-# The Surfnet/Sinodun servers
-  - address_data: 145.100.185.15
-    tls_auth_name: "dnsovertls.sinodun.com"
-    tls_pubkey_pinset:
-      - digest: "sha256"
-        value: 62lKu9HsDVbyiPenApnc4sfmSYTHOVfFgL3pyB+cBL4=
-  - address_data: 145.100.185.16
-    tls_auth_name: "dnsovertls1.sinodun.com"
-    tls_pubkey_pinset:
-      - digest: "sha256"
-        value: cE2ecALeE5B+urJhDrJlVFmf38cJLAvqekONvjvpqUA=
 # The getdnsapi.net server
   - address_data: 185.49.141.37
     tls_auth_name: "getdnsapi.net"
@@ -222,17 +215,6 @@ upstream_recursive_servers:
         value: foxZRnIh9gZpWnl+zEiKa0EJ2rdCGroMWm02gaxSc9Q=
 ####### IPv6 addresses ######
 ### Test servers ###
-# The Surfnet/Sinodun servers
-  - address_data: 2001:610:1:40ba:145:100:185:15
-    tls_auth_name: "dnsovertls.sinodun.com"
-    tls_pubkey_pinset:
-      - digest: "sha256"
-        value: 62lKu9HsDVbyiPenApnc4sfmSYTHOVfFgL3pyB+cBL4=
-  - address_data: 2001:610:1:40ba:145:100:185:16
-    tls_auth_name: "dnsovertls1.sinodun.com"
-    tls_pubkey_pinset:
-      - digest: "sha256"
-        value: cE2ecALeE5B+urJhDrJlVFmf38cJLAvqekONvjvpqUA=
 # The getdnsapi.net server
   - address_data: 2a04:b900:0:100::38
     tls_auth_name: "getdnsapi.net"
@@ -294,6 +276,82 @@ upstream_recursive_servers:
 #######  pin for "rgnet-iad.anycast.censurfridns.dk ECDSA"
 #      - digest: "sha256"
 #        value: /NPc7sIUzKLAQbsvRRhK6Ul3jip6Gi49bxutfrzpsQM=
+## Google
+#  - address_data: 8.8.8.8
+#    tls_auth_name: "dns.google"
+#  - address_data: 8.8.4.4
+#    tls_auth_name: "dns.google"
+## Adguard Default servers
+#  - address_data: 176.103.130.130
+#    tls_auth_name: "dns.adguard.com"
+#  - address_data: 176.103.130.131
+#    tls_auth_name: "dns.adguard.com"
+## Adguard Family Protection servers
+#  - address_data: 176.103.130.132
+#    tls_auth_name: "dns-family.adguard.com"
+#  - address_data: 176.103.130.134
+#    tls_auth_name: "dns-family.adguard.com"
+## Comcast
+#  - address_data: 96.113.151.145
+#    tls_auth_name: "dot.xfinity.com"
+### A few unicast test servers ###
+## The Uncensored DNS servers
+#  - address_data: 89.233.43.71
+#    tls_auth_name: "unicast.censurfridns.dk"
+#    tls_pubkey_pinset:
+#######  pin for "unicast.censurfridns.dk RSA"
+#      - digest: "sha256"
+#        value: wikE3jYAA6jQmXYTr/rbHeEPmC78dQwZbQp6WdrseEs=
+#######  pin for  "unicast.censurfridns.dk ECDSA"
+#      - digest: "sha256"
+#        value: INSZEZpDoWKiavosV2/xVT8O83vk/RRwS+LTiL+IpHs=
+## dns.neutopia.org
+#  - address_data: 89.234.186.112
+#    tls_auth_name: "dns.neutopia.org"
+#    tls_pubkey_pinset:
+#      - digest: "sha256"
+#        value: wTeXHM8aczvhRSi0cv2qOXkXInoDU+2C+M8MpRyT3OI=
+## Fondation RESTENA (NREN for Luxembourg)
+#  - address_data: 158.64.1.29
+#    tls_auth_name: "kaitain.restena.lu"
+#    tls_pubkey_pinset:
+#      - digest: "sha256"
+#        value: 7ftvIkA+UeN/ktVkovd/7rPZ6mbkhVI7/8HnFJIiLa4=
+## NIC Chile
+#  - address_data: 200.1.123.46
+#    tls_pubkey_pinset:
+#      - digest: "sha256"
+#        value: sG6kj+XJToXwt1M6+9BeCz1SOj/1/mdZn56OZvCyZZc=
+## Foundation for Applied Privacy 
+#  - address_data: 146.255.56.98
+#    tls_auth_name: "dot1.applied-privacy.net"
+
+
+####### IPv6 addresses #######
+### Anycast services ###
+## Quad 9 'secure' service - Filters, does DNSSEC, doesn't send ECS
+#  - address_data: 2620:fe::fe
+#    tls_auth_name: "dns.quad9.net"
+#  - address_data: 2620:fe::9
+#    tls_auth_name: "dns.quad9.net"
+## Quad 9 'secure w/ECS' service - Filters, does DNSSEC, DOES send ECS
+## See the entry for `edns_client_subnet_private` for more details on ECS
+#  - address_data: 2620:fe::11
+#    tls_auth_name: "dns11.quad9.net"
+#  - address_data: 2620:fe::fe:11
+#    tls_auth_name: "dns11.quad9.net"
+## Quad 9 'insecure' service - No filtering, does DNSSEC, doesn't send ECS 
+#  - address_data: 2620:fe::10
+#    tls_auth_name: "dns10.quad9.net"
+#  - address_data: 2620:fe::fe:10
+#    tls_auth_name: "dns10.quad9.net"
+## Cloudflare servers
+## (NOTE: recommend reducing idle_timeout to 9000 if using Cloudflare)
+#  - address_data: 2606:4700:4700::1111
+#    tls_auth_name: "cloudflare-dns.com"
+#  - address_data: 2606:4700:4700::1001
+#    tls_auth_name: "cloudflare-dns.com"
+## The Uncensored DNS servers
 #  - address_data: 2001:67c:28a4::0
 #    tls_auth_name: "anycast.censurfridns.dk"
 #    tls_pubkey_pinset:
@@ -321,111 +379,6 @@ upstream_recursive_servers:
 #######  pin for "rgnet-iad.anycast.censurfridns.dk ECDSA"
 #      - digest: "sha256"
 #        value: /NPc7sIUzKLAQbsvRRhK6Ul3jip6Gi49bxutfrzpsQM=
-#  - address_data: 89.233.43.71
-#    tls_auth_name: "unicast.censurfridns.dk"
-#    tls_pubkey_pinset:
-#######  pin for "unicast.censurfridns.dk RSA"
-#      - digest: "sha256"
-#        value: wikE3jYAA6jQmXYTr/rbHeEPmC78dQwZbQp6WdrseEs=
-#######  pin for  "unicast.censurfridns.dk ECDSA"
-#      - digest: "sha256"
-#        value: INSZEZpDoWKiavosV2/xVT8O83vk/RRwS+LTiL+IpHs=
-#  - address_data: 2a01:3a0:53:53::0
-#    tls_auth_name: "unicast.censurfridns.dk"
-#    tls_pubkey_pinset:
-#######  pin for  "unicast.censurfridns.dk RSA"
-#      - digest: "sha256"
-#        value: wikE3jYAA6jQmXYTr/rbHeEPmC78dQwZbQp6WdrseEs=
-#######  pin for "unicast.censurfridns.dk ECDSA"
-#      - digest: "sha256"
-#        value: INSZEZpDoWKiavosV2/xVT8O83vk/RRwS+LTiL+IpHs=
-#
-## Fondation RESTENA (NREN for Luxembourg)
-#  - address_data: 158.64.1.29
-#    tls_auth_name: "kaitain.restena.lu"
-#    tls_pubkey_pinset:
-#      - digest: "sha256"
-#        value: 7ftvIkA+UeN/ktVkovd/7rPZ6mbkhVI7/8HnFJIiLa4=
-## Google
-#  - address_data: 8.8.8.8
-#    tls_auth_name: "dns.google"
-#  - address_data: 8.8.4.4
-#    tls_auth_name: "dns.google"
-## Adguard Default servers
-#  - address_data: 176.103.130.130
-#    tls_auth_name: "dns.adguard.com"
-#  - address_data: 176.103.130.131
-#    tls_auth_name: "dns.adguard.com"
-## Adguard Family Protection servers
-#  - address_data: 176.103.130.132
-#    tls_auth_name: "dns-family.adguard.com"
-#  - address_data: 176.103.130.134
-#    tls_auth_name: "dns-family.adguard.com"
-## Comcast public Beta
-#  - address_data: 96.113.151.145
-#    tls_auth_name: "dot.xfinity.com"
-### Test servers ###
-## A Surfnet/Sinodun server supporting TLS 1.2 and 1.3
-#  - address_data: 145.100.185.18
-#    tls_auth_name: "dnsovertls3.sinodun.com"
-#    tls_pubkey_pinset:
-#      - digest: "sha256"
-#        value: 5SpFz7JEPzF71hditH1v2dBhSErPUMcLPJx1uk2svT8=
-## A Surfnet/Sinodun server using Knot resolver. Warning - has issue when used
-## for DNSSEC
-#  - address_data: 145.100.185.17
-#    tls_auth_name: "dnsovertls2.sinodun.com"
-#    tls_pubkey_pinset:
-#      - digest: "sha256"
-#        value: NAXBESvpjZMnPWQcrxa2KFIkHV/pDEIjRkA3hLWogSg=
-## dns.cmrg.net server using Knot resolver. Warning - has issue when used for
-## DNSSEC.
-#  - address_data: 199.58.81.218
-#    tls_auth_name: "dns.cmrg.net"
-#    tls_pubkey_pinset:
-#      - digest: "sha256"
-#        value: 3IOHSS48KOc/zlkKGtI46a9TY9PPKDVGhE3W2ZS4JZo=
-#      - digest: "sha256"
-#        value: 5zFN3smRPuHIlM/8L+hANt99LW26T97RFHqHv90awjo=
-## dns.neutopia.org
-#  - address_data: 89.234.186.112
-#    tls_auth_name: "dns.neutopia.org"
-#    tls_pubkey_pinset:
-#      - digest: "sha256"
-#        value: wTeXHM8aczvhRSi0cv2qOXkXInoDU+2C+M8MpRyT3OI=
-## NIC Chile (self-signed cert)
-#  - address_data: 200.1.123.46
-#    tls_pubkey_pinset:
-#      - digest: "sha256"
-#        value: sG6kj+XJToXwt1M6+9BeCz1SOj/1/mdZn56OZvCyZZc=
-## Foundation for Applied Privacy 
-#  - address_data: 146.255.56.98
-#    tls_auth_name: "dot1.applied-privacy.net"
-
-####### IPv6 addresses #######
-### Anycast services ###
-## Quad 9 'secure' service - Filters, does DNSSEC, doesn't send ECS
-#  - address_data: 2620:fe::fe
-#    tls_auth_name: "dns.quad9.net"
-#  - address_data: 2620:fe::9
-#    tls_auth_name: "dns.quad9.net"
-## Quad 9 'secure w/ECS' service - Filters, does DNSSEC, DOES send ECS
-## See the entry for `edns_client_subnet_private` for more details on ECS
-#  - address_data: 2620:fe::11
-#    tls_auth_name: "dns11.quad9.net"
-#  - address_data: 2620:fe::fe:11
-#    tls_auth_name: "dns11.quad9.net"
-## Quad 9 'insecure' service - No filtering, does DNSSEC, doesn't send ECS 
-#  - address_data: 2620:fe::10
-#    tls_auth_name: "dns10.quad9.net"
-#  - address_data: 2620:fe::fe:10
-#    tls_auth_name: "dns10.quad9.net"
-## Cloudflare servers
-## (NOTE: recommend reducing idle_timeout to 9000 if using Cloudflare)
-#  - address_data: 2606:4700:4700::1111
-#    tls_auth_name: "cloudflare-dns.com"
-#  - address_data: 2606:4700:4700::1001
-#    tls_auth_name: "cloudflare-dns.com"
 ## Google
 #  - address_data: 2001:4860:4860::8888
 #    tls_auth_name: "dns.google"
@@ -441,57 +394,33 @@ upstream_recursive_servers:
 #    tls_auth_name: "dns-family.adguard.com"
 #  - address_data: 2a00:5a60::bad2:0ff
 #    tls_auth_name: "dns-family.adguard.com"
-## Comcast public Beta
+## Comcast
 #  - address_data: 2001:558:fe21:6b:96:113:151:145
 #    tls_auth_name: "dot.xfinity.com"
-### Test servers ###
+### A few unicast test servers ###
 ## The Uncensored DNS server
 #  - address_data: 2a01:3a0:53:53::0
 #    tls_auth_name: "unicast.censurfridns.dk"
 #    tls_pubkey_pinset:
+#######  pin for  "unicast.censurfridns.dk RSA"
 #      - digest: "sha256"
 #        value: wikE3jYAA6jQmXYTr/rbHeEPmC78dQwZbQp6WdrseEs=
+#######  pin for "unicast.censurfridns.dk ECDSA"
+#      - digest: "sha256"
+#        value: INSZEZpDoWKiavosV2/xVT8O83vk/RRwS+LTiL+IpHs=
 ## Fondation RESTENA (NREN for Luxembourg)
 #  - address_data: 2001:a18:1::29
 #    tls_auth_name: "kaitain.restena.lu"
 #    tls_pubkey_pinset:
 #      - digest: "sha256"
 #        value: 7ftvIkA+UeN/ktVkovd/7rPZ6mbkhVI7/8HnFJIiLa4=
-## A Surfnet/Sinodun server supporting TLS 1.2 and 1.3
-#  - address_data: 2001:610:1:40ba:145:100:185:18
-#    tls_auth_name: "dnsovertls3.sinodun.com"
-#    tls_pubkey_pinset:
-#      - digest: "sha256"
-#        value: 5SpFz7JEPzF71hditH1v2dBhSErPUMcLPJx1uk2svT8=
-## A Surfnet/Sinodun server using Knot resolver. Warning - has issue when used
-## for DNSSEC
-#  - address_data: 2001:610:1:40ba:145:100:185:17
-#    tls_auth_name: "dnsovertls2.sinodun.com"
-#    tls_pubkey_pinset:
-#      - digest: "sha256"
-#        value: NAXBESvpjZMnPWQcrxa2KFIkHV/pDEIjRkA3hLWogSg=
-## dns.cmrg.net server using Knot resolver. Warning - has issue when used for
-## DNSSEC.
-#  - address_data: 2001:470:1c:76d::53
-#    tls_auth_name: "dns.cmrg.net"
-#    tls_pubkey_pinset:
-#      - digest: "sha256"
-#        value: 3IOHSS48KOc/zlkKGtI46a9TY9PPKDVGhE3W2ZS4JZo=
-#      - digest: "sha256"
-#        value: 5zFN3smRPuHIlM/8L+hANt99LW26T97RFHqHv90awjo=
-## Go6Lab
-#  - address_data: 2001:67c:27e4::35
-#    tls_auth_name: "privacydns.go6lab.si"
-#    tls_pubkey_pinset:
-#      - digest: "sha256"
-#        value: g5lqtwHia/plKqWU/Fe2Woh4+7MO3d0JYqYJpj/iYAw=
 ## dns.neutopia.org
 #  - address_data: 2a00:5884:8209::2
 #    tls_auth_name: "dns.neutopia.org"
 #    tls_pubkey_pinset:
 #      - digest: "sha256"
 #        value: wTeXHM8aczvhRSi0cv2qOXkXInoDU+2C+M8MpRyT3OI=
-## NIC Chile (self-signed cert)
+## NIC Chile
 #  - address_data: 2001:1398:1:0:200:1:123:46
 #    tls_pubkey_pinset:
 #      - digest: "sha256"
@@ -501,29 +430,6 @@ upstream_recursive_servers:
 #    tls_auth_name: "dot1.applied-privacy.net"
 
 ####### Servers that listen on port 443 (IPv4 and IPv6) #######
-### Test servers ###
-## Surfnet/Sinodun servers
-#  - address_data: 145.100.185.15
-#    tls_port: 443
-#    tls_auth_name: "dnsovertls.sinodun.com"
-#    tls_pubkey_pinset:
-#      - digest: "sha256"
-#        value: 62lKu9HsDVbyiPenApnc4sfmSYTHOVfFgL3pyB+cBL4=
-#  - address_data: 145.100.185.16
-#    tls_port: 443
-#    tls_auth_name: "dnsovertls1.sinodun.com"
-#    tls_pubkey_pinset:
-#      - digest: "sha256"
-#        value: cE2ecALeE5B+urJhDrJlVFmf38cJLAvqekONvjvpqUA=
-## dns.cmrg.net server using Knot resolver
-#  - address_data: 199.58.81.218
-#    tls_port: 443
-#    tls_auth_name: "dns.cmrg.net"
-#    tls_pubkey_pinset:
-#      - digest: "sha256"
-#        value: 3IOHSS48KOc/zlkKGtI46a9TY9PPKDVGhE3W2ZS4JZo=
-#      - digest: "sha256"
-#        value: 5zFN3smRPuHIlM/8L+hANt99LW26T97RFHqHv90awjo=
 ## dns.neutopia.org
 #  - address_data: 89.234.186.112
 #    tls_port: 443
@@ -531,28 +437,6 @@ upstream_recursive_servers:
 #    tls_pubkey_pinset:
 #      - digest: "sha256"
 #        value: wTeXHM8aczvhRSi0cv2qOXkXInoDU+2C+M8MpRyT3OI=
-## The Surfnet/Sinodun servers
-#  - address_data: 2001:610:1:40ba:145:100:185:15
-#    tls_port: 443
-#    tls_auth_name: "dnsovertls.sinodun.com"
-#    tls_pubkey_pinset:
-#      - digest: "sha256"
-#        value: 62lKu9HsDVbyiPenApnc4sfmSYTHOVfFgL3pyB+cBL4=
-#  - address_data: 2001:610:1:40ba:145:100:185:16
-#    tls_port: 443
-#    tls_auth_name: "dnsovertls1.sinodun.com"
-#    tls_pubkey_pinset:
-#      - digest: "sha256"
-#        value: cE2ecALeE5B+urJhDrJlVFmf38cJLAvqekONvjvpqUA=
-## dns.cmrg.net server using Knot resolver
-#  - address_data: 2001:470:1c:76d::53
-#    tls_port: 443
-#    tls_auth_name: "dns.cmrg.net"
-#    tls_pubkey_pinset:
-#      - digest: "sha256"
-#        value: 3IOHSS48KOc/zlkKGtI46a9TY9PPKDVGhE3W2ZS4JZo=
-#      - digest: "sha256"
-#        value: 5zFN3smRPuHIlM/8L+hANt99LW26T97RFHqHv90awjo=
 ## dns.neutopia.org
 #  - address_data: 2a00:5884:8209::2
 #    tls_port: 443
@@ -560,6 +444,7 @@ upstream_recursive_servers:
 #    tls_pubkey_pinset:
 #      - digest: "sha256"
 #        value: wTeXHM8aczvhRSi0cv2qOXkXInoDU+2C+M8MpRyT3OI=
+### A few unicast test servers ###
 ## Foundation for Applied Privacy 
 #  - address_data: 146.255.56.98
 #    tls_port: 443

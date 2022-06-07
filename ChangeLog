@@ -1,5 +1,12 @@
 * 2022-07-: Version 0.4.1
   * Several updates to the servers in the config file:
+     * sinodun.dnsovertls*.com servers are removed and will be decommissioned in
+       the near future. This leaves only the the getdns.api server as the default.
+       A recommendation is made that users choose additional servers from the
+       list available.
+     * Additional Quad9 servers added (thanks pataquets).
+     * LDN servers removed as the service is now stopped. 
+     * Tidy up of remaining server data.
      * Change `comment` lines on Uncensored server data to more clearly be comments
        (not valid YAML)
      * Fix and improve descriptions of default values
