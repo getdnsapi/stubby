@@ -242,9 +242,18 @@ upstream_recursive_servers:
 ## Quad 9 'secure' service - Filters, does DNSSEC, doesn't send ECS
 #  - address_data: 9.9.9.9
 #    tls_auth_name: "dns.quad9.net"
+#  - address_data: 149.112.112.112
+#    tls_auth_name: "dns.quad9.net"
+## Quad 9 'secure w/ECS' service - Filters, does DNSSEC, DOES send ECS
+#  - address_data: 9.9.9.11
+#    tls_auth_name: "dns11.quad9.net"
+#  - address_data: 149.112.112.11
+#    tls_auth_name: "dns11.quad9.net"
 ## Quad 9 'insecure' service - No filtering, no DNSSEC, doesn't send ECS
 #  - address_data: 9.9.9.10
-#    tls_auth_name: "dns.quad9.net"
+#    tls_auth_name: "dns10.quad9.net"
+#  - address_data: 149.112.112.10
+#    tls_auth_name: "dns10.quad9.net"
 ## Cloudflare 1.1.1.1 and 1.0.0.1
 ## (NOTE: recommend reducing idle_timeout to 9000 if using Cloudflare)
 #  - address_data: 1.1.1.1
@@ -392,10 +401,19 @@ upstream_recursive_servers:
 ## Quad 9 'secure' service - Filters, does DNSSEC, doesn't send ECS
 #  - address_data: 2620:fe::fe
 #    tls_auth_name: "dns.quad9.net"
+#  - address_data: 2620:fe::9
+#    tls_auth_name: "dns.quad9.net"
+## Quad 9 'secure w/ECS' service - Filters, does DNSSEC, DOES send ECS
+#  - address_data: 2620:fe::11
+#    tls_auth_name: "dns11.quad9.net"
+#  - address_data: 2620:fe::fe:11
+#    tls_auth_name: "dns11.quad9.net"
 ## Quad 9 'insecure' service - No filtering, does DNSSEC, may send ECS (it is
 ## unclear if it honours the edns_client_subnet_private request from stubby)
 #  - address_data: 2620:fe::10
-#    tls_auth_name: "dns.quad9.net"
+#    tls_auth_name: "dns10.quad9.net"
+#  - address_data: 2620:fe::fe:10
+#    tls_auth_name: "dns10.quad9.net"
 ## Cloudflare servers
 ## (NOTE: recommend reducing idle_timeout to 9000 if using Cloudflare)
 #  - address_data: 2606:4700:4700::1111
