@@ -40,6 +40,8 @@ If you need to install getdns from source, see the section [at the end of this d
 
 # Build Stubby from source
 
+A [Dockerfile](./contrib/docker/Dockerfile) is provided in the contrib directory to build a Docker image from source. See [Docker usage docs](./contrib/docker/README.md).
+
 Get the code:
 ```
 git clone https://github.com/getdnsapi/stubby.git
