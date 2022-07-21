@@ -1,7 +1,7 @@
 * 2022-07-20:
 
   * Strengthen version checking for LibIDN2 during the cmake step so LibIDN2
-    version 2.3.3 can be properly found.
+    version 2.3.3 can be properly found (thanks jpbion).
 
 * 2022-06-: Version 0.4.1
   * Several updates to the servers in the config file:
