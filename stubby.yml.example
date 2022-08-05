@@ -61,6 +61,11 @@ tls_query_padding_blocksize: 128
 
 # EDNS0 option for ECS client privacy as described in Section 7.1.2 of
 # https://tools.ietf.org/html/rfc7871
+# If you really want to use a resolver that sends ECS (such as Google or one of
+# the Quad9 ones) in order to gain better geo-location of content, then be aware
+# that this will expose a portion of your IP address in queries to some 
+# authoritative servers. You will need to configure that server and also set this
+# parameter to 0 to fully enable ECS.
 edns_client_subnet_private : 1
 
 ############################# CONNECTION SETTINGS ##############################
@@ -245,6 +250,7 @@ upstream_recursive_servers:
 #  - address_data: 149.112.112.112
 #    tls_auth_name: "dns.quad9.net"
 ## Quad 9 'secure w/ECS' service - Filters, does DNSSEC, DOES send ECS
+## See the entry for `edns_client_subnet_private` for more details on ECS
 #  - address_data: 9.9.9.11
 #    tls_auth_name: "dns11.quad9.net"
 #  - address_data: 149.112.112.11
@@ -404,12 +410,12 @@ upstream_recursive_servers:
 #  - address_data: 2620:fe::9
 #    tls_auth_name: "dns.quad9.net"
 ## Quad 9 'secure w/ECS' service - Filters, does DNSSEC, DOES send ECS
+## See the entry for `edns_client_subnet_private` for more details on ECS
 #  - address_data: 2620:fe::11
 #    tls_auth_name: "dns11.quad9.net"
 #  - address_data: 2620:fe::fe:11
 #    tls_auth_name: "dns11.quad9.net"
-## Quad 9 'insecure' service - No filtering, does DNSSEC, may send ECS (it is
-## unclear if it honours the edns_client_subnet_private request from stubby)
+## Quad 9 'insecure' service - No filtering, does DNSSEC, doesn't send ECS 
 #  - address_data: 2620:fe::10
 #    tls_auth_name: "dns10.quad9.net"
 #  - address_data: 2620:fe::fe:10
