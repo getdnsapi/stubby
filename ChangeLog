@@ -1,4 +1,4 @@
-* 2022-07-: Version 0.4.1
+* 2022-08-: Version 0.4.1
   * Several updates to the servers in the config file:
      * sinodun.dnsovertls*.com servers are removed and will be decommissioned in
        the near future. This leaves only the the getdns.api server as the default.
@@ -15,6 +15,7 @@
   * Add Dockerfile into `contrib` - thanks to pataquets.
   * Strengthen version checking for LibIDN2 during the cmake step so LibIDN2
     version 2.3.3 can be properly found (thanks jpbion).
+  * Updated systemd/stubby.service file. Thanks Bruno Pagani
 
 * 2021-06-04: Version 0.4.0
   * We announce the intention to remove the dnsovertls*.sinodun.com 
