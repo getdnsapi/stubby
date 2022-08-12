@@ -26,9 +26,12 @@
 # in future: https://github.com/getdnsapi/stubby/issues/79
 
 ################################### LOGGING ####################################
-# Logging is currently configured at runtime using command line arguments. See
-# > stubby -h
-# for details.
+# Define at which level messages will be logged to stdout. Can be one of:
+# GETDNS_LOG_EMERG, GETDNS_LOG_ALERT, GETDNS_LOG_CRIT, GETDNS_LOG_ERR,
+# GETDNS_LOG_WARNING, GETDNS_LOG_NOTICE, GETDNS_LOG_INFO or GETDNS_LOG_DEBUG
+# where GETDNS_LOG_EMERG is the least and GETDNS_LOG_DEBUG the most verbose.
+log_level: GETDNS_LOG_NOTICE
+
 
 ########################## BASIC & PRIVACY SETTINGS ############################
 # Specifies whether to run as a recursive or stub resolver

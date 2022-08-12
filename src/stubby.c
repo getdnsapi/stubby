@@ -99,6 +99,8 @@ print_version(FILE *out)
 	fprintf(out, STUBBY_PACKAGE_STRING "\n");
 }
 
+extern long log_level;
+#define NO_LOGGING 999
 int
 main(int argc, char **argv)
 {
@@ -114,7 +116,7 @@ main(int argc, char **argv)
 	getdns_context  *context = NULL;
 	getdns_return_t r;
 	int opt;
-	long log_level = 7; 
+	long config_log_level = NO_LOGGING;
 	char *ep;
 
 	while ((opt = getopt(argc, argv, "C:ighlv:w:V")) != -1) {
@@ -159,10 +161,6 @@ main(int argc, char **argv)
 			exit(EXIT_FAILURE);
 		}
 	}
-
-	stubby_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_INFO,
-		   "Stubby version: %s", STUBBY_PACKAGE_STRING);
-
 #if defined(ENABLE_WINDOWS_SERVICE)
 	if ( windows_service ) {
 		windows_service_command(windows_service_arg, log_connections ? log_level : 0, custom_config_fn);
@@ -178,9 +176,15 @@ main(int argc, char **argv)
 	if (log_connections)
 		stubby_set_getdns_logging(context, (int)log_level);
 
-	init_config(context);
-	if ( !read_config(context, custom_config_fn, &dnssec_validation) )
+	init_config(context, &config_log_level);
+	if ( !read_config(context, custom_config_fn, &dnssec_validation, &config_log_level) )
 		exit(EXIT_FAILURE);
+	if (config_log_level != NO_LOGGING && !log_connections) {
+		log_connections = 1;
+		log_level = config_log_level;
+	}
+	stubby_log(NULL,GETDNS_LOG_UPSTREAM_STATS, GETDNS_LOG_INFO,
+		   "Stubby version: %s", STUBBY_PACKAGE_STRING);
 
 	if (print_api_info) {
 		char *api_information_str = config_get_api_info(context);
