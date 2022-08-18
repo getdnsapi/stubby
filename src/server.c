@@ -119,6 +119,47 @@ static void servfail(dns_msg *msg, getdns_dict **resp_p)
         (void) getdns_dict_set_int(*resp_p, "/header/ad", 0);
 }
 
+static void error_reply(dns_msg *msg, getdns_dict **resp_p, unsigned error)
+{
+	unsigned rcode, ex_rcode;
+        getdns_dict *dict;
+	getdns_list *list;
+
+	rcode= error & 0xf;	/* Lowest 4 bits */
+	ex_rcode= (error >> 4);	/* Higher 8 bits */
+
+        if (*resp_p)
+                getdns_dict_destroy(*resp_p);
+        if (!(*resp_p = getdns_dict_create()))
+                return;
+        if (msg) {
+                if (!getdns_dict_get_dict(msg->request, "header", &dict))
+                        getdns_dict_set_dict(*resp_p, "header", dict);
+                if (!getdns_dict_get_dict(msg->request, "question", &dict))
+                        getdns_dict_set_dict(*resp_p, "question", dict);
+                (void) getdns_dict_set_int(*resp_p, "/header/ra",
+                    msg->rt == GETDNS_RESOLUTION_RECURSING ? 1 : 0);
+        }
+        (void) getdns_dict_set_int(
+            *resp_p, "/header/rcode", rcode);
+        (void) getdns_dict_set_int(*resp_p, "/header/qr", 1);
+        (void) getdns_dict_set_int(*resp_p, "/header/ad", 0);
+
+	if (ex_rcode)
+	{
+		dict= getdns_dict_create();
+		getdns_dict_set_int(dict, "do", 0);
+		getdns_dict_set_int(dict, "extended_rcode", ex_rcode);
+		getdns_dict_set_int(dict, "type", GETDNS_RRTYPE_OPT);
+		getdns_dict_set_int(dict, "udp_payload_size", 1232);
+		getdns_dict_set_int(dict, "version", 0);
+		getdns_dict_set_int(dict, "z", 0);
+		list= getdns_list_create();
+		getdns_list_set_dict(list, 0, dict);
+		getdns_dict_set_list(*resp_p, "additional", list);
+	}
+}
+
 static getdns_return_t _handle_edns0(
     getdns_dict *response, int has_edns0)
 {
@@ -312,6 +353,34 @@ static void request_cb(
                 getdns_dict_destroy(response);
 }
 
+#include <arpa/inet.h>
+
+#define MAX_PROXY_CONTROL_OPTS	10
+#define PROXY_ADDRS_MAX 10
+
+static struct upstream
+{
+	unsigned dns_error;
+	unsigned opts_count;
+	struct proxy_opt
+	{
+		/* Original bindata of option */
+		getdns_bindata bindata;
+
+		/* Decoded option */
+		uint16_t flags1;
+		uint16_t flags2;
+		int addr_count;
+		struct sockaddr_storage addrs[PROXY_ADDRS_MAX];
+
+		/* Getdns context */
+		getdns_context *context;
+	} opts[MAX_PROXY_CONTROL_OPTS];
+} *upstreams;
+static int upstreams_count;
+
+static struct upstream *get_upstreams_for_policy(getdns_dict *opt_rr);
+
 static void incoming_request_handler(getdns_context *context,
     getdns_callback_type_t callback_type, getdns_dict *request,
     void *userarg, getdns_transaction_t request_id)
@@ -332,9 +401,14 @@ static void incoming_request_handler(getdns_context *context,
         getdns_list *additional;
         getdns_dict *rr;
         uint32_t rr_type;
+	unsigned dns_error = GETDNS_RCODE_SERVFAIL;
+	struct upstream *usp;
 
         (void)callback_type;
         (void)userarg;
+
+	printf("incoming_request_handler: got request %s\n",
+		getdns_pretty_print_dict(request));
 
         if (!(qext = getdns_dict_create_with_context(context)) ||
             !(msg = malloc(sizeof(dns_msg))))
@@ -349,6 +423,7 @@ static void incoming_request_handler(getdns_context *context,
         msg->rt = GETDNS_RESOLUTION_RECURSING;
         (void) getdns_dict_get_int(request, "/header/ad", &msg->ad_bit);
         (void) getdns_dict_get_int(request, "/header/cd", &msg->cd_bit);
+	usp= NULL;
         if (!getdns_dict_get_list(request, "additional", &additional)) {
                 if (getdns_list_get_length(additional, &len))
                         len = 0;
@@ -361,9 +436,19 @@ static void incoming_request_handler(getdns_context *context,
                                 continue;
                         msg->has_edns0 = 1;
                         (void) getdns_dict_get_int(rr, "do", &msg->do_bit);
+
+			usp= get_upstreams_for_policy(rr);
+
                         break;
                 }
         }
+
+	if (usp && usp->dns_error)
+	{
+		dns_error= usp->dns_error;
+		goto error;
+	}
+
         if ((r = getdns_context_get_resolution_type(context, &msg->rt)))
                 stubby_error("Could get resolution type from context: %s",
                     stubby_getdns_strerror(r));
@@ -433,7 +518,10 @@ error:
                 free(qname_str);
         if (qext)
                 getdns_dict_destroy(qext);
-        servfail(msg, &response);
+	if (dns_error == GETDNS_RCODE_SERVFAIL)
+        	servfail(msg, &response);
+	else
+		error_reply(msg, &response, dns_error);
 #if defined(SERVER_DEBUG) && SERVER_DEBUG
         do {
                 char *request_str = getdns_pretty_print_dict(request);
@@ -457,6 +545,402 @@ error:
         }
         if (response)
                 getdns_dict_destroy(response);
+}
+
+#define OPT_PROXY_CONTROL 42
+
+static void decode_proxy_option(struct proxy_opt *opt);
+static void setup_upstream(struct upstream *usp);
+
+static struct upstream *get_upstreams_for_policy(getdns_dict *opt_rr)
+{
+	int i;
+	unsigned u, proxy_control_opts_count;
+	uint32_t option_code;
+	size_t list_count, size;
+	getdns_list *opt_list;
+	getdns_dict *opt_dict;
+	struct upstream *new_upstreams, *usp;
+	void *data;
+	getdns_bindata *proxy_control_opts[MAX_PROXY_CONTROL_OPTS];
+
+	proxy_control_opts_count= 0;
+	if (getdns_dict_get_list(opt_rr, "/rdata/options", &opt_list) !=
+		GETDNS_RETURN_GOOD)
+	{
+		fprintf(stderr,
+		"get_upstreams_for_policy: no options, should use default\n");
+		abort();
+	}
+
+	if (getdns_list_get_length(opt_list, &list_count) !=
+		GETDNS_RETURN_GOOD)
+	{
+		fprintf(stderr,
+		"get_upstreams_for_policy: can't get lenght of list\n");
+		abort();
+	}
+	for (u= 0; u<list_count; u++)
+	{
+		if (getdns_list_get_dict(opt_list, u, &opt_dict) !=
+			GETDNS_RETURN_GOOD)
+		{
+			fprintf(stderr,
+		"get_upstreams_for_policy: can't get dict from list\n");
+			abort();
+		}
+		if (getdns_dict_get_int(opt_dict, "option_code",
+			&option_code) != GETDNS_RETURN_GOOD)
+		{
+			fprintf(stderr,
+		"get_upstreams_for_policy: can't get option_code\n");
+			abort();
+		}
+		if (option_code != OPT_PROXY_CONTROL)
+			continue;
+
+		if (proxy_control_opts_count >= MAX_PROXY_CONTROL_OPTS)
+		{
+			fprintf(stderr, "get_upstreams_for_policy: too many options in request, should return error\n");
+			abort();
+		}
+
+		if (getdns_dict_get_bindata(opt_dict, "option_data",
+			&proxy_control_opts[proxy_control_opts_count]) !=
+			GETDNS_RETURN_GOOD)
+		{
+			fprintf(stderr,
+		"get_upstreams_for_policy: can't get option_data\n");
+			abort();
+		}
+
+		proxy_control_opts_count++;
+
+	}
+
+	if (!proxy_control_opts_count)
+	{
+		fprintf(stderr,
+		"get_upstreams_for_policy: no options, should use default\n");
+		abort();
+	}
+
+	/* Try to find an existing upstream */
+	for (i= 0, usp= upstreams; i<upstreams_count; i++, usp++)
+	{
+		if (usp->opts_count != proxy_control_opts_count)
+			continue;
+		for (u= 0; u<proxy_control_opts_count; u++)
+		{
+			size= proxy_control_opts[u]->size;
+			if (size != usp->opts[u].bindata.size)
+				break;
+			if (size && memcmp(proxy_control_opts[u]->data,
+				usp->opts[u].bindata.data, size) != 0)
+			{
+				break;
+			}
+		}
+		if (u != proxy_control_opts_count)
+		{
+			/* No match */
+			continue;
+		}
+		return usp;
+	}
+
+	new_upstreams= realloc(upstreams,
+		(upstreams_count+1)*sizeof(upstreams[0]));
+	upstreams= new_upstreams;
+	usp= &upstreams[upstreams_count];
+	usp->opts_count= proxy_control_opts_count;
+	for (u= 0; u<proxy_control_opts_count; u++)
+	{
+		size= proxy_control_opts[u]->size;
+		if (size)
+		{
+			data= malloc(size);
+			memcpy(data, proxy_control_opts[u]->data, size);
+		}
+		else
+			data= NULL;
+
+		usp->opts[u].bindata.data= data;
+		usp->opts[u].bindata.size= size;
+
+		decode_proxy_option(&usp->opts[u]);
+		setup_upstream(usp);
+	}
+	upstreams_count++;
+
+	return usp;
+}
+
+static void decode_proxy_option(struct proxy_opt *opt)
+{
+	uint8_t addr_type, addr_length, name_length, svc_length, inf_length;
+	uint16_t u16;
+	int i;
+	size_t o, size;
+	uint8_t *p;
+	struct sockaddr_in6 *sin6p;
+
+	size= opt->bindata.size;
+	p= opt->bindata.data;
+
+	if (size < 2)
+		goto error;
+
+	memcpy(&u16, p, 2);
+	opt->flags1= ntohs(u16);
+
+	p += 2;
+	size -= 2;
+
+	if (size < 2)
+		goto error;
+
+	memcpy(&u16, p, 2);
+	opt->flags2= ntohs(u16);
+
+	p += 2;
+	size -= 2;
+
+	if (size < 2)
+		goto error;
+
+	addr_type= p[0];
+	addr_length= p[1];
+
+	p += 2;
+	size -= 2;
+
+	opt->addr_count= 0;
+	if (addr_length)
+	{
+		if (size < addr_length)
+			goto error;
+		
+		switch(addr_type)
+		{
+		case 2:
+			if (addr_length >
+				PROXY_ADDRS_MAX*sizeof(struct in6_addr))
+			{
+				fprintf(stderr,
+			"decode_proxy_option: more addresses than supported\n");
+				goto error;
+			}
+			for(o= 0, i= 0;
+				o+sizeof(struct in6_addr) <= addr_length;
+				o += sizeof(struct in6_addr), i++)
+			{
+				sin6p= (struct sockaddr_in6 *)
+					&opt->addrs[i];
+				sin6p->sin6_family= AF_INET6;
+				memcpy(&sin6p->sin6_addr,
+					p+o, sizeof(struct in6_addr));
+			}
+			if (o != addr_length)
+			{
+				fprintf(stderr,
+			"decode_proxy_option: bad addr_length\n");
+				goto error;
+			}
+			opt->addr_count= i;
+			break;
+
+		default:
+			fprintf(stderr,
+				"decode_proxy_option: unknown addr_type %d\n",
+				addr_type);
+			goto error;
+		}
+		p += addr_length;
+		size -= addr_length;
+	}
+
+	if (size < 1)
+		goto error;
+
+	name_length= p[0];
+
+	p += 1;
+	size -= 1;
+
+	if (name_length)
+	{
+		fprintf(stderr, "decode_proxy_option: should handle name\n");
+
+		p += name_length;
+		size -= name_length;
+	}
+
+	if (size < 1)
+		goto error;
+
+	svc_length= p[0];
+
+	p += 1;
+	size -= 1;
+
+	if (svc_length)
+	{
+		fprintf(stderr, "decode_proxy_option: should handle svc\n");
+
+		p += svc_length;
+		size -= svc_length;
+	}
+
+	if (size < 1)
+		goto error;
+
+	inf_length= p[0];
+
+	p += 1;
+	size -= 1;
+
+	if (inf_length)
+	{
+		fprintf(stderr, "decode_proxy_option: should handle inf\n");
+
+		p += inf_length;
+		size -= inf_length;
+	}
+
+	if (size != 0)
+	{
+		fprintf(stderr,
+			"decode_proxy_option: garbage at end of option\n");
+		goto error;
+	}
+	return;
+	
+error:
+	fprintf(stderr, "decode_proxy_option: should handle error\n");
+	abort();
+}
+
+#define PROXY_CONTROL_FLAG_U	(1 << 15)
+#define PROXY_CONTROL_FLAG_UA	(1 << 14)
+#define PROXY_CONTROL_FLAG_A	(1 << 13)
+#define PROXY_CONTROL_FLAG_P	(1 << 12)
+#define PROXY_CONTROL_FLAG_D	(1 << 11)
+
+#define BADPROXYPOLICY	42
+
+static void setup_upstream(struct upstream *usp)
+{
+	int r;
+	unsigned u, U_flag, UA_flag, A_flag, P_flag, D_flag;
+	size_t transports_count;
+	struct proxy_opt *po;
+	getdns_context *context;
+	getdns_transport_list_t transports[3];
+
+	usp->dns_error= 0;
+	for (u= 0, po= usp->opts; u<usp->opts_count; u++, po++)
+	{
+		/* Check U, UA, and A flags */
+		U_flag= !!(po->flags1 & PROXY_CONTROL_FLAG_U);
+		UA_flag= !!(po->flags1 & PROXY_CONTROL_FLAG_UA);
+		A_flag= !!(po->flags1 & PROXY_CONTROL_FLAG_A);
+		if (U_flag + UA_flag + A_flag > 1)
+		{
+			fprintf(stderr,
+				"setup_upstream: too many of U, UA, A\n");
+			usp->dns_error= BADPROXYPOLICY;
+			goto error;
+		}
+		if (U_flag + UA_flag + A_flag == 0)
+		{
+			/* No preference. Select GETDNS_TRANSPORT_TLS 
+			 * followed by GETDNS_TRANSPORT_UDP and
+			 *  GETDNS_TRANSPORT_TCP
+			 */
+			transports[0]= GETDNS_TRANSPORT_TLS;
+			transports[1]= GETDNS_TRANSPORT_UDP;
+			transports[2]= GETDNS_TRANSPORT_TCP;
+			transports_count= 3;
+		}
+		else if (U_flag)
+		{
+			/* Only unencrypted. Select GETDNS_TRANSPORT_UDP
+			 * followed by GETDNS_TRANSPORT_TCP
+			 */
+			transports[0]= GETDNS_TRANSPORT_UDP;
+			transports[1]= GETDNS_TRANSPORT_TCP;
+			transports_count= 2;
+		}
+		else if (UA_flag)
+		{
+			/* Only unauthenticated. Select GETDNS_TRANSPORT_TLS
+			 */
+			transports[0]= GETDNS_TRANSPORT_TLS;
+			transports_count= 1;
+		}
+		else if (A_flag)
+		{
+			fprintf(stderr,
+		"setup_upstream: authentication not supported by getdns\n");
+			usp->dns_error= BADPROXYPOLICY;
+			goto error;
+		}
+		else
+		{
+			fprintf(stderr, "setup_upstream: weird state\n");
+			abort();
+		}
+
+		/* P and D flags can only be set if the A flag is set. */
+		P_flag= !!(po->flags1 & PROXY_CONTROL_FLAG_P);
+		D_flag= !!(po->flags1 & PROXY_CONTROL_FLAG_D);
+fprintf(stderr, "setup_upstream: flags1 0x%x, P_flag %d, D_flag %d\n", po->flags1, P_flag, D_flag);
+		if ((P_flag || D_flag) && !A_flag)
+		{
+			fprintf(stderr, "setup_upstream: P or D but not A\n");
+			usp->dns_error= BADPROXYPOLICY;
+			goto error;
+		}
+		if ((r = getdns_context_create(&context, 1 /*set_from_os*/))
+			!= GETDNS_RETURN_GOOD)
+		{
+			fprintf(stderr,
+			"setup_upstream: getdns_context_create failed\n");
+			abort();
+		}
+		po->context = context;
+		if ((r = getdns_context_set_dns_transport_list(context,
+			transports_count, transports)) != GETDNS_RETURN_GOOD)
+
+		{
+			fprintf(stderr,
+				"setup_upstream: cannot set transports\n");
+			abort();
+		}
+	}
+	fprintf(stderr, "setup_upstream: not finished\n");
+	abort();
+#if 0
+static struct upstream
+{
+	unsigned opts_count;
+	struct proxy_opt
+	{
+		/* Original bindata of option */
+		getdns_bindata bindata;
+
+		/* Decoded option */
+		uint16_t flags1;
+		uint16_t flags2;
+		int addr_count;
+		struct sockaddr_storage addrs[PROXY_ADDRS_MAX];
+	} opts[MAX_PROXY_CONTROL_OPTS];
+} *upstreams;
+#endif
+error:
+	fprintf(stderr,
+		"setup_upstream: error, should clear getdns contexts\n");
 }
 
 int server_listen(getdns_context *context, int validate_dnssec)
