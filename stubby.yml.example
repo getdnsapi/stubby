@@ -433,6 +433,21 @@ upstream_recursive_servers:
 #    tls_auth_name: "dot1.applied-privacy.net"
 
 ####### Servers that listen on port 443 (IPv4 and IPv6) #######
+### Test servers ###
+## The getdnsapi.net server
+#  - address_data: 185.49.141.37
+#    tls_port: 443
+#    tls_auth_name: "getdnsapi.net"
+#    tls_pubkey_pinset:
+#      - digest: "sha256"
+#        value: foxZRnIh9gZpWnl+zEiKa0EJ2rdCGroMWm02gaxSc9Q=
+## The getdnsapi.net server (IPv6 address)
+#  - address_data: 2a04:b900:0:100::38
+#    tls_port: 443
+#    tls_auth_name: "getdnsapi.net"
+#    tls_pubkey_pinset:
+#      - digest: "sha256"
+#        value: foxZRnIh9gZpWnl+zEiKa0EJ2rdCGroMWm02gaxSc9Q=
 ## dns.neutopia.org
 #  - address_data: 89.234.186.112
 #    tls_port: 443
