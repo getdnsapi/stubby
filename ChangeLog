@@ -1,3 +1,7 @@
+* 2022-08-19: version 0.4.2
+  * Fix Issue #320: Stubby doesn't start without "log_level"
+    entry. Thanks Johnny S. Lee
+
 * 2022-08-19: Version 0.4.1
   * Several updates to the servers in the config file:
      * sinodun.dnsovertls*.com servers are removed and will be

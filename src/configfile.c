@@ -204,7 +204,10 @@ static getdns_return_t parse_config(getdns_context *context,
                 (void) getdns_dict_remove_name(
                     config_dict, "listen_addresses");
         }
-	if (!(r = getdns_dict_get_int(
+	if (r)
+		; /* exit with current error */
+
+	else if (!(r = getdns_dict_get_int(
 	    config_dict, "log_level", &config_log_level))) {
 		if (config_log_level > GETDNS_LOG_DEBUG)
 			stubby_error("log level '%d' from config file is invalid or out of range (0-7)", (int)config_log_level);
@@ -212,7 +215,10 @@ static getdns_return_t parse_config(getdns_context *context,
 			*log_level = config_log_level;
 		(void) getdns_dict_remove_name(
 		    config_dict, "log_level");
-	}
+
+	} else if (r == GETDNS_RETURN_NO_SUCH_DICT_NAME)
+		r = GETDNS_RETURN_GOOD;
+
         if (!r && (r = getdns_context_config(context, config_dict))) {
                 stubby_error("Could not configure context with "
                     "config dict: %s", stubby_getdns_strerror(r));
