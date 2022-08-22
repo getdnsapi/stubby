@@ -370,8 +370,10 @@ static struct upstream
 		/* Decoded option */
 		uint16_t flags1;
 		uint16_t flags2;
+		char *name;
 		int addr_count;
 		struct sockaddr_storage addrs[PROXY_ADDRS_MAX];
+		char *infname;
 
 		/* Getdns context */
 		getdns_context *context;
@@ -381,7 +383,7 @@ static int upstreams_count;
 
 static struct upstream *get_upstreams_for_policy(getdns_dict *opt_rr);
 
-static void incoming_request_handler(getdns_context *context,
+static void incoming_request_handler(getdns_context *down_context,
     getdns_callback_type_t callback_type, getdns_dict *request,
     void *userarg, getdns_transaction_t request_id)
 {
@@ -403,6 +405,7 @@ static void incoming_request_handler(getdns_context *context,
         uint32_t rr_type;
 	unsigned dns_error = GETDNS_RCODE_SERVFAIL;
 	struct upstream *usp;
+	getdns_context *up_context;
 
         (void)callback_type;
         (void)userarg;
@@ -410,7 +413,7 @@ static void incoming_request_handler(getdns_context *context,
 	printf("incoming_request_handler: got request %s\n",
 		getdns_pretty_print_dict(request));
 
-        if (!(qext = getdns_dict_create_with_context(context)) ||
+        if (!(qext = getdns_dict_create_with_context(down_context)) ||
             !(msg = malloc(sizeof(dns_msg))))
                 goto error;
 
@@ -449,7 +452,17 @@ static void incoming_request_handler(getdns_context *context,
 		goto error;
 	}
 
-        if ((r = getdns_context_get_resolution_type(context, &msg->rt)))
+	if (usp)
+	{
+		/* Only try first context */
+		up_context = usp->opts[0].context;
+	}
+	else
+	{
+		up_context = down_context;
+	}
+
+        if ((r = getdns_context_get_resolution_type(up_context, &msg->rt)))
                 stubby_error("Could get resolution type from context: %s",
                     stubby_getdns_strerror(r));
 
@@ -502,7 +515,7 @@ static void incoming_request_handler(getdns_context *context,
                 stubby_error("Could set class from query: %s",
                     stubby_getdns_strerror(r));
 
-        else if ((r = getdns_general(context, qname_str, qtype,
+        else if ((r = getdns_general(up_context, qname_str, qtype,
             qext, msg, &transaction_id, request_cb)))
                 stubby_error("Could not schedule query: %s",
                     stubby_getdns_strerror(r));
@@ -532,11 +545,11 @@ error:
                 free(request_str);
         } while(0);
 #endif
-        if ((r = getdns_reply(context, response, request_id))) {
+        if ((r = getdns_reply(down_context, response, request_id))) {
                 stubby_error("Could not reply: %s",
                     stubby_getdns_strerror(r));
                 /* Cancel reply */
-                getdns_reply(context, NULL, request_id);
+                getdns_reply(down_context, NULL, request_id);
         }
         if (msg) {
                 if (msg->request)
@@ -681,7 +694,7 @@ static void decode_proxy_option(struct proxy_opt *opt)
 	uint8_t addr_type, addr_length, name_length, svc_length, inf_length;
 	uint16_t u16;
 	int i;
-	size_t o, size;
+	size_t o, llen, no, size;
 	uint8_t *p;
 	struct sockaddr_in6 *sin6p;
 
@@ -768,9 +781,37 @@ static void decode_proxy_option(struct proxy_opt *opt)
 	p += 1;
 	size -= 1;
 
+	opt->name= NULL;
 	if (name_length)
 	{
-		fprintf(stderr, "decode_proxy_option: should handle name\n");
+		/* Assume that the decoded name fits in a buffer sized
+		 * name_length
+		 */
+		opt->name = malloc(name_length);
+		o = 0;
+		no = 0;
+		while (o < name_length)
+		{
+			llen = p[o];
+			o++;
+			if (o + llen > name_length)
+				goto error;
+			if (llen)
+			{
+				memcpy(opt->name+no, p+o, llen);
+				no += llen;
+				opt->name[no] = '.';
+				no++;
+			}
+			o += llen;
+		}
+		if (no == 0)
+		{
+			/* Add a '.' */
+			opt->name[no] = '.';
+			no++;
+		}
+		opt->name[no] = '\0';
 
 		p += name_length;
 		size -= name_length;
@@ -800,9 +841,12 @@ static void decode_proxy_option(struct proxy_opt *opt)
 	p += 1;
 	size -= 1;
 
+	opt->infname = NULL;
 	if (inf_length)
 	{
-		fprintf(stderr, "decode_proxy_option: should handle inf\n");
+		opt->infname = malloc(inf_length+1);
+		memcpy(opt->infname, p, inf_length);
+		opt->infname[inf_length] = '\0';
 
 		p += inf_length;
 		size -= inf_length;
@@ -831,12 +875,16 @@ error:
 
 static void setup_upstream(struct upstream *usp)
 {
-	int r;
+	int i, r;
 	unsigned u, U_flag, UA_flag, A_flag, P_flag, D_flag;
 	size_t transports_count;
 	struct proxy_opt *po;
 	getdns_context *context;
+	getdns_list *list;
+	getdns_dict *dict;
+	struct sockaddr_in6 *sin6p;
 	getdns_transport_list_t transports[3];
+	getdns_bindata bindata;
 
 	usp->dns_error= 0;
 	for (u= 0, po= usp->opts; u<usp->opts_count; u++, po++)
@@ -918,26 +966,49 @@ fprintf(stderr, "setup_upstream: flags1 0x%x, P_flag %d, D_flag %d\n", po->flags
 				"setup_upstream: cannot set transports\n");
 			abort();
 		}
-	}
-	fprintf(stderr, "setup_upstream: not finished\n");
-	abort();
-#if 0
-static struct upstream
-{
-	unsigned opts_count;
-	struct proxy_opt
-	{
-		/* Original bindata of option */
-		getdns_bindata bindata;
 
-		/* Decoded option */
-		uint16_t flags1;
-		uint16_t flags2;
-		int addr_count;
-		struct sockaddr_storage addrs[PROXY_ADDRS_MAX];
-	} opts[MAX_PROXY_CONTROL_OPTS];
-} *upstreams;
-#endif
+		if (po->addr_count)
+		{
+			list = getdns_list_create();
+			for (i= 0; i<po->addr_count; i++)
+			{
+				dict = getdns_dict_create();
+				switch(po->addrs[i].ss_family)
+				{
+				case AF_INET6:
+					sin6p= (struct sockaddr_in6 *)
+						&po->addrs[i];
+					bindata.data = (uint8_t *)"IPv6";
+					bindata.size = strlen((char *)
+						bindata.data);
+					getdns_dict_set_bindata(dict,
+						"address_type", &bindata);
+					bindata.data = (uint8_t *)
+						&sin6p->sin6_addr;
+					bindata.size = sizeof(sin6p->sin6_addr);
+					getdns_dict_set_bindata(dict,
+						"address_data", &bindata);
+					break;
+				default:
+					fprintf(stderr,
+				"setup_upstream: unknown address family\n");
+					abort();
+				}
+				getdns_list_set_dict(list, i, dict);
+			}
+			fprintf(stderr, "setup_upstream: addr list %s\n",
+				getdns_pretty_print_list(list));
+			if ((r = getdns_context_set_upstream_recursive_servers(
+				context, list)) != GETDNS_RETURN_GOOD)
+
+			{
+				fprintf(stderr,
+			"setup_upstream: cannot set upstream list: %d\n",
+					r);
+				abort();
+			}
+		}
+	}
 error:
 	fprintf(stderr,
 		"setup_upstream: error, should clear getdns contexts\n");
