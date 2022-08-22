@@ -381,7 +381,8 @@ static struct upstream
 } *upstreams;
 static int upstreams_count;
 
-static struct upstream *get_upstreams_for_policy(getdns_dict *opt_rr);
+static struct upstream *get_upstreams_for_policy(getdns_context *down_context,
+	getdns_dict *opt_rr);
 
 static void incoming_request_handler(getdns_context *down_context,
     getdns_callback_type_t callback_type, getdns_dict *request,
@@ -440,7 +441,7 @@ static void incoming_request_handler(getdns_context *down_context,
                         msg->has_edns0 = 1;
                         (void) getdns_dict_get_int(rr, "do", &msg->do_bit);
 
-			usp= get_upstreams_for_policy(rr);
+			usp= get_upstreams_for_policy(down_context, rr);
 
                         break;
                 }
@@ -563,9 +564,10 @@ error:
 #define OPT_PROXY_CONTROL 42
 
 static void decode_proxy_option(struct proxy_opt *opt);
-static void setup_upstream(struct upstream *usp);
+static void setup_upstream(getdns_context *down_context, struct upstream *usp);
 
-static struct upstream *get_upstreams_for_policy(getdns_dict *opt_rr)
+static struct upstream *get_upstreams_for_policy(getdns_context *down_context,
+	getdns_dict *opt_rr)
 {
 	int i;
 	unsigned u, proxy_control_opts_count;
@@ -682,7 +684,7 @@ static struct upstream *get_upstreams_for_policy(getdns_dict *opt_rr)
 		usp->opts[u].bindata.size= size;
 
 		decode_proxy_option(&usp->opts[u]);
-		setup_upstream(usp);
+		setup_upstream(down_context, usp);
 	}
 	upstreams_count++;
 
@@ -873,18 +875,26 @@ error:
 
 #define BADPROXYPOLICY	42
 
-static void setup_upstream(struct upstream *usp)
+static void setup_upstream(getdns_context *down_context, struct upstream *usp)
 {
 	int i, r;
 	unsigned u, U_flag, UA_flag, A_flag, P_flag, D_flag;
 	size_t transports_count;
 	struct proxy_opt *po;
-	getdns_context *context;
+	getdns_context *up_context;
 	getdns_list *list;
 	getdns_dict *dict;
 	struct sockaddr_in6 *sin6p;
+	getdns_eventloop *eventloop;
 	getdns_transport_list_t transports[3];
 	getdns_bindata bindata;
+
+	r = getdns_context_get_eventloop(down_context, &eventloop);
+	if (r != GETDNS_RETURN_GOOD)
+	{
+		fprintf(stderr, "setup_upstream: unable to get eventloop\n");
+		abort();
+	}
 
 	usp->dns_error= 0;
 	for (u= 0, po= usp->opts; u<usp->opts_count; u++, po++)
@@ -950,15 +960,22 @@ fprintf(stderr, "setup_upstream: flags1 0x%x, P_flag %d, D_flag %d\n", po->flags
 			usp->dns_error= BADPROXYPOLICY;
 			goto error;
 		}
-		if ((r = getdns_context_create(&context, 1 /*set_from_os*/))
+		if ((r = getdns_context_create(&up_context, 1 /*set_from_os*/))
 			!= GETDNS_RETURN_GOOD)
 		{
 			fprintf(stderr,
 			"setup_upstream: getdns_context_create failed\n");
 			abort();
 		}
-		po->context = context;
-		if ((r = getdns_context_set_dns_transport_list(context,
+		r = getdns_context_set_eventloop(up_context, eventloop);
+		if (r != GETDNS_RETURN_GOOD)
+		{
+			fprintf(stderr,
+				"setup_upstream: unable to set eventloop\n");
+			abort();
+		}
+		po->context = up_context;
+		if ((r = getdns_context_set_dns_transport_list(up_context,
 			transports_count, transports)) != GETDNS_RETURN_GOOD)
 
 		{
@@ -999,7 +1016,7 @@ fprintf(stderr, "setup_upstream: flags1 0x%x, P_flag %d, D_flag %d\n", po->flags
 			fprintf(stderr, "setup_upstream: addr list %s\n",
 				getdns_pretty_print_list(list));
 			if ((r = getdns_context_set_upstream_recursive_servers(
-				context, list)) != GETDNS_RETURN_GOOD)
+				up_context, list)) != GETDNS_RETURN_GOOD)
 
 			{
 				fprintf(stderr,
