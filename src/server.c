@@ -939,10 +939,8 @@ static void setup_upstream(getdns_context *down_context, struct upstream *usp)
 		}
 		else if (A_flag)
 		{
-			fprintf(stderr,
-		"setup_upstream: authentication not supported by getdns\n");
-			usp->dns_error= BADPROXYPOLICY;
-			goto error;
+			transports[0]= GETDNS_TRANSPORT_TLS;
+			transports_count= 1;
 		}
 		else
 		{
@@ -974,6 +972,26 @@ fprintf(stderr, "setup_upstream: flags1 0x%x, P_flag %d, D_flag %d\n", po->flags
 				"setup_upstream: unable to set eventloop\n");
 			abort();
 		}
+		r = getdns_context_set_resolution_type(up_context,
+			GETDNS_RESOLUTION_STUB);
+		if (r != GETDNS_RETURN_GOOD)
+		{
+			fprintf(stderr,
+	"setup_upstream: getdns_context_set_resolution_type failed\n");
+			abort();
+		}
+		if (A_flag)
+		{
+			r = getdns_context_set_tls_authentication(up_context,
+				GETDNS_AUTHENTICATION_REQUIRED);
+			if (r != GETDNS_RETURN_GOOD)
+			{
+				fprintf(stderr,
+	"setup_upstream: getdns_context_set_tls_authentication failed\n");
+				abort();
+			}
+		}
+
 		po->context = up_context;
 		if ((r = getdns_context_set_dns_transport_list(up_context,
 			transports_count, transports)) != GETDNS_RETURN_GOOD)
@@ -1010,6 +1028,14 @@ fprintf(stderr, "setup_upstream: flags1 0x%x, P_flag %d, D_flag %d\n", po->flags
 					fprintf(stderr,
 				"setup_upstream: unknown address family\n");
 					abort();
+				}
+				if (po->name)
+				{
+					bindata.data = (uint8_t *)po->name;
+					bindata.size = strlen((char *)
+						bindata.data) - 1;
+					getdns_dict_set_bindata(dict,
+						"tls_auth_name", &bindata);
 				}
 				getdns_list_set_dict(list, i, dict);
 			}
