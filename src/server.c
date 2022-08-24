@@ -813,6 +813,8 @@ static void decode_proxy_option(struct proxy_opt *opt)
 			opt->name[no] = '.';
 			no++;
 		}
+		if (no > 0 && opt->name[no-1] == '.')
+			no--;	/* Remove trailing dot */
 		opt->name[no] = '\0';
 
 		p += name_length;
@@ -867,18 +869,33 @@ error:
 	abort();
 }
 
-#define PROXY_CONTROL_FLAG_U	(1 << 15)
-#define PROXY_CONTROL_FLAG_UA	(1 << 14)
-#define PROXY_CONTROL_FLAG_A	(1 << 13)
-#define PROXY_CONTROL_FLAG_P	(1 << 12)
-#define PROXY_CONTROL_FLAG_D	(1 << 11)
+#define PROXY_CONTROL_FLAG1_U	(1 << 15)
+#define PROXY_CONTROL_FLAG1_UA	(1 << 14)
+#define PROXY_CONTROL_FLAG1_A	(1 << 13)
+#define PROXY_CONTROL_FLAG1_P	(1 << 12)
+#define PROXY_CONTROL_FLAG1_D	(1 << 11)
+#define PROXY_CONTROL_FLAG1_DD	(1 << 10)
+
+#define PROXY_CONTROL_FLAG2_A53	(1 << 15)
+#define PROXY_CONTROL_FLAG2_D53	(1 << 14)
+#define PROXY_CONTROL_FLAG2_AT	(1 << 13)
+#define PROXY_CONTROL_FLAG2_DT	(1 << 12)
+#define PROXY_CONTROL_FLAG2_AH2	(1 << 11)
+#define PROXY_CONTROL_FLAG2_DH2	(1 << 10)
+#define PROXY_CONTROL_FLAG2_AH3	(1 <<  9)
+#define PROXY_CONTROL_FLAG2_DH3	(1 <<  8)
+#define PROXY_CONTROL_FLAG2_AQ	(1 <<  7)
+#define PROXY_CONTROL_FLAG2_DQ	(1 <<  6)
 
 #define BADPROXYPOLICY	42
 
 static void setup_upstream(getdns_context *down_context, struct upstream *usp)
 {
 	int i, r;
-	unsigned u, U_flag, UA_flag, A_flag, P_flag, D_flag;
+	unsigned u, U_flag, UA_flag, A_flag, P_flag, D_flag, DD_flag;
+	unsigned A53_flag, D53_flag, AT_flag, DT_flag, AH2_flag, DH2_flag,
+		AH3_flag, DH3_flag, AQ_flag, DQ_flag;
+	unsigned do_Do53, do_DoT, do_DoH2;
 	size_t transports_count;
 	struct proxy_opt *po;
 	getdns_context *up_context;
@@ -899,10 +916,59 @@ static void setup_upstream(getdns_context *down_context, struct upstream *usp)
 	usp->dns_error= 0;
 	for (u= 0, po= usp->opts; u<usp->opts_count; u++, po++)
 	{
+		/* First set flags for individual protocols, we
+		 * need them later
+		 */
+		DD_flag= !!(po->flags1 & PROXY_CONTROL_FLAG1_DD);
+		A53_flag= !!(po->flags2 & PROXY_CONTROL_FLAG2_A53);
+		D53_flag= !!(po->flags2 & PROXY_CONTROL_FLAG2_D53);
+		AT_flag= !!(po->flags2 & PROXY_CONTROL_FLAG2_AT);
+		DT_flag= !!(po->flags2 & PROXY_CONTROL_FLAG2_DT);
+		AH2_flag= !!(po->flags2 & PROXY_CONTROL_FLAG2_AH2);
+		DH2_flag= !!(po->flags2 & PROXY_CONTROL_FLAG2_DH2);
+		AH3_flag= !!(po->flags2 & PROXY_CONTROL_FLAG2_AH3);
+		DH3_flag= !!(po->flags2 & PROXY_CONTROL_FLAG2_DH3);
+		AQ_flag= !!(po->flags2 & PROXY_CONTROL_FLAG2_AQ);
+		DQ_flag= !!(po->flags2 & PROXY_CONTROL_FLAG2_DQ);
+
+		/* Reject if both Ax and Dx are set */
+		if ( (A53_flag && D53_flag) ||
+			(AT_flag && DT_flag) ||
+			(AH2_flag && DH2_flag) ||
+			(AH3_flag && DH3_flag) ||
+			(AQ_flag && DQ_flag))
+		{
+			fprintf(stderr, "setup_upstream: Ax and Dx\n");
+			usp->dns_error= BADPROXYPOLICY;
+			goto error;
+		}
+
+		/* Compute what protocols we can use. Currently we support
+		 * only Do53, DoT, and DoH2
+		 */
+		if (DD_flag)
+		{
+			/* Support only protocols that are explictly
+			 * enabled.
+			 */
+			do_Do53 = A53_flag;
+			do_DoT = AT_flag;
+			do_DoH2 = AH2_flag;
+		}
+		else
+		{
+			/* Support all protocols expect those explictly
+			 * disabled.
+			 */
+			do_Do53 = D53_flag ? 0 : 1;
+			do_DoT = DT_flag ? 0 : 1;
+			do_DoH2 = DH2_flag ? 0 : 1;
+		}
+
 		/* Check U, UA, and A flags */
-		U_flag= !!(po->flags1 & PROXY_CONTROL_FLAG_U);
-		UA_flag= !!(po->flags1 & PROXY_CONTROL_FLAG_UA);
-		A_flag= !!(po->flags1 & PROXY_CONTROL_FLAG_A);
+		U_flag= !!(po->flags1 & PROXY_CONTROL_FLAG1_U);
+		UA_flag= !!(po->flags1 & PROXY_CONTROL_FLAG1_UA);
+		A_flag= !!(po->flags1 & PROXY_CONTROL_FLAG1_A);
 		if (U_flag + UA_flag + A_flag > 1)
 		{
 			fprintf(stderr,
@@ -916,31 +982,44 @@ static void setup_upstream(getdns_context *down_context, struct upstream *usp)
 			 * followed by GETDNS_TRANSPORT_UDP and
 			 *  GETDNS_TRANSPORT_TCP
 			 */
-			transports[0]= GETDNS_TRANSPORT_TLS;
-			transports[1]= GETDNS_TRANSPORT_UDP;
-			transports[2]= GETDNS_TRANSPORT_TCP;
-			transports_count= 3;
+			i = 0;
+			if (do_DoT || do_DoH2)
+				transports[i++] = GETDNS_TRANSPORT_TLS;
+			if (do_Do53)
+			{
+				transports[i++] = GETDNS_TRANSPORT_UDP;
+				transports[i++] = GETDNS_TRANSPORT_TCP;
+			}
+			transports_count = i;
 		}
 		else if (U_flag)
 		{
 			/* Only unencrypted. Select GETDNS_TRANSPORT_UDP
 			 * followed by GETDNS_TRANSPORT_TCP
 			 */
-			transports[0]= GETDNS_TRANSPORT_UDP;
-			transports[1]= GETDNS_TRANSPORT_TCP;
-			transports_count= 2;
+			i = 0;
+			if (do_Do53)
+			{
+				transports[i++] = GETDNS_TRANSPORT_UDP;
+				transports[i++] = GETDNS_TRANSPORT_TCP;
+			}
+			transports_count = i;
 		}
 		else if (UA_flag)
 		{
 			/* Only unauthenticated. Select GETDNS_TRANSPORT_TLS
 			 */
-			transports[0]= GETDNS_TRANSPORT_TLS;
-			transports_count= 1;
+			i = 0;
+			if (do_DoT || do_DoH2)
+				transports[i++] = GETDNS_TRANSPORT_TLS;
+			transports_count = i;
 		}
 		else if (A_flag)
 		{
-			transports[0]= GETDNS_TRANSPORT_TLS;
-			transports_count= 1;
+			i = 0;
+			if (do_DoT || do_DoH2)
+				transports[i++] = GETDNS_TRANSPORT_TLS;
+			transports_count = i;
 		}
 		else
 		{
@@ -948,9 +1027,17 @@ static void setup_upstream(getdns_context *down_context, struct upstream *usp)
 			abort();
 		}
 
+		if (transports_count == 0)
+		{
+			fprintf(stderr,
+				"setup_upstream: no matching transports\n");
+			usp->dns_error= BADPROXYPOLICY;
+			goto error;
+		}
+
 		/* P and D flags can only be set if the A flag is set. */
-		P_flag= !!(po->flags1 & PROXY_CONTROL_FLAG_P);
-		D_flag= !!(po->flags1 & PROXY_CONTROL_FLAG_D);
+		P_flag= !!(po->flags1 & PROXY_CONTROL_FLAG1_P);
+		D_flag= !!(po->flags1 & PROXY_CONTROL_FLAG1_D);
 fprintf(stderr, "setup_upstream: flags1 0x%x, P_flag %d, D_flag %d\n", po->flags1, P_flag, D_flag);
 		if ((P_flag || D_flag) && !A_flag)
 		{
@@ -958,6 +1045,7 @@ fprintf(stderr, "setup_upstream: flags1 0x%x, P_flag %d, D_flag %d\n", po->flags
 			usp->dns_error= BADPROXYPOLICY;
 			goto error;
 		}
+
 		if ((r = getdns_context_create(&up_context, 1 /*set_from_os*/))
 			!= GETDNS_RETURN_GOOD)
 		{
@@ -1033,7 +1121,7 @@ fprintf(stderr, "setup_upstream: flags1 0x%x, P_flag %d, D_flag %d\n", po->flags
 				{
 					bindata.data = (uint8_t *)po->name;
 					bindata.size = strlen((char *)
-						bindata.data) - 1;
+						bindata.data);
 					getdns_dict_set_bindata(dict,
 						"tls_auth_name", &bindata);
 				}
@@ -1052,6 +1140,8 @@ fprintf(stderr, "setup_upstream: flags1 0x%x, P_flag %d, D_flag %d\n", po->flags
 			}
 		}
 	}
+	return;
+
 error:
 	fprintf(stderr,
 		"setup_upstream: error, should clear getdns contexts\n");
