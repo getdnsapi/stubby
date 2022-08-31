@@ -85,6 +85,7 @@ typedef struct dns_msg {
         uint32_t              do_bit;
         uint32_t              cd_bit;
         int                   has_edns0;
+	struct upstream       *upstream;
 } dns_msg;
 
 #if defined(SERVER_DEBUG) && SERVER_DEBUG
@@ -197,6 +198,9 @@ static getdns_return_t _handle_edns0(
         return GETDNS_RETURN_GOOD;
 }
 
+static void response_add_proxy_option(getdns_dict *response, uint8_t *buf,
+	size_t bufsize);
+
 static void request_cb(
     getdns_context *context, getdns_callback_type_t callback_type,
     getdns_dict *response, void *userarg, getdns_transaction_t transaction_id)
@@ -209,6 +213,10 @@ static void request_cb(
         size_t n_options;
         uint32_t arcount;
         char i_as_jptr[80];
+	static uint8_t optbuf[2048];
+
+	fprintf(stderr, "request_cb: got response %s\n",
+		getdns_pretty_print_dict(response));
 
 #if defined(SERVER_DEBUG) && SERVER_DEBUG
         getdns_bindata *qname;
@@ -340,6 +348,12 @@ static void request_cb(
                         (void) getdns_dict_remove_name(response, i_as_jptr);
                 }
         }
+
+	if (msg->upstream)
+	{
+		response_add_proxy_option(response, optbuf, sizeof(optbuf));
+	}
+
         if ((r = getdns_reply(context, response, msg->request_id))) {
                 stubby_error("Could not reply: %s", stubby_getdns_strerror(r));
                 /* Cancel reply */
@@ -425,6 +439,7 @@ static void incoming_request_handler(getdns_context *down_context,
         msg->ad_bit = msg->do_bit = msg->cd_bit = 0;
         msg->has_edns0 = 0;
         msg->rt = GETDNS_RESOLUTION_RECURSING;
+	msg->upstream = NULL;
         (void) getdns_dict_get_int(request, "/header/ad", &msg->ad_bit);
         (void) getdns_dict_get_int(request, "/header/cd", &msg->cd_bit);
 	usp= NULL;
@@ -443,6 +458,11 @@ static void incoming_request_handler(getdns_context *down_context,
 
 			usp= get_upstreams_for_policy(down_context, rr);
 
+			/* Delete all options. Assume that options are not
+			 * transitive. Some options may need to be copied.
+			 */
+			getdns_dict_remove_name(rr, "/rdata/options");
+
                         break;
                 }
         }
@@ -455,8 +475,17 @@ static void incoming_request_handler(getdns_context *down_context,
 
 	if (usp)
 	{
+		msg->upstream = usp;
+
 		/* Only try first context */
 		up_context = usp->opts[0].context;
+
+        	if ((r = getdns_dict_set_int(qext, "return_call_reporting",
+			GETDNS_EXTENSION_TRUE)))
+		{
+                	stubby_error("Could set return_call_reporting: %s",
+                    		stubby_getdns_strerror(r));
+		}
 	}
 	else
 	{
@@ -561,7 +590,7 @@ error:
                 getdns_dict_destroy(response);
 }
 
-#define OPT_PROXY_CONTROL 42
+#define GLDNS_EDNS_PROXY_CONTROL 42
 
 static void decode_proxy_option(struct proxy_opt *opt);
 static void setup_upstream(getdns_context *down_context, struct upstream *usp);
@@ -611,7 +640,7 @@ static struct upstream *get_upstreams_for_policy(getdns_context *down_context,
 		"get_upstreams_for_policy: can't get option_code\n");
 			abort();
 		}
-		if (option_code != OPT_PROXY_CONTROL)
+		if (option_code != GLDNS_EDNS_PROXY_CONTROL)
 			continue;
 
 		if (proxy_control_opts_count >= MAX_PROXY_CONTROL_OPTS)
@@ -698,6 +727,7 @@ static void decode_proxy_option(struct proxy_opt *opt)
 	int i;
 	size_t o, llen, no, size;
 	uint8_t *p;
+	struct sockaddr_in *sin4p;
 	struct sockaddr_in6 *sin6p;
 
 	size= opt->bindata.size;
@@ -738,6 +768,33 @@ static void decode_proxy_option(struct proxy_opt *opt)
 		
 		switch(addr_type)
 		{
+		case 1:
+			if (addr_length >
+				PROXY_ADDRS_MAX*sizeof(struct in_addr))
+			{
+				fprintf(stderr,
+			"decode_proxy_option: more addresses than supported\n");
+				goto error;
+			}
+			for(o= 0, i= 0;
+				o+sizeof(struct in_addr) <= addr_length;
+				o += sizeof(struct in_addr), i++)
+			{
+				sin4p= (struct sockaddr_in *)
+					&opt->addrs[i];
+				sin4p->sin_family= AF_INET;
+				memcpy(&sin4p->sin_addr,
+					p+o, sizeof(struct in_addr));
+			}
+			if (o != addr_length)
+			{
+				fprintf(stderr,
+			"decode_proxy_option: bad addr_length\n");
+				goto error;
+			}
+			opt->addr_count= i;
+			break;
+
 		case 2:
 			if (addr_length >
 				PROXY_ADDRS_MAX*sizeof(struct in6_addr))
@@ -901,6 +958,7 @@ static void setup_upstream(getdns_context *down_context, struct upstream *usp)
 	getdns_context *up_context;
 	getdns_list *list;
 	getdns_dict *dict;
+	struct sockaddr_in *sin4p;
 	struct sockaddr_in6 *sin6p;
 	getdns_eventloop *eventloop;
 	getdns_transport_list_t transports[3];
@@ -1098,6 +1156,20 @@ fprintf(stderr, "setup_upstream: flags1 0x%x, P_flag %d, D_flag %d\n", po->flags
 				dict = getdns_dict_create();
 				switch(po->addrs[i].ss_family)
 				{
+				case AF_INET:
+					sin4p= (struct sockaddr_in *)
+						&po->addrs[i];
+					bindata.data = (uint8_t *)"IPv4";
+					bindata.size = strlen((char *)
+						bindata.data);
+					getdns_dict_set_bindata(dict,
+						"address_type", &bindata);
+					bindata.data = (uint8_t *)
+						&sin4p->sin_addr;
+					bindata.size = sizeof(sin4p->sin_addr);
+					getdns_dict_set_bindata(dict,
+						"address_data", &bindata);
+					break;
 				case AF_INET6:
 					sin6p= (struct sockaddr_in6 *)
 						&po->addrs[i];
@@ -1146,6 +1218,538 @@ error:
 	fprintf(stderr,
 		"setup_upstream: error, should clear getdns contexts\n");
 }
+
+#define POLICY_N_ADDR		3
+#define POLICY_N_SVCPARAMS	8
+
+typedef struct getdns_proxy_policy {
+	uint16_t flags1, flags2;
+	int addr_count;
+	struct sockaddr_storage addrs[POLICY_N_ADDR];
+	char *domainname;
+	struct
+	{
+		char *key;
+		char *value;
+	} svcparams[POLICY_N_SVCPARAMS];
+	char *interface;
+} getdns_proxy_policy;
+
+static void proxy_policy2opt(getdns_proxy_policy *policy, int do_ipv6,
+	uint8_t *buf, size_t *sizep);
+
+static void response_add_proxy_option(getdns_dict *response, uint8_t *buf,
+	size_t bufsize)
+{
+	unsigned u;
+	uint32_t transport, type;
+	size_t add_list_len, options_len;
+	getdns_bindata *bindatap;
+	getdns_list *add_list, *opt_list;
+	getdns_dict *rr_dict, *proxy_rr;
+	struct sockaddr_in *sin4p;
+	struct sockaddr_in6 *sin6p;
+	getdns_proxy_policy policy;
+	getdns_bindata bindata;
+
+	fprintf(stderr, "response_add_proxy_option(start): response %s\n",
+		getdns_pretty_print_dict(response));
+
+	if (getdns_dict_get_int(response, "/call_reporting/0/transport",
+		&transport) != GETDNS_RETURN_GOOD)
+	{
+		fprintf(stderr,
+	"reponse_add_proxy_option: can't get /call_reporting/0/transport\n");
+		return;
+	}
+	policy.flags1 = 0;
+	policy.flags2 = 0;
+	switch(transport)
+	{
+	case GETDNS_TRANSPORT_UDP:
+	case GETDNS_TRANSPORT_TCP:
+		policy.flags1 |= PROXY_CONTROL_FLAG1_U;
+		policy.flags2 |= PROXY_CONTROL_FLAG2_A53;
+		break;
+		
+	case GETDNS_TRANSPORT_TLS:
+		policy.flags2 |= PROXY_CONTROL_FLAG2_AT;
+
+		if (getdns_dict_get_bindata(response,
+			"/call_reporting/0/tls_auth_status",
+			&bindatap) != GETDNS_RETURN_GOOD)
+		{
+			fprintf(stderr,
+		"reponse_add_proxy_option: can't get "
+		"/call_reporting/0//call_reporting/0/tls_auth_status\n");
+			return;
+		}
+
+		if (bindatap->size == 4 &&
+			memcmp(bindatap->data, "None", 4) == 0)
+		{
+			/* No authentication */
+			policy.flags1 |= PROXY_CONTROL_FLAG1_UA;
+		}
+		else if (bindatap->size == 6 &&
+			memcmp(bindatap->data, "Failed", 4) == 0)
+		{
+			/* Authentication failed */
+			policy.flags1 |= PROXY_CONTROL_FLAG1_UA;
+
+			/* We should check if authentication was required */
+		}
+		else
+		{
+
+			fprintf(stderr,
+	"reponse_add_proxy_option: unknown tls_auth_status '%.*s'\n",
+				(int)bindatap->size, bindatap->data);
+			abort();
+		}
+		break;
+
+	default:
+		fprintf(stderr,
+			"reponse_add_proxy_option: unknown transport %d\n",
+			transport);
+		abort();
+	}
+
+	policy.flags1 |= PROXY_CONTROL_FLAG1_DD;
+
+	if (getdns_dict_get_bindata(response,
+		"/call_reporting/0/query_to/address_type", &bindatap) !=
+		GETDNS_RETURN_GOOD)
+	{
+		fprintf(stderr,
+	"reponse_add_proxy_option: can't get query_to/address_type\n");
+		return;
+	}
+	if (bindatap->size == 4 && memcmp(bindatap->data, "IPv4", 4) == 0)
+	{
+		if (getdns_dict_get_bindata(response,
+			"/call_reporting/0/query_to/address_data",
+			&bindatap) != GETDNS_RETURN_GOOD)
+		{
+			fprintf(stderr,
+		"reponse_add_proxy_option: can't get query_to/address_data\n");
+			return;
+		}
+		sin4p= (struct sockaddr_in *)&policy.addrs[0];
+		sin4p->sin_family = AF_INET;
+		memcpy(&sin4p->sin_addr, bindatap->data,
+			sizeof(sin4p->sin_addr));
+		policy.addr_count = 1;
+	}
+	else if (bindatap->size == 4 && memcmp(bindatap->data, "IPv6", 4) == 0)
+	{
+		if (getdns_dict_get_bindata(response,
+			"/call_reporting/0/query_to/address_data",
+			&bindatap) != GETDNS_RETURN_GOOD)
+		{
+			fprintf(stderr,
+		"reponse_add_proxy_option: can't get query_to/address_data\n");
+			return;
+		}
+		sin6p= (struct sockaddr_in6 *)&policy.addrs[0];
+		sin6p->sin6_family = AF_INET6;
+		memcpy(&sin6p->sin6_addr, bindatap->data,
+			sizeof(sin6p->sin6_addr));
+		policy.addr_count = 1;
+	}
+	else
+	{
+		fprintf(stderr,
+		"reponse_add_proxy_option: unknown address type %.*s\n",
+			(int)bindatap->size, bindatap->data);
+		abort();
+	}
+
+	policy.domainname = NULL;
+	policy.svcparams[0].key = NULL;
+	policy.interface = NULL;
+
+	proxy_policy2opt(&policy, 1, buf, &bufsize);
+	fprintf(stderr, "reponse_add_proxy_option: size %lu\n", bufsize);
+	fprintf(stderr, "reponse_add_proxy_option: buf");
+	for (u = 0; u<bufsize; u++)
+		fprintf(stderr, " %02x", buf[u]);
+	fprintf(stderr, "\n");
+
+	if (getdns_dict_get_list(response, "/replies_tree/0/additional",
+		&add_list) != GETDNS_RETURN_GOOD)
+	{
+		fprintf(stderr, "reponse_add_proxy_option: add additional\n");
+		abort();
+	}
+	if (getdns_list_get_length(add_list, &add_list_len) !=
+		GETDNS_RETURN_GOOD)
+	{
+		fprintf(stderr,
+		"reponse_add_proxy_option: failed to get length of list\n");
+		abort();
+	}
+	for (u = 0; u<add_list_len; u++)
+	{
+		if (getdns_list_get_dict(add_list, u, &rr_dict) !=
+			GETDNS_RETURN_GOOD)
+		{
+			fprintf(stderr,
+		"reponse_add_proxy_option: failed to get list item %d\n",
+				u);
+			abort();
+		}
+		if (getdns_dict_get_int(rr_dict, "type", &type) !=
+			GETDNS_RETURN_GOOD)
+		{
+			fprintf(stderr,
+			"reponse_add_proxy_option: failed to get type\n");
+			abort();
+		}
+		if (type == GETDNS_RRTYPE_OPT)
+			break;
+	}
+	if (u >= add_list_len)
+	{
+		fprintf(stderr, "reponse_add_proxy_option: add OPT RR\n");
+		abort();
+	}
+	getdns_dict_remove_name(rr_dict, "/rdata/rdata_raw");
+	if (getdns_dict_get_list(rr_dict, "/rdata/options", &opt_list) !=
+		GETDNS_RETURN_GOOD)
+	{
+		opt_list = getdns_list_create();
+		getdns_dict_set_list(rr_dict, "/rdata/options", opt_list);
+		getdns_dict_get_list(rr_dict, "/rdata/options", &opt_list);
+	}
+	if (getdns_list_get_length(opt_list, &options_len) !=
+		GETDNS_RETURN_GOOD)
+	{
+		fprintf(stderr,
+		"reponse_add_proxy_option: can't get length for options\n");
+		abort();
+	}
+	proxy_rr = getdns_dict_create();
+	getdns_dict_set_int(proxy_rr, "option_code", GLDNS_EDNS_PROXY_CONTROL);
+	bindata.data = buf;
+	bindata.size = bufsize;
+	getdns_dict_set_bindata(proxy_rr, "option_data", &bindata);
+	getdns_list_set_dict(opt_list, options_len, proxy_rr);
+
+	fprintf(stderr, "reponse_add_proxy_option(end): result dict: %s\n",
+		getdns_pretty_print_dict(response));
+}
+
+#include <stddef.h>
+
+#define SVC_KEY_ALPN	1
+
+/* Note: this table must be kept sort based on 'value' */
+static struct
+{
+	uint16_t value;
+	char *key;
+} svckeys[] = 
+{
+	{ SVC_KEY_ALPN, "alpn" },	/* 1 */
+	{ 0, NULL }
+};
+
+/* Copied from getdns/src/context.c. This needs to be a library function */
+static void proxy_policy2opt(getdns_proxy_policy *policy, int do_ipv6,
+	uint8_t *buf, size_t *sizep)
+{
+	uint8_t inflen;
+	uint16_t key16, len16;
+	int i, j, addr_count;
+	ptrdiff_t len, totlen;
+	size_t datalen;
+	char *l, *dot, *key, *v, *vp, *comma;
+	uint8_t *bp, *addr_type, *addr_len, *addrp, *domainlenp,
+		*domainp, *svclenp, *svcp, *inflenp, *infp, *lastp, *endp,
+		*datap, *wire_keyp, *wire_lenp, *wire_datap;
+	uint16_t *flags1p, *flags2p;
+	struct sockaddr_in *sin4p;
+	struct sockaddr_in6 *sin6p;
+	uint8_t wirebuf[256];
+
+	endp= buf + *sizep;
+
+	flags1p= (uint16_t *)buf;
+	flags2p= &flags1p[1];
+
+	addr_type= (uint8_t *)&flags2p[1];
+	addr_len= &addr_type[1];
+
+	*flags1p= htons(policy->flags1);
+	*flags2p= htons(policy->flags2);
+
+fprintf(stderr, "proxy_policy2opt: flag1 0x%x, flags2 0x%x\n",
+	ntohs(*flags1p), ntohs(*flags2p));
+
+	/* Count the number of addresses to include */
+	addr_count= 0;
+	for (i= 0; i<policy->addr_count; i++)
+	{
+		if (!do_ipv6 && policy->addrs[i].ss_family == AF_INET)
+			addr_count++;
+		if (do_ipv6 && policy->addrs[i].ss_family == AF_INET6)
+			addr_count++;
+	}
+
+	if (addr_count)
+	{
+		if (do_ipv6)
+		{
+			*addr_type = 2;
+			*addr_len = addr_count * sizeof(struct in6_addr);
+			addrp= &addr_len[1];
+			if (endp - addrp < *addr_len)
+			{
+				fprintf(stderr,
+				"proxy_policy2opt: not enogh space\n");
+				abort();
+			}
+			for (i= 0; i<policy->addr_count; i++)
+			{
+				if (policy->addrs[i].ss_family != AF_INET6)
+					continue;
+				sin6p = (struct sockaddr_in6 *)
+					&policy->addrs[i];
+				memcpy(addrp, &sin6p->sin6_addr, 
+					sizeof(sin6p->sin6_addr));
+				addrp += sizeof(sin6p->sin6_addr);
+			}
+		}
+		else
+		{
+			*addr_type = 1;
+			*addr_len = addr_count * sizeof(struct in_addr);
+			addrp= &addr_len[1];
+			if (endp - addrp < *addr_len)
+			{
+				fprintf(stderr,
+				"proxy_policy2opt: not enogh space\n");
+				abort();
+			}
+			for (i= 0; i<policy->addr_count; i++)
+			{
+				if (policy->addrs[i].ss_family != AF_INET)
+					continue;
+				sin4p = (struct sockaddr_in *)
+					&policy->addrs[i];
+				memcpy(addrp, &sin4p->sin_addr, 
+					sizeof(sin4p->sin_addr));
+				addrp += sizeof(sin4p->sin_addr);
+			}
+		}
+		assert (addrp - &addr_len[1] == *addr_len);
+		domainlenp= addrp;
+	}
+	else 
+	{
+		*addr_type = 0;
+		*addr_len = 0;
+		domainlenp= &addr_len[1];
+	}
+
+	if (endp - domainlenp < 1)
+	{
+		fprintf(stderr,
+		"proxy_policy2opt: not enough space\n");
+		abort();
+	}
+	*domainlenp = 0;
+	domainp= &domainlenp[1];
+	if (policy->domainname)
+	{
+		l= policy->domainname;
+		while(l)
+		{
+			dot= strchr(l, '.');
+			if (dot)
+				len= dot-l;
+			else
+				len= strlen(l);
+			if (len > 63)
+			{
+				fprintf(stderr,
+					"proxy_policy2opt: bad label length\n");
+				abort();
+			}
+			if (endp - domainlenp < 1)
+			{
+				fprintf(stderr,
+				"proxy_policy2opt: not enough space\n");
+				abort();
+			}
+			*domainp= len;
+			domainp++;
+			if (endp - domainlenp < len)
+			{
+				fprintf(stderr,
+				"proxy_policy2opt: not enough space\n");
+				abort();
+			}
+			memcpy(domainp, l, len);
+			domainp += len;
+
+			if (!dot)
+				break;
+			l= dot+1;
+			if (l[0] == '\0')
+				break;
+		}
+
+		/* Add trailing label */
+		if (endp - domainlenp < 1)
+		{
+			fprintf(stderr, "proxy_policy2opt: not enough space\n");
+			abort();
+		}
+		*domainp= 0;
+		domainp++;
+
+		*domainlenp = domainp - &domainlenp[1];
+	}
+
+	svclenp = domainp;
+	if (endp - svclenp < 1)
+	{
+		fprintf(stderr,
+		"proxy_policy2opt: not enough space\n");
+		abort();
+	}
+	*svclenp = 0;
+	svcp = &svclenp[1];
+	if (policy->svcparams[0].key != NULL)
+	{
+		for (i = 0; svckeys[i].key != NULL; i++)
+		{
+			key = svckeys[i].key;
+			for (j = 0; j<POLICY_N_SVCPARAMS; j++)
+			{
+				if (policy->svcparams[j].key == NULL)
+					break;
+				if (strcmp(key, policy->svcparams[j].key) == 0)
+					break;
+			}
+			if (j >= POLICY_N_SVCPARAMS ||
+				policy->svcparams[j].key == NULL)
+			{
+				/* Key not needed */
+				continue;
+			}
+
+			switch(svckeys[i].value)
+			{
+			case SVC_KEY_ALPN:
+				v = policy->svcparams[j].value;
+				if (v == NULL)
+				{
+					fprintf(stderr,
+				"proxy_policy2opt: value expected for alpn\n");
+					abort();
+				}
+				if (strlen(v) + 1 > sizeof(wirebuf))
+				{
+					fprintf(stderr,
+				"proxy_policy2opt: alpn list too long\n");
+					abort();
+				}
+				vp= v;
+				bp= wirebuf;
+				while (vp)
+				{
+					comma = strchr(vp, ',');
+					if (comma)
+					{
+						len = comma - vp;
+						*bp = len;
+						bp++;
+						memcpy(bp, vp, len);
+						bp += len;
+						vp = comma + 1;
+						continue;
+					}
+					len = strlen(vp);
+					*bp = len;
+					bp++;
+					memcpy(bp, vp, len);
+					bp += len;
+					break;;
+				}
+				datap = wirebuf;
+				datalen = bp-wirebuf;
+				break;
+
+			default:
+				fprintf(stderr,
+				"proxy_policy2opt: unknown svc key value\n");
+				abort();
+			}
+
+			totlen = 4 + datalen;
+			if (endp - svcp < totlen)
+			{
+				fprintf(stderr,
+				"proxy_policy2opt: not enough space\n");
+				abort();
+			}
+			wire_keyp = svcp;
+			wire_lenp = &wire_keyp[2];
+			wire_datap = &wire_lenp[2];
+
+			key16 = htons(svckeys[i].value);
+			memcpy(wire_keyp, &key16, 2);
+			len16 = htons(datalen);
+			memcpy(wire_lenp, &len16, 2);
+			if (datalen)
+				memcpy(wire_datap, datap, datalen);
+			svcp = wire_datap + datalen;
+		}
+	}
+	len = svcp - &svclenp[1];
+	if (len > 255)
+	{
+		fprintf(stderr, "svc too large\n");
+		abort();
+	}
+	*svclenp = len;
+
+	inflenp = svcp;
+	if (endp - inflenp < 1)
+	{
+		fprintf(stderr,
+		"proxy_policy2opt: not enough space\n");
+		abort();
+	}
+
+	inflen = 0;
+	if (policy->interface)
+	{
+		inflen= strlen(policy->interface);
+	}
+	*inflenp = inflen;
+	infp= &inflenp[1];
+	if (inflen)
+	{
+		if (endp - infp < inflen)
+		{
+			fprintf(stderr,
+			"proxy_policy2opt: not enough space\n");
+			abort();
+		}
+		memcpy(infp, policy->interface, inflen);
+	}
+fprintf(stderr, "inflen %d, interface %s\n", inflen, policy->interface);
+
+	lastp = &infp[inflen];
+
+	*sizep= lastp - buf;
+}
+
 
 int server_listen(getdns_context *context, int validate_dnssec)
 {
