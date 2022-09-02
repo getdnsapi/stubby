@@ -549,11 +549,8 @@ static void incoming_request_handler(getdns_context *down_context,
 
         else if ((r = getdns_general(up_context, qname_str, qtype,
             qext, msg, &transaction_id, request_cb)))
-	{
                 stubby_error("Could not schedule query: %s",
                     stubby_getdns_strerror(r));
-		dns_error = BADPROXYPOLICY;
-	}
         else {
 		fprintf(stderr, "incoming_request_handler: qext %s\n",
 			getdns_pretty_print_dict(qext));
@@ -568,6 +565,7 @@ error:
                 free(qname_str);
         if (qext)
                 getdns_dict_destroy(qext);
+	fprintf(stderr, "incoming_request_handler: dns_error %d\n", dns_error);
 	if (dns_error == GETDNS_RCODE_SERVFAIL)
         	servfail(msg, &response);
 	else
@@ -1105,6 +1103,15 @@ fprintf(stderr, "setup_upstream: flags1 0x%x, P_flag %d, D_flag %d\n", po->flags
 		if ((P_flag || D_flag) && !A_flag)
 		{
 			fprintf(stderr, "setup_upstream: P or D but not A\n");
+			usp->dns_error= BADPROXYPOLICY;
+			goto error;
+		}
+
+		if (po->infname)
+		{
+			/* Currently we can't support selection of
+			 * outgoing interfaces.
+			 */
 			usp->dns_error= BADPROXYPOLICY;
 			goto error;
 		}
