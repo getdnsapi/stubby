@@ -398,6 +398,8 @@ static int upstreams_count;
 static struct upstream *get_upstreams_for_policy(getdns_context *down_context,
 	getdns_dict *opt_rr);
 
+#define BADPROXYPOLICY	42
+
 static void incoming_request_handler(getdns_context *down_context,
     getdns_callback_type_t callback_type, getdns_dict *request,
     void *userarg, getdns_transaction_t request_id)
@@ -547,9 +549,14 @@ static void incoming_request_handler(getdns_context *down_context,
 
         else if ((r = getdns_general(up_context, qname_str, qtype,
             qext, msg, &transaction_id, request_cb)))
+	{
                 stubby_error("Could not schedule query: %s",
                     stubby_getdns_strerror(r));
+		dns_error = BADPROXYPOLICY;
+	}
         else {
+		fprintf(stderr, "incoming_request_handler: qext %s\n",
+			getdns_pretty_print_dict(qext));
                 DEBUG_SERVER("scheduled: %p %"PRIu64" for %s %d\n",
                     (void *)msg, transaction_id, qname_str, (int)qtype);
                 getdns_dict_destroy(qext);
@@ -944,8 +951,6 @@ error:
 #define PROXY_CONTROL_FLAG2_AQ	(1 <<  7)
 #define PROXY_CONTROL_FLAG2_DQ	(1 <<  6)
 
-#define BADPROXYPOLICY	42
-
 static void setup_upstream(getdns_context *down_context, struct upstream *usp)
 {
 	int i, r;
@@ -1292,12 +1297,18 @@ static void response_add_proxy_option(getdns_dict *response, uint8_t *buf,
 			policy.flags1 |= PROXY_CONTROL_FLAG1_UA;
 		}
 		else if (bindatap->size == 6 &&
-			memcmp(bindatap->data, "Failed", 4) == 0)
+			memcmp(bindatap->data, "Failed", 6) == 0)
 		{
 			/* Authentication failed */
 			policy.flags1 |= PROXY_CONTROL_FLAG1_UA;
 
 			/* We should check if authentication was required */
+		}
+		else if (bindatap->size == 7 &&
+			memcmp(bindatap->data, "Success", 7) == 0)
+		{
+			/* Authentication succeeded */
+			policy.flags1 |= PROXY_CONTROL_FLAG1_A;
 		}
 		else
 		{
@@ -1328,6 +1339,7 @@ static void response_add_proxy_option(getdns_dict *response, uint8_t *buf,
 	}
 	if (bindatap->size == 4 && memcmp(bindatap->data, "IPv4", 4) == 0)
 	{
+fprintf(stderr, "reponse_add_proxy_option: IPv4 address\n");
 		if (getdns_dict_get_bindata(response,
 			"/call_reporting/0/query_to/address_data",
 			&bindatap) != GETDNS_RETURN_GOOD)
@@ -1344,6 +1356,7 @@ static void response_add_proxy_option(getdns_dict *response, uint8_t *buf,
 	}
 	else if (bindatap->size == 4 && memcmp(bindatap->data, "IPv6", 4) == 0)
 	{
+fprintf(stderr, "reponse_add_proxy_option: IPv6 address\n");
 		if (getdns_dict_get_bindata(response,
 			"/call_reporting/0/query_to/address_data",
 			&bindatap) != GETDNS_RETURN_GOOD)
@@ -1370,7 +1383,8 @@ static void response_add_proxy_option(getdns_dict *response, uint8_t *buf,
 	policy.svcparams[0].key = NULL;
 	policy.interface = NULL;
 
-	proxy_policy2opt(&policy, 1, buf, &bufsize);
+	proxy_policy2opt(&policy, policy.addrs[0].ss_family == AF_INET6,
+		buf, &bufsize);
 	fprintf(stderr, "reponse_add_proxy_option: size %lu\n", bufsize);
 	fprintf(stderr, "reponse_add_proxy_option: buf");
 	for (u = 0; u<bufsize; u++)
@@ -1412,8 +1426,22 @@ static void response_add_proxy_option(getdns_dict *response, uint8_t *buf,
 	}
 	if (u >= add_list_len)
 	{
-		fprintf(stderr, "reponse_add_proxy_option: add OPT RR\n");
-		abort();
+		rr_dict = getdns_dict_create();
+		getdns_dict_set_int(rr_dict, "do", 0);
+		getdns_dict_set_int(rr_dict, "extended_rcode", 0);
+		getdns_dict_set_int(rr_dict, "type", GETDNS_RRTYPE_OPT);
+		getdns_dict_set_int(rr_dict, "udp_payload_size", 512);
+		getdns_dict_set_int(rr_dict, "version", 0);
+		getdns_dict_set_int(rr_dict, "z", 0);
+		getdns_list_set_dict(add_list, u, rr_dict);
+		if (getdns_list_get_dict(add_list, u, &rr_dict) !=
+			GETDNS_RETURN_GOOD)
+		{
+			fprintf(stderr,
+		"reponse_add_proxy_option: failed to get list item %d\n",
+				u);
+			abort();
+		}
 	}
 	getdns_dict_remove_name(rr_dict, "/rdata/rdata_raw");
 	if (getdns_dict_get_list(rr_dict, "/rdata/options", &opt_list) !=
