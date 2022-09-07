@@ -377,7 +377,8 @@ static void request_cb(
 #include <arpa/inet.h>
 
 #define MAX_PROXY_CONTROL_OPTS	10
-#define PROXY_ADDRS_MAX 10
+#define PROXY_ADDRS_MAX 	10
+#define ALPN_MAX		10
 
 struct incoming_request {
 	getdns_context          *down_context;
@@ -401,8 +402,12 @@ static struct upstream
 		uint16_t flags1;
 		uint16_t flags2;
 		char *name;
+		int alpn_count;
+		char *alpn[ALPN_MAX];
+		int no_default_alpn;
 		int addr_count;
 		struct sockaddr_storage addrs[PROXY_ADDRS_MAX];
+		uint16_t port;
 		char *infname;
 
 		/* Getdns context */
@@ -828,10 +833,13 @@ static void dane_request_cb(
 	}
 }
 
+#define GLDNS_EDNS_PROXY_CONTROL	42
+#define SVC_KEY_MANDATORY	0
+#define SVC_KEY_ALPN		1
+#define SVC_KEY_NDA		2
+#define SVC_KEY_PORT		3
 
-#define GLDNS_EDNS_PROXY_CONTROL 42
-
-static void decode_proxy_option(struct proxy_opt *opt);
+static int decode_proxy_option(struct proxy_opt *opt);
 static void setup_upstream(getdns_context *down_context, struct upstream *usp);
 
 static struct upstream *get_upstreams_for_policy(getdns_context *down_context,
@@ -951,7 +959,11 @@ static struct upstream *get_upstreams_for_policy(getdns_context *down_context,
 		usp->opts[u].bindata.data= data;
 		usp->opts[u].bindata.size= size;
 
-		decode_proxy_option(&usp->opts[u]);
+		if (!decode_proxy_option(&usp->opts[u]))
+		{
+			usp->dns_error = BADPROXYPOLICY;
+			break;
+		}
 		setup_upstream(down_context, usp);
 	}
 	upstreams_count++;
@@ -959,15 +971,16 @@ static struct upstream *get_upstreams_for_policy(getdns_context *down_context,
 	return usp;
 }
 
-static void decode_proxy_option(struct proxy_opt *opt)
+static int decode_proxy_option(struct proxy_opt *opt)
 {
 	uint8_t addr_type, addr_length, name_length, svc_length, inf_length;
-	uint16_t u16;
+	uint16_t u16, svc_key, svc_val_len;
 	int i;
-	size_t o, llen, no, size;
+	size_t o, oa, ol, llen, no, size;
 	uint8_t *p;
 	struct sockaddr_in *sin4p;
 	struct sockaddr_in6 *sin6p;
+	char *alpn;
 
 	size= opt->bindata.size;
 	p= opt->bindata.data;
@@ -1125,9 +1138,104 @@ static void decode_proxy_option(struct proxy_opt *opt)
 	p += 1;
 	size -= 1;
 
+	opt->alpn_count = 0;
+	opt->no_default_alpn = 0;
+	opt->port = 0;
 	if (svc_length)
 	{
-		fprintf(stderr, "decode_proxy_option: should handle svc\n");
+		o = 0;
+		while (o < svc_length)
+		{
+fprintf(stderr, "decode_proxy_option: o %lu, svc_length %d\n", o, svc_length);
+			if (o+2 > svc_length)
+				goto error;
+			memcpy(&u16, p+o, 2);
+			o += 2;
+			svc_key = ntohs(u16);
+fprintf(stderr, "decode_proxy_option: key %d\n", svc_key);
+			if (o+2 > svc_length)
+				goto error;
+			memcpy(&u16, p+o, 2);
+			o += 2;
+			svc_val_len = ntohs(u16);
+fprintf(stderr, "decode_proxy_option: len %d\n", svc_val_len);
+			fprintf(stderr,
+				"decode_proxy_option: key %d, length %d\n",
+				svc_key, svc_val_len);
+			if (o+svc_val_len > svc_length)
+				goto error;
+
+			switch(svc_key)
+			{
+			case SVC_KEY_MANDATORY:
+				oa = 0;
+				while (oa < svc_val_len)
+				{
+					if (oa + 2 > svc_val_len)
+						goto error;
+					memcpy(&u16, p+o+oa, sizeof(u16));
+					u16 = ntohs(u16);
+					switch(u16)
+					{
+					case SVC_KEY_ALPN:
+					case SVC_KEY_NDA:
+					case SVC_KEY_PORT:
+						/* Keys that we know */
+						break;
+					default:
+						fprintf(stderr,
+			"decode_proxy_option: unknown mandatory key %u\n",
+							u16);
+						goto error;
+					}
+					oa += 2;
+				}
+				break;
+
+			case SVC_KEY_ALPN:
+				oa = 0;
+				while (oa < svc_val_len)
+				{
+fprintf(stderr, "decode_proxy_option: oa %lu len %d\n", oa, svc_length);
+fprintf(stderr, "decode_proxy_option: alpn_count %d\n", opt->alpn_count);
+					if (opt->alpn_count >= ALPN_MAX)
+						goto error;
+					if (oa + 1 > svc_val_len)
+						goto error;
+					ol = p[o+oa];
+fprintf(stderr, "decode_proxy_option: ol %lu\n", ol);
+					oa++;
+					if (oa + ol > svc_val_len)
+						goto error;
+					alpn = malloc(ol+1);
+					memcpy(alpn, p+o+oa, ol);
+					oa += ol;
+					alpn[ol] = '\0';
+					opt->alpn[opt->alpn_count++] = alpn;
+				}
+				break;
+
+			case SVC_KEY_NDA:
+				if (svc_val_len != 0)
+					goto error;
+				opt->no_default_alpn = 1;
+				break;
+
+			case SVC_KEY_PORT:
+				if (svc_val_len != 2)
+					goto error;
+				memcpy(&u16, p+o, 2);
+				opt->port = ntohs(u16);
+				break;
+
+			default:
+				fprintf(stderr,
+			"decode_proxy_option: unknown SVC parameter key %d\n",
+					svc_key);
+				break;
+			}
+			o += svc_val_len;
+		}
 
 		p += svc_length;
 		size -= svc_length;
@@ -1158,16 +1266,15 @@ static void decode_proxy_option(struct proxy_opt *opt)
 			"decode_proxy_option: garbage at end of option\n");
 		goto error;
 	}
-	return;
+	return 1;
 	
 error:
-	fprintf(stderr, "decode_proxy_option: should handle error\n");
-	abort();
+	return 0;
 }
 
 static void setup_upstream(getdns_context *down_context, struct upstream *usp)
 {
-	int i, r;
+	int i, j, r;
 	unsigned u, U_flag, UA_flag, A_flag, P_flag, D_flag, DD_flag;
 	unsigned A53_flag, D53_flag, AT_flag, DT_flag, AH2_flag, DH2_flag,
 		AH3_flag, DH3_flag, AQ_flag, DQ_flag;
@@ -1175,7 +1282,7 @@ static void setup_upstream(getdns_context *down_context, struct upstream *usp)
 	size_t transports_count;
 	struct proxy_opt *po;
 	getdns_context *up_context;
-	getdns_list *list;
+	getdns_list *list, *alpn_list;
 	getdns_dict *dict;
 	struct sockaddr_in *sin4p;
 	struct sockaddr_in6 *sin6p;
@@ -1217,6 +1324,7 @@ static void setup_upstream(getdns_context *down_context, struct upstream *usp)
 		{
 			fprintf(stderr, "setup_upstream: Ax and Dx\n");
 			usp->dns_error= BADPROXYPOLICY;
+fprintf(stderr, "%s, %d\n", __FILE__, __LINE__);
 			goto error;
 		}
 
@@ -1251,6 +1359,7 @@ static void setup_upstream(getdns_context *down_context, struct upstream *usp)
 			fprintf(stderr,
 				"setup_upstream: too many of U, UA, A\n");
 			usp->dns_error= BADPROXYPOLICY;
+fprintf(stderr, "%s, %d\n", __FILE__, __LINE__);
 			goto error;
 		}
 		if (U_flag + UA_flag + A_flag == 0)
@@ -1309,6 +1418,7 @@ static void setup_upstream(getdns_context *down_context, struct upstream *usp)
 			fprintf(stderr,
 				"setup_upstream: no matching transports\n");
 			usp->dns_error= BADPROXYPOLICY;
+fprintf(stderr, "%s, %d\n", __FILE__, __LINE__);
 			goto error;
 		}
 
@@ -1320,6 +1430,7 @@ fprintf(stderr, "setup_upstream: flags1 0x%x, P_flag %d, D_flag %d\n", po->flags
 		{
 			fprintf(stderr, "setup_upstream: P or D but not A\n");
 			usp->dns_error= BADPROXYPOLICY;
+fprintf(stderr, "%s, %d\n", __FILE__, __LINE__);
 			goto error;
 		}
 
@@ -1330,6 +1441,7 @@ fprintf(stderr, "setup_upstream: flags1 0x%x, P_flag %d, D_flag %d\n", po->flags
 			 */
 			fprintf(stderr, "setup_upstream: interface name not supported yet\n");
 			usp->dns_error= BADPROXYPOLICY;
+fprintf(stderr, "%s, %d\n", __FILE__, __LINE__);
 			goto error;
 		}
 
@@ -1428,6 +1540,30 @@ fprintf(stderr, "setup_upstream: flags1 0x%x, P_flag %d, D_flag %d\n", po->flags
 						bindata.data);
 					getdns_dict_set_bindata(dict,
 						"tls_auth_name", &bindata);
+				}
+				if (po->alpn_count)
+				{
+					alpn_list = getdns_list_create();
+					for (j = 0; j<po->alpn_count; j++)
+					{
+						bindata.data =
+							(unsigned char *)
+							po->alpn[j];
+						bindata.size =
+							strlen(po->alpn[j]);
+						getdns_list_set_bindata(
+							alpn_list, j,
+						&bindata);
+					}
+					getdns_dict_set_list(dict, "alpn",
+						alpn_list);
+				}
+				if (po->port)
+				{
+					getdns_dict_set_int(dict, "port",
+						po->port);
+					getdns_dict_set_int(dict, "tls_port",
+						po->port);
 				}
 				getdns_list_set_dict(list, i, dict);
 			}
