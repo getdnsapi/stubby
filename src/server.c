@@ -100,24 +100,31 @@ typedef struct dns_msg {
 
 static void servfail(dns_msg *msg, getdns_dict **resp_p)
 {
-        getdns_dict *dict;
+	getdns_dict *dict;
+	getdns_list *list;
+	getdns_dict *new_resp;
 
-        if (*resp_p)
+        if (!(new_resp = getdns_dict_create())) {
                 getdns_dict_destroy(*resp_p);
-        if (!(*resp_p = getdns_dict_create()))
+		*resp_p = NULL;
                 return;
+	}
         if (msg) {
                 if (!getdns_dict_get_dict(msg->request, "header", &dict))
-                        getdns_dict_set_dict(*resp_p, "header", dict);
+                        getdns_dict_set_dict(new_resp, "header", dict);
                 if (!getdns_dict_get_dict(msg->request, "question", &dict))
-                        getdns_dict_set_dict(*resp_p, "question", dict);
-                (void) getdns_dict_set_int(*resp_p, "/header/ra",
+                        getdns_dict_set_dict(new_resp, "question", dict);
+                (void) getdns_dict_set_int(new_resp, "/header/ra",
                     msg->rt == GETDNS_RESOLUTION_RECURSING ? 1 : 0);
         }
         (void) getdns_dict_set_int(
-            *resp_p, "/header/rcode", GETDNS_RCODE_SERVFAIL);
-        (void) getdns_dict_set_int(*resp_p, "/header/qr", 1);
-        (void) getdns_dict_set_int(*resp_p, "/header/ad", 0);
+            new_resp, "/header/rcode", GETDNS_RCODE_SERVFAIL);
+        (void) getdns_dict_set_int(new_resp, "/header/qr", 1);
+        (void) getdns_dict_set_int(new_resp, "/header/ad", 0);
+	if (!getdns_dict_get_list(*resp_p, "call_reporting", &list))
+		getdns_dict_set_list(new_resp, "call_reporting", list);
+	getdns_dict_destroy(*resp_p);
+	*resp_p = new_resp;
 }
 
 static void error_reply(dns_msg *msg, getdns_dict **resp_p, unsigned error)
@@ -1112,6 +1119,7 @@ fprintf(stderr, "setup_upstream: flags1 0x%x, P_flag %d, D_flag %d\n", po->flags
 			/* Currently we can't support selection of
 			 * outgoing interfaces.
 			 */
+			fprintf(stderr, "setup_upstream: interface name not supported yet\n");
 			usp->dns_error= BADPROXYPOLICY;
 			goto error;
 		}
