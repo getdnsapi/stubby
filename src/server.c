@@ -379,6 +379,15 @@ static void request_cb(
 #define MAX_PROXY_CONTROL_OPTS	10
 #define PROXY_ADDRS_MAX 10
 
+struct incoming_request {
+	getdns_context          *down_context;
+	getdns_callback_type_t   callback_type;
+	getdns_dict             *request;
+	void                    *userarg;
+	getdns_transaction_t     request_id;
+	struct incoming_request *next;
+};
+
 static struct upstream
 {
 	unsigned dns_error;
@@ -397,7 +406,10 @@ static struct upstream
 		char *infname;
 
 		/* Getdns context */
-		getdns_context *context;
+		getdns_context          *context;
+		int                      ready;
+		getdns_transaction_t     dane_request_id;
+		struct incoming_request *incoming_requests;
 	} opts[MAX_PROXY_CONTROL_OPTS];
 } *upstreams;
 static int upstreams_count;
@@ -406,6 +418,44 @@ static struct upstream *get_upstreams_for_policy(getdns_context *down_context,
 	getdns_dict *opt_rr);
 
 #define BADPROXYPOLICY	42
+
+#define PROXY_CONTROL_FLAG1_U	(1 << 15)
+#define PROXY_CONTROL_FLAG1_UA	(1 << 14)
+#define PROXY_CONTROL_FLAG1_A	(1 << 13)
+#define PROXY_CONTROL_FLAG1_P	(1 << 12)
+#define PROXY_CONTROL_FLAG1_D	(1 << 11)
+#define PROXY_CONTROL_FLAG1_DD	(1 << 10)
+
+#define PROXY_CONTROL_FLAG2_A53	(1 << 15)
+#define PROXY_CONTROL_FLAG2_D53	(1 << 14)
+#define PROXY_CONTROL_FLAG2_AT	(1 << 13)
+#define PROXY_CONTROL_FLAG2_DT	(1 << 12)
+#define PROXY_CONTROL_FLAG2_AH2	(1 << 11)
+#define PROXY_CONTROL_FLAG2_DH2	(1 << 10)
+#define PROXY_CONTROL_FLAG2_AH3	(1 <<  9)
+#define PROXY_CONTROL_FLAG2_DH3	(1 <<  8)
+#define PROXY_CONTROL_FLAG2_AQ	(1 <<  7)
+#define PROXY_CONTROL_FLAG2_DQ	(1 <<  6)
+
+
+#define POLICY_N_ADDR		3
+#define POLICY_N_SVCPARAMS	8
+
+typedef struct getdns_proxy_policy {
+	uint16_t flags1, flags2;
+	int addr_count;
+	struct sockaddr_storage addrs[POLICY_N_ADDR];
+	char *domainname;
+	struct
+	{
+		char *key;
+		char *value;
+	} svcparams[POLICY_N_SVCPARAMS];
+	char *interface;
+} getdns_proxy_policy;
+
+static void proxy_policy2opt(getdns_proxy_policy *policy, int do_ipv6,
+	uint8_t *buf, size_t *sizep);
 
 static void incoming_request_handler(getdns_context *down_context,
     getdns_callback_type_t callback_type, getdns_dict *request,
@@ -423,7 +473,7 @@ static void incoming_request_handler(getdns_context *down_context,
         getdns_dict *qext = NULL;
         dns_msg *msg = NULL;
         getdns_dict *response = NULL;
-        size_t i, len;
+        size_t i, len = 0;
         getdns_list *additional;
         getdns_dict *rr;
         uint32_t rr_type;
@@ -466,12 +516,6 @@ static void incoming_request_handler(getdns_context *down_context,
                         (void) getdns_dict_get_int(rr, "do", &msg->do_bit);
 
 			usp= get_upstreams_for_policy(down_context, rr);
-
-			/* Delete all options. Assume that options are not
-			 * transitive. Some options may need to be copied.
-			 */
-			getdns_dict_remove_name(rr, "/rdata/options");
-
                         break;
                 }
         }
@@ -479,6 +523,11 @@ static void incoming_request_handler(getdns_context *down_context,
 	if (usp && usp->dns_error)
 	{
 		dns_error= usp->dns_error;
+
+		/* Delete all options. Assume that options are not
+		 * transitive. Some options may need to be copied.
+		 */
+		getdns_dict_remove_name(request, "/additional/0/rdata/options");
 		goto error;
 	}
 
@@ -488,6 +537,24 @@ static void incoming_request_handler(getdns_context *down_context,
 
 		/* Only try first context */
 		up_context = usp->opts[0].context;
+		if (!usp->opts[0].ready) {
+			struct incoming_request *ir;
+
+			fprintf(stderr, "queueing incoming request waiting "
+					"for upstream to get ready\n");
+			getdns_dict_destroy(qext);
+			free(msg);
+			if (!(ir = malloc(sizeof(struct incoming_request))))
+				goto error;
+			ir->down_context  = down_context;
+			ir->callback_type = callback_type;
+			ir->request       = request;
+			ir->userarg       = userarg;
+			ir->request_id    = request_id;
+			ir->next          = usp->opts[0].incoming_requests;
+			usp->opts[0].incoming_requests = ir;
+			return;
+		}
 
         	if ((r = getdns_dict_set_int(qext, "return_call_reporting",
 			GETDNS_EXTENSION_TRUE)))
@@ -499,6 +566,10 @@ static void incoming_request_handler(getdns_context *down_context,
 	else
 	{
 		up_context = down_context;
+		/* Delete all options. Assume that options are not
+		 * transitive. Some options may need to be copied.
+		 */
+		getdns_dict_remove_name(request, "/additional/0/rdata/options");
 	}
 
         if ((r = getdns_context_get_resolution_type(up_context, &msg->rt)))
@@ -601,6 +672,162 @@ error:
         if (response)
                 getdns_dict_destroy(response);
 }
+
+static void dane_request_cb(
+    getdns_context *context, getdns_callback_type_t callback_type,
+    getdns_dict *response, void *userarg, getdns_transaction_t transaction_id)
+{
+        struct proxy_opt *po = (struct proxy_opt *)userarg;
+        getdns_return_t r = GETDNS_RETURN_GOOD;
+        uint32_t  rcode, dnssec_status, ancount;
+	char *dict_str;
+	getdns_list *upstreams;
+	getdns_list *answers;
+
+	if ((dict_str = getdns_pretty_print_dict(response))) {
+		stubby_debug("dane_request_cb: got reponse %s\n", dict_str);
+		free(dict_str);
+	}
+	if (!response
+	||   getdns_dict_get_int( response, "/replies_tree/0/header/rcode"
+				, &rcode)
+	||   getdns_dict_get_int( response, "/replies_tree/0/dnssec_status"
+				, &dnssec_status)
+	||   getdns_dict_get_int( response, "/replies_tree/0/header/ancount"
+				, &ancount)
+	||   rcode         != GETDNS_RCODE_NOERROR
+	||   dnssec_status != GETDNS_DNSSEC_SECURE
+	||   ancount       <  2)
+		stubby_debug("No suitable DANE records found\n");
+
+	else if ((r = getdns_dict_get_list( response, "/replies_tree/0/answer"
+	                                  , &answers)))
+		stubby_error("Could not get answer section: %s\n"
+		            , stubby_getdns_strerror(r));
+
+	else if ((r = getdns_context_get_upstream_recursive_servers(po->context,
+					&upstreams)))
+		stubby_error("Could not get upstreams: %s\n"
+		            , stubby_getdns_strerror(r));
+
+	else {
+		size_t i = 0;
+		getdns_dict *upstream;
+
+		while (!(r = getdns_list_get_dict(upstreams, i, &upstream))) {
+			getdns_dict_set_list(upstream, "dane_records", answers);
+			i += 1;
+		}
+		if (r != GETDNS_RETURN_NO_SUCH_LIST_ITEM)
+			stubby_error("Enumerating upstreams error: %s"
+			            , stubby_getdns_strerror(r));
+
+		else if ((r = getdns_context_set_upstream_recursive_servers(
+						po->context, upstreams)))
+			stubby_error("Could not set upstreams: %s"
+			            , stubby_getdns_strerror(r));
+		else {
+			po->ready = 1;
+			/* resubmit requests for upstream */
+			while (po->incoming_requests) {
+				struct incoming_request *request
+					= po->incoming_requests;
+				struct incoming_request *next = request->next;
+
+				incoming_request_handler( request->down_context
+				                        , request->callback_type
+				                        , request->request
+				                        , request->userarg
+				                        , request->request_id
+				                        );
+				free(request);
+				po->incoming_requests = next;
+			}
+			return;
+		}
+	};
+	/* TODO:
+	 * - Either remove the upstream, or set a timer to retry after X minutes
+	 */
+	/* failed, cancel incoming_requests */
+	if (!po->incoming_requests)
+		stubby_debug("No incoming requests to cancel\n");
+
+	else while (po->incoming_requests) {
+		struct incoming_request *request = po->incoming_requests;
+		struct incoming_request *next = request->next;
+		getdns_dict *response = request->request;
+		getdns_proxy_policy policy;
+		uint8_t buf[2048];
+		size_t bufsize = sizeof(buf);
+		getdns_dict *opt_dict;
+		getdns_bindata bindata;
+		uint32_t rd;
+
+		/* Turn request into error response
+		 */
+		getdns_dict_set_int(response, "/header/ra",
+		    !getdns_dict_get_int(response, "/header/rd", &rd) ? rd : 0);
+		getdns_dict_set_int(response, "/header/rcode",
+		    GETDNS_RCODE_SERVFAIL);
+		getdns_dict_set_int(response, "/header/qr", 1);
+		getdns_dict_set_int(response, "/header/ad", 0);
+		getdns_dict_set_int(response, "/header/arcount", 0);
+		getdns_dict_remove_name(response, "/additional");
+
+		policy.flags1 = 0;
+		policy.flags2 = 0;
+		policy.addr_count = po->addr_count;
+		memcpy(policy.addrs, po->addrs, sizeof(policy.addrs));
+		policy.domainname = po->name;
+		policy.svcparams[0].key = NULL;
+		policy.interface = po->infname;
+		/* DANE for DoT for now */
+		policy.flags2 |= PROXY_CONTROL_FLAG2_AT;
+		/* DANE authentication failed, PKIX might still work */
+		policy.flags1 |= PROXY_CONTROL_FLAG1_A;
+		policy.flags1 |= PROXY_CONTROL_FLAG1_UA;
+		policy.flags1 |= PROXY_CONTROL_FLAG1_DD;
+		proxy_policy2opt(&policy, policy.addrs[0].ss_family == AF_INET6,
+		    buf, &bufsize);
+		if (getdns_str2dict( "{ do              : 1"
+		                     ", extended_rcode  : 0"
+		                     ", type            : GETDNS_RRTYPE_OPT"
+		                     ", udp_payload_size: 512"
+		                     ", version         : 0"
+		                     ", z               : 0"
+		                     ", rdata           :"
+		                     "  { options: [ { option_code: 42 } ] }"
+		                     "}"
+	                           , &opt_dict) == GETDNS_RETURN_GOOD) {
+
+			bindata.data = buf;
+			bindata.size = bufsize;
+			getdns_dict_set_bindata(opt_dict,
+				"/rdata/options/0/option_data", &bindata);
+			getdns_dict_set_dict(response,
+				"/additional/-", opt_dict);
+			getdns_dict_set_int(response, "/header/arcount", 1);
+		}
+		if ((dict_str = getdns_pretty_print_dict(response))) {
+			stubby_debug("dane_request_cb: canceling incoming "
+			             "request with: %s\n", dict_str);
+			free(dict_str);
+		}
+		if ((r = getdns_reply( request->down_context, response
+		                     , request->request_id))) {
+                	stubby_error("Could not reply: %s"
+			            , stubby_getdns_strerror(r));
+                	/* Cancel reply */
+                	getdns_reply( request->down_context, NULL
+			            , request->request_id);
+		}
+		getdns_dict_destroy(response);
+		free(request);
+		po->incoming_requests = next;
+	}
+}
+
 
 #define GLDNS_EDNS_PROXY_CONTROL 42
 
@@ -938,24 +1165,6 @@ error:
 	abort();
 }
 
-#define PROXY_CONTROL_FLAG1_U	(1 << 15)
-#define PROXY_CONTROL_FLAG1_UA	(1 << 14)
-#define PROXY_CONTROL_FLAG1_A	(1 << 13)
-#define PROXY_CONTROL_FLAG1_P	(1 << 12)
-#define PROXY_CONTROL_FLAG1_D	(1 << 11)
-#define PROXY_CONTROL_FLAG1_DD	(1 << 10)
-
-#define PROXY_CONTROL_FLAG2_A53	(1 << 15)
-#define PROXY_CONTROL_FLAG2_D53	(1 << 14)
-#define PROXY_CONTROL_FLAG2_AT	(1 << 13)
-#define PROXY_CONTROL_FLAG2_DT	(1 << 12)
-#define PROXY_CONTROL_FLAG2_AH2	(1 << 11)
-#define PROXY_CONTROL_FLAG2_DH2	(1 << 10)
-#define PROXY_CONTROL_FLAG2_AH3	(1 <<  9)
-#define PROXY_CONTROL_FLAG2_DH3	(1 <<  8)
-#define PROXY_CONTROL_FLAG2_AQ	(1 <<  7)
-#define PROXY_CONTROL_FLAG2_DQ	(1 <<  6)
-
 static void setup_upstream(getdns_context *down_context, struct upstream *usp)
 {
 	int i, r;
@@ -1157,8 +1366,11 @@ fprintf(stderr, "setup_upstream: flags1 0x%x, P_flag %d, D_flag %d\n", po->flags
 				abort();
 			}
 		}
-
 		po->context = up_context;
+		po->ready = 1;
+		po->dane_request_id = 0;
+		po->incoming_requests = NULL;
+
 		if ((r = getdns_context_set_dns_transport_list(up_context,
 			transports_count, transports)) != GETDNS_RETURN_GOOD)
 
@@ -1231,32 +1443,39 @@ fprintf(stderr, "setup_upstream: flags1 0x%x, P_flag %d, D_flag %d\n", po->flags
 				abort();
 			}
 		}
+		if (A_flag && D_flag) {
+			/* get DANE records first */
+			static getdns_dict *dnssec = NULL;
+			char qname[1025] = "_853._tcp.";
+
+			qname[1024] = 0;
+			strncat(qname, po->name, sizeof(qname)
+			                       - sizeof("_853._tcp.") - 1);
+
+			fprintf(stderr, "setup_upstream: lookup DANE records "
+					"for %s before this upstream is ready"
+					"\n", qname);
+
+			if (!dnssec && (r = getdns_str2dict(
+			    "{dnssec_return_all_statuses:"
+			    "GETDNS_EXTENSION_TRUE}", &dnssec)))
+				stubby_error("Could make dnssec extension "
+				    "dict: %s", stubby_getdns_strerror(r));
+	
+			if ((r = getdns_general(down_context, qname,
+			    GETDNS_RRTYPE_TLSA, dnssec, po,
+			    &po->dane_request_id, dane_request_cb)))
+				stubby_error("Could not schedule dane "
+				    "query: %s", stubby_getdns_strerror(r));
+	 
+			po->ready = 0;
+		}
 	}
 	return;
-
 error:
 	fprintf(stderr,
 		"setup_upstream: error, should clear getdns contexts\n");
 }
-
-#define POLICY_N_ADDR		3
-#define POLICY_N_SVCPARAMS	8
-
-typedef struct getdns_proxy_policy {
-	uint16_t flags1, flags2;
-	int addr_count;
-	struct sockaddr_storage addrs[POLICY_N_ADDR];
-	char *domainname;
-	struct
-	{
-		char *key;
-		char *value;
-	} svcparams[POLICY_N_SVCPARAMS];
-	char *interface;
-} getdns_proxy_policy;
-
-static void proxy_policy2opt(getdns_proxy_policy *policy, int do_ipv6,
-	uint8_t *buf, size_t *sizep);
 
 static void response_add_proxy_option(getdns_dict *response, uint8_t *buf,
 	size_t bufsize)
@@ -1301,7 +1520,7 @@ static void response_add_proxy_option(getdns_dict *response, uint8_t *buf,
 		{
 			fprintf(stderr,
 		"reponse_add_proxy_option: can't get "
-		"/call_reporting/0//call_reporting/0/tls_auth_status\n");
+		"/call_reporting/0/tls_auth_status\n");
 			return;
 		}
 
