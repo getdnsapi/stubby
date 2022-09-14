@@ -222,6 +222,8 @@ static void request_cb(
         char i_as_jptr[80];
 	static uint8_t optbuf[2048];
 
+	fprintf(stderr, "request_cb: got context %p\n",
+		(void *)context);
 	fprintf(stderr, "request_cb: got response %s\n",
 		getdns_pretty_print_dict(response));
 
@@ -389,6 +391,14 @@ struct incoming_request {
 	struct incoming_request *next;
 };
 
+/* Values for target and status */
+#define TS_NOT_STARTED		1
+#define TS_FAILED		2
+#define TS_UNENCRYPTED		3
+#define TS_UNAUTHENTICATED	4
+#define TS_OPPORTUNISTIC	5
+#define TS_AUTHENTICATED	6
+
 static struct upstream
 {
 	unsigned dns_error;
@@ -415,7 +425,14 @@ static struct upstream
 		int                      ready;
 		getdns_transaction_t     dane_request_id;
 		struct incoming_request *incoming_requests;
+
+		/* Current status */
+		unsigned target;	/* Target authentication status of
+					 * this getdns context.
+					 */
+		unsigned status;	/* Last known result */
 	} opts[MAX_PROXY_CONTROL_OPTS];
+	unsigned sorted[MAX_PROXY_CONTROL_OPTS];
 } *upstreams;
 static int upstreams_count;
 
@@ -462,6 +479,8 @@ typedef struct getdns_proxy_policy {
 static void proxy_policy2opt(getdns_proxy_policy *policy, int do_ipv6,
 	uint8_t *buf, size_t *sizep);
 
+static int select_upstream(struct upstream *usp);
+
 static void incoming_request_handler(getdns_context *down_context,
     getdns_callback_type_t callback_type, getdns_dict *request,
     void *userarg, getdns_transaction_t request_id)
@@ -483,13 +502,14 @@ static void incoming_request_handler(getdns_context *down_context,
         getdns_dict *rr;
         uint32_t rr_type;
 	unsigned dns_error = GETDNS_RCODE_SERVFAIL;
+	int up_index;
 	struct upstream *usp;
 	getdns_context *up_context;
 
         (void)callback_type;
         (void)userarg;
 
-	printf("incoming_request_handler: got request %s\n",
+	fprintf(stderr, "incoming_request_handler: got request %s\n",
 		getdns_pretty_print_dict(request));
 
         if (!(qext = getdns_dict_create_with_context(down_context)) ||
@@ -520,6 +540,10 @@ static void incoming_request_handler(getdns_context *down_context,
                         msg->has_edns0 = 1;
                         (void) getdns_dict_get_int(rr, "do", &msg->do_bit);
 
+			fprintf(stderr,
+"incoming_request_handler: options dict %s\n", getdns_pretty_print_dict(rr));
+			fprintf(stderr,
+"incoming_request_handler: calling get_upstreams_for_policy\n");
 			usp= get_upstreams_for_policy(down_context, rr);
                         break;
                 }
@@ -541,8 +565,9 @@ static void incoming_request_handler(getdns_context *down_context,
 		msg->upstream = usp;
 
 		/* Only try first context */
-		up_context = usp->opts[0].context;
-		if (!usp->opts[0].ready) {
+		up_index = select_upstream(usp);
+		fprintf(stderr, "incoming_request_handler: up_index %d\n", up_index);
+		if (!usp->opts[up_index].ready) {
 			struct incoming_request *ir;
 
 			fprintf(stderr, "queueing incoming request waiting "
@@ -556,10 +581,12 @@ static void incoming_request_handler(getdns_context *down_context,
 			ir->request       = request;
 			ir->userarg       = userarg;
 			ir->request_id    = request_id;
-			ir->next          = usp->opts[0].incoming_requests;
-			usp->opts[0].incoming_requests = ir;
+			ir->next          = usp->opts[up_index].
+						incoming_requests;
+			usp->opts[up_index].incoming_requests = ir;
 			return;
 		}
+		up_context = usp->opts[up_index].context;
 
         	if ((r = getdns_dict_set_int(qext, "return_call_reporting",
 			GETDNS_EXTENSION_TRUE)))
@@ -609,6 +636,9 @@ static void incoming_request_handler(getdns_context *down_context,
             request, "/additional/0/rdata/options", &list))
                 (void)getdns_dict_set_list(qext,
                     "/add_opt_parameters/options", list);
+
+	fprintf(stderr, "incoming_request_handler: using upstream context %p\n",
+		(void *)up_context);
 
         if ((r = getdns_dict_get_bindata(request,"/question/qname",&qname)))
                 stubby_error("Could not get qname from query: %s",
@@ -959,13 +989,17 @@ static struct upstream *get_upstreams_for_policy(getdns_context *down_context,
 		usp->opts[u].bindata.data= data;
 		usp->opts[u].bindata.size= size;
 
+		fprintf(stderr,
+		"get_upstreams_for_policy: calling decode_proxy_option\n");
 		if (!decode_proxy_option(&usp->opts[u]))
 		{
 			usp->dns_error = BADPROXYPOLICY;
 			break;
 		}
-		setup_upstream(down_context, usp);
 	}
+	fprintf(stderr, "get_upstreams_for_policy: calling setup_upstream\n");
+	setup_upstream(down_context, usp);
+
 	upstreams_count++;
 
 	return usp;
@@ -1146,22 +1180,16 @@ static int decode_proxy_option(struct proxy_opt *opt)
 		o = 0;
 		while (o < svc_length)
 		{
-fprintf(stderr, "decode_proxy_option: o %lu, svc_length %d\n", o, svc_length);
 			if (o+2 > svc_length)
 				goto error;
 			memcpy(&u16, p+o, 2);
 			o += 2;
 			svc_key = ntohs(u16);
-fprintf(stderr, "decode_proxy_option: key %d\n", svc_key);
 			if (o+2 > svc_length)
 				goto error;
 			memcpy(&u16, p+o, 2);
 			o += 2;
 			svc_val_len = ntohs(u16);
-fprintf(stderr, "decode_proxy_option: len %d\n", svc_val_len);
-			fprintf(stderr,
-				"decode_proxy_option: key %d, length %d\n",
-				svc_key, svc_val_len);
 			if (o+svc_val_len > svc_length)
 				goto error;
 
@@ -1196,14 +1224,11 @@ fprintf(stderr, "decode_proxy_option: len %d\n", svc_val_len);
 				oa = 0;
 				while (oa < svc_val_len)
 				{
-fprintf(stderr, "decode_proxy_option: oa %lu len %d\n", oa, svc_length);
-fprintf(stderr, "decode_proxy_option: alpn_count %d\n", opt->alpn_count);
 					if (opt->alpn_count >= ALPN_MAX)
 						goto error;
 					if (oa + 1 > svc_val_len)
 						goto error;
 					ol = p[o+oa];
-fprintf(stderr, "decode_proxy_option: ol %lu\n", ol);
 					oa++;
 					if (oa + ol > svc_val_len)
 						goto error;
@@ -1272,6 +1297,32 @@ error:
 	return 0;
 }
 
+#define PROXY_CONTROL_FLAG1_U	(1 << 15)
+#define PROXY_CONTROL_FLAG1_UA	(1 << 14)
+#define PROXY_CONTROL_FLAG1_A	(1 << 13)
+#define PROXY_CONTROL_FLAG1_P	(1 << 12)
+#define PROXY_CONTROL_FLAG1_D	(1 << 11)
+#define PROXY_CONTROL_FLAG1_DD	(1 << 10)
+
+#define PROXY_CONTROL_FLAG2_A53	(1 << 15)
+#define PROXY_CONTROL_FLAG2_D53	(1 << 14)
+#define PROXY_CONTROL_FLAG2_AT	(1 << 13)
+#define PROXY_CONTROL_FLAG2_DT	(1 << 12)
+#define PROXY_CONTROL_FLAG2_AH2	(1 << 11)
+#define PROXY_CONTROL_FLAG2_DH2	(1 << 10)
+#define PROXY_CONTROL_FLAG2_AH3	(1 <<  9)
+#define PROXY_CONTROL_FLAG2_DH3	(1 <<  8)
+#define PROXY_CONTROL_FLAG2_AQ	(1 <<  7)
+#define PROXY_CONTROL_FLAG2_DQ	(1 <<  6)
+
+static int opt_cmp(const void *v1, const void *v2);
+
+struct sort_help
+{
+	struct upstream *usp;
+	unsigned index;
+};
+
 static void setup_upstream(getdns_context *down_context, struct upstream *usp)
 {
 	int i, j, r;
@@ -1289,6 +1340,7 @@ static void setup_upstream(getdns_context *down_context, struct upstream *usp)
 	getdns_eventloop *eventloop;
 	getdns_transport_list_t transports[3];
 	getdns_bindata bindata;
+	struct sort_help sort_help[MAX_PROXY_CONTROL_OPTS];
 
 	r = getdns_context_get_eventloop(down_context, &eventloop);
 	if (r != GETDNS_RETURN_GOOD)
@@ -1297,9 +1349,14 @@ static void setup_upstream(getdns_context *down_context, struct upstream *usp)
 		abort();
 	}
 
+	fprintf(stderr, "setup_upstream: starting, opts_count %d\n",
+		usp->opts_count);
+
 	usp->dns_error= 0;
 	for (u= 0, po= usp->opts; u<usp->opts_count; u++, po++)
 	{
+		fprintf(stderr, "setup_upstream: opt %d\n", u);
+
 		/* First set flags for individual protocols, we
 		 * need them later
 		 */
@@ -1350,6 +1407,9 @@ fprintf(stderr, "%s, %d\n", __FILE__, __LINE__);
 			do_DoH2 = DH2_flag ? 0 : 1;
 		}
 
+		po->target = 0;
+		po->status = TS_NOT_STARTED;
+
 		/* Check U, UA, and A flags */
 		U_flag= !!(po->flags1 & PROXY_CONTROL_FLAG1_U);
 		UA_flag= !!(po->flags1 & PROXY_CONTROL_FLAG1_UA);
@@ -1377,6 +1437,8 @@ fprintf(stderr, "%s, %d\n", __FILE__, __LINE__);
 				transports[i++] = GETDNS_TRANSPORT_TCP;
 			}
 			transports_count = i;
+
+			po->target = TS_OPPORTUNISTIC;
 		}
 		else if (U_flag)
 		{
@@ -1390,6 +1452,8 @@ fprintf(stderr, "%s, %d\n", __FILE__, __LINE__);
 				transports[i++] = GETDNS_TRANSPORT_TCP;
 			}
 			transports_count = i;
+
+			po->target = TS_UNENCRYPTED;
 		}
 		else if (UA_flag)
 		{
@@ -1399,6 +1463,8 @@ fprintf(stderr, "%s, %d\n", __FILE__, __LINE__);
 			if (do_DoT || do_DoH2)
 				transports[i++] = GETDNS_TRANSPORT_TLS;
 			transports_count = i;
+
+			po->target = TS_UNAUTHENTICATED;
 		}
 		else if (A_flag)
 		{
@@ -1406,6 +1472,8 @@ fprintf(stderr, "%s, %d\n", __FILE__, __LINE__);
 			if (do_DoT || do_DoH2)
 				transports[i++] = GETDNS_TRANSPORT_TLS;
 			transports_count = i;
+
+			po->target = TS_AUTHENTICATED;
 		}
 		else
 		{
@@ -1452,6 +1520,8 @@ fprintf(stderr, "%s, %d\n", __FILE__, __LINE__);
 			"setup_upstream: getdns_context_create failed\n");
 			abort();
 		}
+		fprintf(stderr, "setup_upstream: context %p\n",
+			(void *)up_context);
 		r = getdns_context_set_eventloop(up_context, eventloop);
 		if (r != GETDNS_RETURN_GOOD)
 		{
@@ -1492,6 +1562,8 @@ fprintf(stderr, "%s, %d\n", __FILE__, __LINE__);
 			abort();
 		}
 
+		fprintf(stderr, "setup_upstream: addr_count %d\n",
+			po->addr_count);
 		if (po->addr_count)
 		{
 			list = getdns_list_create();
@@ -1606,12 +1678,144 @@ fprintf(stderr, "%s, %d\n", __FILE__, __LINE__);
 	 
 			po->ready = 0;
 		}
+
+		sort_help[u].usp = usp;
+		sort_help[u].index = u;
 	}
+
+	/* Create sorted */
+	qsort(sort_help, usp->opts_count, sizeof(sort_help[0]), opt_cmp);
+
+	for (u= 0; u<usp->opts_count; u++)
+	{
+		usp->sorted[u] = sort_help[u].index;
+
+		fprintf(stderr, "setup_upstream: sorted %d -> %d\n",
+			u, usp->sorted[u]);
+	}
+
 	return;
 error:
 	fprintf(stderr,
 		"setup_upstream: error, should clear getdns contexts\n");
 }
+
+static int opt_cmp(const void *v1, const void *v2)
+{
+	int ip1, ip2;
+	const struct sort_help *e1, *e2;
+	const struct proxy_opt *p1, *p2;
+	
+	e1= v1;
+	e2= v2;
+
+	fprintf(stderr, "opt_cmp: e1 index %d, e2 index %d\n",
+		e1->index, e2->index);
+
+	p1= &e1->usp->opts[e1->index];
+	p2= &e2->usp->opts[e2->index];
+
+	if (p1->target > p2->target)
+		return -1;
+	if (p1->target < p2->target)
+		return 1;
+
+	/* Authentication options are the same. Prefer IPv6. Assume that each
+	 * option has one type of addresses.
+	 */
+	ip1 = 0;	/* No addresses */
+	ip2 = 0;
+	if (p1->addr_count != 0)
+	{
+		if (p1->addrs[0].ss_family == AF_INET6)
+			ip1 = -1;
+		else
+			ip1 = 1;
+	}
+	if (p2->addr_count != 0)
+	{
+		if (p2->addrs[0].ss_family == AF_INET6)
+			ip2 = -1;
+		else
+			ip2 = 1;
+	}
+
+	if (ip1 > ip2)
+		return -1;
+	if (ip2 > ip1)
+		return 1;
+	return 0;
+}
+
+static int select_upstream(struct upstream *usp)
+{
+	int Xbest_completed, Xbest_potential;
+	unsigned u, best_completed_status, best_potential_target;
+	int s;
+	struct proxy_opt *op;
+
+	/* Select an uptream to try next */
+	Xbest_completed = -1;
+	best_completed_status = 0;
+	Xbest_potential = -1;
+	best_potential_target = 0;
+	
+	for (u= 0; u<usp->opts_count; u++)
+	{
+		s = usp->sorted[u];
+		op = &usp->opts[s];
+
+		fprintf(stderr, "select_upstream: u %d, s %d\n", u, s);
+
+		if (op->status != TS_NOT_STARTED)
+		{
+			if (Xbest_completed == -1)
+			{
+				Xbest_completed = s;
+				best_completed_status = op->status;
+			}
+			else if (op->status > best_completed_status)
+			{
+				Xbest_completed = s;
+				best_completed_status = op->status;
+			}
+		}
+		else
+		{
+			if (Xbest_potential == -1)
+			{
+				Xbest_potential = s;
+				best_potential_target = op->target;
+			}
+			else if (op->target > best_potential_target)
+			{
+				Xbest_potential = s;
+				best_potential_target = op->target;
+			}
+		}
+	}
+
+	if (Xbest_completed == -1 && Xbest_potential == -1)
+	{
+		fprintf(stderr, "select_upstream: no upstream?\n");
+		abort();
+	}
+	if (Xbest_completed == -1)
+		return Xbest_potential;
+	if (Xbest_potential == -1)
+		return Xbest_completed;
+
+	if (best_potential_target > best_completed_status)
+		return Xbest_potential;
+	else
+		return Xbest_completed;
+}
+
+#define POLICY_N_ADDR		3
+#define POLICY_N_SVCPARAMS	8
+
+static void proxy_policy2opt(getdns_proxy_policy *policy, int do_ipv6,
+	uint8_t *buf, size_t *sizep);
 
 static void response_add_proxy_option(getdns_dict *response, uint8_t *buf,
 	size_t bufsize)
