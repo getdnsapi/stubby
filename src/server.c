@@ -85,7 +85,13 @@ typedef struct dns_msg {
         uint32_t              do_bit;
         uint32_t              cd_bit;
         int                   has_edns0;
-	struct upstream       *upstream;
+	char		     *qname_str;
+        uint32_t	      qtype;
+        getdns_dict	     *qext;
+	struct upstream      *upstream;
+	int		      upstream_index;
+	unsigned	      best_status;
+	getdns_dict	     *best_result;
 } dns_msg;
 
 #if defined(SERVER_DEBUG) && SERVER_DEBUG
@@ -205,8 +211,61 @@ static getdns_return_t _handle_edns0(
         return GETDNS_RETURN_GOOD;
 }
 
+#define MAX_PROXY_CONTROL_OPTS	10
+#define PROXY_ADDRS_MAX 	10
+#define ALPN_MAX		10
+
+/* Values for target and status */
+#define TS_NOT_STARTED		1
+#define TS_FAILED		2
+#define TS_UNENCRYPTED		3
+#define TS_UNAUTHENTICATED	4
+#define TS_OPPORTUNISTIC	5
+#define TS_AUTHENTICATED	6
+
+#include <arpa/inet.h>
+
+static struct upstream
+{
+	unsigned dns_error;
+	unsigned opts_count;
+	struct proxy_opt
+	{
+		/* Original bindata of option */
+		getdns_bindata bindata;
+
+		/* Decoded option */
+		uint16_t flags1;
+		uint16_t flags2;
+		char *name;
+		int alpn_count;
+		char *alpn[ALPN_MAX];
+		int no_default_alpn;
+		int addr_count;
+		struct sockaddr_storage addrs[PROXY_ADDRS_MAX];
+		uint16_t port;
+		char *infname;
+
+		/* Getdns context */
+		getdns_context          *context;
+		int                      ready;
+		getdns_transaction_t     dane_request_id;
+		struct incoming_request *incoming_requests;
+
+		/* Current status */
+		unsigned target;	/* Target authentication status of
+					 * this getdns context.
+					 */
+		unsigned status;	/* Last known result */
+	} opts[MAX_PROXY_CONTROL_OPTS];
+	unsigned sorted[MAX_PROXY_CONTROL_OPTS];
+} *upstreams;
+static int upstreams_count;
+
+static int response2status(getdns_dict *response);
 static void response_add_proxy_option(getdns_dict *response, uint8_t *buf,
 	size_t bufsize);
+static int select_upstream(struct upstream *usp, unsigned *new_statusp);
 
 static void request_cb(
     getdns_context *context, getdns_callback_type_t callback_type,
@@ -219,6 +278,10 @@ static void request_cb(
         getdns_list *options;
         size_t n_options;
         uint32_t arcount;
+	int up_index, new_index;
+	unsigned new_status, status;
+	struct proxy_opt *op;
+	getdns_context *up_context;
         char i_as_jptr[80];
 	static uint8_t optbuf[2048];
 
@@ -245,6 +308,9 @@ static void request_cb(
         (void)transaction_id;
 #endif
         assert(msg);
+
+	if (msg->upstream && callback_type == GETDNS_CALLBACK_ERROR)
+		goto update_upstream;
 
         if (callback_type != GETDNS_CALLBACK_COMPLETE)
                 SERVFAIL("Callback type not complete",
@@ -358,8 +424,49 @@ static void request_cb(
                 }
         }
 
+update_upstream:
 	if (msg->upstream)
 	{
+		up_index = msg->upstream_index;
+		op = &msg->upstream->opts[up_index];
+
+		status = response2status(response);
+		fprintf(stderr,
+		"request_cb: upstream %p, got status %d for index %d\n",
+			 (void *)msg->upstream, status, up_index);
+
+		op->status = status;
+		if (status > msg->best_status)
+		{
+			if (msg->best_result)
+                		getdns_dict_destroy(msg->best_result);
+			msg->best_status = status;
+			msg->best_result = response;
+			response = NULL;
+		}
+		new_index = select_upstream(msg->upstream, &new_status);
+		fprintf(stderr,
+		"request_cb: new_index %d, new_status %d\n",
+			 new_index, new_status);
+		if (new_status > msg->best_status)
+		{
+			msg->upstream_index = new_index;
+			up_context = msg->upstream->opts[new_index].context;
+
+			fprintf(stderr, "request_cb: before getdns_general\n");
+        		if ((r = getdns_general(up_context, msg->qname_str,
+				msg->qtype, msg->qext, msg,
+				&transaction_id, request_cb)))
+                		stubby_error("Could not schedule query: %s",
+                    			stubby_getdns_strerror(r));
+			fprintf(stderr, "request_cb: r = %d\n", r);
+			return;
+		}
+	
+		/* New upstream is not better. Reply current best */
+		response = msg->best_result;
+		msg->best_result = NULL;
+
 		response_add_proxy_option(response, optbuf, sizeof(optbuf));
 	}
 
@@ -376,12 +483,6 @@ static void request_cb(
                 getdns_dict_destroy(response);
 }
 
-#include <arpa/inet.h>
-
-#define MAX_PROXY_CONTROL_OPTS	10
-#define PROXY_ADDRS_MAX 	10
-#define ALPN_MAX		10
-
 struct incoming_request {
 	getdns_context          *down_context;
 	getdns_callback_type_t   callback_type;
@@ -390,51 +491,6 @@ struct incoming_request {
 	getdns_transaction_t     request_id;
 	struct incoming_request *next;
 };
-
-/* Values for target and status */
-#define TS_NOT_STARTED		1
-#define TS_FAILED		2
-#define TS_UNENCRYPTED		3
-#define TS_UNAUTHENTICATED	4
-#define TS_OPPORTUNISTIC	5
-#define TS_AUTHENTICATED	6
-
-static struct upstream
-{
-	unsigned dns_error;
-	unsigned opts_count;
-	struct proxy_opt
-	{
-		/* Original bindata of option */
-		getdns_bindata bindata;
-
-		/* Decoded option */
-		uint16_t flags1;
-		uint16_t flags2;
-		char *name;
-		int alpn_count;
-		char *alpn[ALPN_MAX];
-		int no_default_alpn;
-		int addr_count;
-		struct sockaddr_storage addrs[PROXY_ADDRS_MAX];
-		uint16_t port;
-		char *infname;
-
-		/* Getdns context */
-		getdns_context          *context;
-		int                      ready;
-		getdns_transaction_t     dane_request_id;
-		struct incoming_request *incoming_requests;
-
-		/* Current status */
-		unsigned target;	/* Target authentication status of
-					 * this getdns context.
-					 */
-		unsigned status;	/* Last known result */
-	} opts[MAX_PROXY_CONTROL_OPTS];
-	unsigned sorted[MAX_PROXY_CONTROL_OPTS];
-} *upstreams;
-static int upstreams_count;
 
 static struct upstream *get_upstreams_for_policy(getdns_context *down_context,
 	getdns_dict *opt_rr);
@@ -479,8 +535,6 @@ typedef struct getdns_proxy_policy {
 static void proxy_policy2opt(getdns_proxy_policy *policy, int do_ipv6,
 	uint8_t *buf, size_t *sizep);
 
-static int select_upstream(struct upstream *usp);
-
 static void incoming_request_handler(getdns_context *down_context,
     getdns_callback_type_t callback_type, getdns_dict *request,
     void *userarg, getdns_transaction_t request_id)
@@ -503,6 +557,7 @@ static void incoming_request_handler(getdns_context *down_context,
         uint32_t rr_type;
 	unsigned dns_error = GETDNS_RCODE_SERVFAIL;
 	int up_index;
+	unsigned status;
 	struct upstream *usp;
 	getdns_context *up_context;
 
@@ -526,6 +581,8 @@ static void incoming_request_handler(getdns_context *down_context,
 	msg->upstream = NULL;
         (void) getdns_dict_get_int(request, "/header/ad", &msg->ad_bit);
         (void) getdns_dict_get_int(request, "/header/cd", &msg->cd_bit);
+	msg->qname_str = NULL;
+	msg->qext = NULL;
 	usp= NULL;
         if (!getdns_dict_get_list(request, "additional", &additional)) {
                 if (getdns_list_get_length(additional, &len))
@@ -563,10 +620,12 @@ static void incoming_request_handler(getdns_context *down_context,
 	if (usp)
 	{
 		msg->upstream = usp;
+		msg->best_status = TS_NOT_STARTED;
+		msg->best_result = NULL;
 
-		/* Only try first context */
-		up_index = select_upstream(usp);
-		fprintf(stderr, "incoming_request_handler: up_index %d\n", up_index);
+		up_index = select_upstream(usp, &status);
+		fprintf(stderr, "incoming_request_handler: up_index %d\n",
+			up_index);
 		if (!usp->opts[up_index].ready) {
 			struct incoming_request *ir;
 
@@ -586,6 +645,13 @@ static void incoming_request_handler(getdns_context *down_context,
 			usp->opts[up_index].incoming_requests = ir;
 			return;
 		}
+		if (status == TS_FAILED)
+		{
+			fprintf(stderr,
+		"incoming_request_handler: need to handle failed upstream\n");
+				abort();
+		}
+		msg->upstream_index = up_index;
 		up_context = usp->opts[up_index].context;
 
         	if ((r = getdns_dict_set_int(qext, "return_call_reporting",
@@ -660,8 +726,16 @@ static void incoming_request_handler(getdns_context *down_context,
                 stubby_error("Could set class from query: %s",
                     stubby_getdns_strerror(r));
 
-        else if ((r = getdns_general(up_context, qname_str, qtype,
-            qext, msg, &transaction_id, request_cb)))
+	if (r) goto error;
+	msg->qname_str = qname_str;
+	qname_str = NULL;
+	msg->qtype = qtype;
+	msg->qext = qext;
+	qext = NULL;
+
+	fprintf(stderr, "incoming_request_handler: before getdns_general\n");
+        if ((r = getdns_general(up_context, msg->qname_str, qtype,
+            msg->qext, msg, &transaction_id, request_cb)))
                 stubby_error("Could not schedule query: %s",
                     stubby_getdns_strerror(r));
         else {
@@ -673,6 +747,14 @@ static void incoming_request_handler(getdns_context *down_context,
                 free(qname_str);
                 return;
         }
+	if (msg->upstream && r == GETDNS_RETURN_NO_UPSTREAM_AVAILABLE)
+	{
+		/* We need a fake call to request_cb */
+		request_cb(up_context, GETDNS_CALLBACK_ERROR, NULL, msg,
+			transaction_id);
+		return;
+	}
+	fprintf(stderr, "incoming_request_handler: r = %d\n", r);
 error:
         if (qname_str)
                 free(qname_str);
@@ -1670,6 +1752,8 @@ fprintf(stderr, "%s, %d\n", __FILE__, __LINE__);
 				stubby_error("Could make dnssec extension "
 				    "dict: %s", stubby_getdns_strerror(r));
 	
+			fprintf(stderr,
+				"setup_upstream: before getdns_general\n");
 			if ((r = getdns_general(down_context, qname,
 			    GETDNS_RRTYPE_TLSA, dnssec, po,
 			    &po->dane_request_id, dane_request_cb)))
@@ -1747,17 +1831,17 @@ static int opt_cmp(const void *v1, const void *v2)
 	return 0;
 }
 
-static int select_upstream(struct upstream *usp)
+static int select_upstream(struct upstream *usp, unsigned *new_statusp)
 {
-	int Xbest_completed, Xbest_potential;
+	int best_completed, best_potential;
 	unsigned u, best_completed_status, best_potential_target;
 	int s;
 	struct proxy_opt *op;
 
 	/* Select an uptream to try next */
-	Xbest_completed = -1;
+	best_completed = -1;
 	best_completed_status = 0;
-	Xbest_potential = -1;
+	best_potential = -1;
 	best_potential_target = 0;
 	
 	for (u= 0; u<usp->opts_count; u++)
@@ -1769,46 +1853,58 @@ static int select_upstream(struct upstream *usp)
 
 		if (op->status != TS_NOT_STARTED)
 		{
-			if (Xbest_completed == -1)
+			if (best_completed == -1)
 			{
-				Xbest_completed = s;
+				best_completed = s;
 				best_completed_status = op->status;
 			}
 			else if (op->status > best_completed_status)
 			{
-				Xbest_completed = s;
+				best_completed = s;
 				best_completed_status = op->status;
 			}
 		}
 		else
 		{
-			if (Xbest_potential == -1)
+			if (best_potential == -1)
 			{
-				Xbest_potential = s;
+				best_potential = s;
 				best_potential_target = op->target;
 			}
 			else if (op->target > best_potential_target)
 			{
-				Xbest_potential = s;
+				best_potential = s;
 				best_potential_target = op->target;
 			}
 		}
 	}
 
-	if (Xbest_completed == -1 && Xbest_potential == -1)
+	if (best_completed == -1 && best_potential == -1)
 	{
 		fprintf(stderr, "select_upstream: no upstream?\n");
 		abort();
 	}
-	if (Xbest_completed == -1)
-		return Xbest_potential;
-	if (Xbest_potential == -1)
-		return Xbest_completed;
+	if (best_completed == -1)
+	{
+		*new_statusp = best_potential_target;
+		return best_potential;
+	}
+	if (best_potential == -1)
+	{
+		*new_statusp = best_completed_status;
+		return best_completed;
+	}
 
 	if (best_potential_target > best_completed_status)
-		return Xbest_potential;
+	{
+		*new_statusp = best_potential_target;
+		return best_potential;
+	}
 	else
-		return Xbest_completed;
+	{
+		*new_statusp = best_completed_status;
+		return best_completed;
+	}
 }
 
 #define POLICY_N_ADDR		3
@@ -1816,6 +1912,77 @@ static int select_upstream(struct upstream *usp)
 
 static void proxy_policy2opt(getdns_proxy_policy *policy, int do_ipv6,
 	uint8_t *buf, size_t *sizep);
+
+static int response2status(getdns_dict *response)
+{
+	uint32_t transport;
+	getdns_bindata *bindatap;
+
+	fprintf(stderr, "response2status: response %s\n",
+		getdns_pretty_print_dict(response));
+
+	if (!response)
+		return TS_FAILED;
+
+	if (getdns_dict_get_int(response, "/call_reporting/0/transport",
+		&transport) != GETDNS_RETURN_GOOD)
+	{
+		fprintf(stderr,
+	"reponse_add_proxy_option: can't get /call_reporting/0/transport\n");
+		abort();
+	}
+	switch(transport)
+	{
+	case GETDNS_TRANSPORT_UDP:
+	case GETDNS_TRANSPORT_TCP:
+		return TS_UNENCRYPTED;
+		
+	case GETDNS_TRANSPORT_TLS:
+		if (getdns_dict_get_bindata(response,
+			"/call_reporting/0/tls_auth_status",
+			&bindatap) != GETDNS_RETURN_GOOD)
+		{
+			fprintf(stderr,
+		"reponse_add_proxy_option: can't get "
+		"/call_reporting/0/tls_auth_status\n");
+			abort();
+		}
+
+		if (bindatap->size == 4 &&
+			memcmp(bindatap->data, "None", 4) == 0)
+		{
+			/* No authentication */
+			return TS_UNAUTHENTICATED;
+		}
+		else if (bindatap->size == 6 &&
+			memcmp(bindatap->data, "Failed", 6) == 0)
+		{
+			/* Authentication failed */
+			return TS_FAILED;
+		}
+		else if (bindatap->size == 7 &&
+			memcmp(bindatap->data, "Success", 7) == 0)
+		{
+			/* Authentication succeeded */
+			return TS_AUTHENTICATED;
+		}
+		else
+		{
+
+			fprintf(stderr,
+	"reponse_add_proxy_option: unknown tls_auth_status '%.*s'\n",
+				(int)bindatap->size, bindatap->data);
+			abort();
+		}
+		break;
+
+	default:
+		fprintf(stderr,
+			"reponse_add_proxy_option: unknown transport %d\n",
+			transport);
+		abort();
+	}
+}
 
 static void response_add_proxy_option(getdns_dict *response, uint8_t *buf,
 	size_t bufsize)
