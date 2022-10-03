@@ -719,6 +719,9 @@ static void dane_request_cb(
 	getdns_list *upstreams;
 	getdns_list *answers;
 
+	/* unused parameters */
+	(void)context; (void)callback_type; (void)transaction_id;
+
 	if ((dict_str = getdns_pretty_print_dict(response))) {
 		stubby_debug("dane_request_cb: got reponse %s\n", dict_str);
 		free(dict_str);
@@ -746,13 +749,31 @@ static void dane_request_cb(
 		            , stubby_getdns_strerror(r));
 
 	else {
-		size_t i = 0;
-		getdns_dict *upstream;
+		size_t i;
+		getdns_dict *answer, *upstream;
 
-		while (!(r = getdns_list_get_dict(upstreams, i, &upstream))) {
-			getdns_dict_set_list(upstream, "dane_records", answers);
-			i += 1;
+		if (!(po->flags1 & PROXY_CONTROL_FLAG1_P)) {
+			for (i = 0
+			    ; !(r = getdns_list_get_dict(answers, i, &answer))
+			    ; i += 1) {
+				uint32_t usage;
+
+				if (!getdns_dict_get_int(answer,
+					    "/rdata/certificate_usage", &usage))
+					getdns_dict_set_int(answer,
+					    "/rdata/certificate_usage",
+					    (usage & 1)
+					    );
+			}
+			if (r != GETDNS_RETURN_NO_SUCH_LIST_ITEM)
+				stubby_error("Enumerating answers error: %s"
+					    , stubby_getdns_strerror(r));
 		}
+		for ( i = 0
+		    ; !(r = getdns_list_get_dict(upstreams, i, &upstream))
+		    ; i += 1)
+			getdns_dict_set_list(upstream, "dane_records", answers);
+
 		if (r != GETDNS_RETURN_NO_SUCH_LIST_ITEM)
 			stubby_error("Enumerating upstreams error: %s"
 			            , stubby_getdns_strerror(r));
@@ -762,6 +783,13 @@ static void dane_request_cb(
 			stubby_error("Could not set upstreams: %s"
 			            , stubby_getdns_strerror(r));
 		else {
+			char *upstreams_str = getdns_pretty_print_list(
+					upstreams);
+			if (upstreams_str) {
+				stubby_debug("DANE upstreams: %s\n", 
+						upstreams_str);
+				free(upstreams_str);
+			}
 			po->ready = 1;
 			/* resubmit requests for upstream */
 			while (po->incoming_requests) {
