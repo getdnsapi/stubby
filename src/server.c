@@ -324,8 +324,11 @@ static void request_cb(
                 SERVFAIL("Could not copy QID", r, msg, &response);
 
         else if (getdns_dict_get_int(
-            response, "/replies_tree/0/header/rcode", &rcode))
+            response, "/replies_tree/0/header/rcode", &rcode)) {
+		if (msg->upstream)
+			goto update_upstream;
                 SERVFAIL("No reply in replies tree", 0, msg, &response);
+	}
 
         /* answers when CD or not BOGUS */
         else if (!msg->cd_bit && !getdns_dict_get_int(
@@ -2163,8 +2166,11 @@ fprintf(stderr, "reponse_add_proxy_option: IPv6 address\n");
 	if (getdns_dict_get_list(response, "/replies_tree/0/additional",
 		&add_list) != GETDNS_RETURN_GOOD)
 	{
-		fprintf(stderr, "reponse_add_proxy_option: add additional\n");
-		abort();
+		opt_list = getdns_list_create();
+		getdns_dict_set_list(response, "/replies_tree/0/additional",
+			opt_list);
+		getdns_dict_get_list(response, "/replies_tree/0/additional",
+			&add_list);
 	}
 	if (getdns_list_get_length(add_list, &add_list_len) !=
 		GETDNS_RETURN_GOOD)
