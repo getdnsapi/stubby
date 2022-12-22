@@ -321,6 +321,7 @@ static void incoming_request_handler(getdns_context *context,
         uint32_t qtype;
         uint32_t qclass;
         getdns_return_t r;
+        getdns_return_t *prev_r = (getdns_return_t *)userarg;
         getdns_dict *header;
         uint32_t n;
         getdns_list *list;
@@ -334,7 +335,6 @@ static void incoming_request_handler(getdns_context *context,
         uint32_t rr_type;
 
         (void)callback_type;
-        (void)userarg;
 
         if (!(qext = getdns_dict_create_with_context(context)) ||
             !(msg = malloc(sizeof(dns_msg))))
@@ -418,16 +418,22 @@ static void incoming_request_handler(getdns_context *context,
                     stubby_getdns_strerror(r));
 
         else if ((r = getdns_general(context, qname_str, qtype,
-            qext, msg, &transaction_id, request_cb)))
-                stubby_error("Could not schedule query: %s",
-                    stubby_getdns_strerror(r));
-        else {
+            qext, msg, &transaction_id, request_cb))) {
+		if (!prev_r || r != *prev_r
+		            || r != GETDNS_RETURN_NO_UPSTREAM_AVAILABLE)
+			stubby_error("Could not schedule query: %s",
+			    stubby_getdns_strerror(r));
+	} else {
                 DEBUG_SERVER("scheduled: %p %"PRIu64" for %s %d\n",
                     (void *)msg, transaction_id, qname_str, (int)qtype);
                 getdns_dict_destroy(qext);
                 free(qname_str);
+		if (prev_r)
+			*prev_r = r;
                 return;
         }
+	if (prev_r)
+		*prev_r = r;
 error:
         if (qname_str)
                 free(qname_str);
@@ -459,7 +465,7 @@ error:
                 getdns_dict_destroy(response);
 }
 
-int server_listen(getdns_context *context, int validate_dnssec)
+int server_listen(getdns_context *context, void *userarg, int validate_dnssec)
 {
         const getdns_list *listen_list;
 
@@ -469,7 +475,7 @@ int server_listen(getdns_context *context, int validate_dnssec)
         if ( !listen_list )
                 return 0;
         if ( getdns_context_set_listen_addresses(
-                     context, listen_list, NULL, incoming_request_handler) ) {
+                     context, listen_list, userarg, incoming_request_handler) ) {
                 stubby_error("error: Could not bind on given addresses: %s", strerror(errno));
                 return 0;
         }

@@ -115,6 +115,7 @@ main(int argc, char **argv)
 #endif
 	getdns_context  *context = NULL;
 	getdns_return_t r;
+	getdns_return_t previous_schedule_r = GETDNS_RETURN_GOOD;
 	int opt;
 	long config_log_level = NO_LOGGING;
 	char *ep;
@@ -195,7 +196,7 @@ main(int argc, char **argv)
 		goto tidy_and_exit;
 	}
 
-	if ( !server_listen(context, dnssec_validation) ) {
+	if ( !server_listen(context, (void *)&previous_schedule_r, dnssec_validation)) {
 		r = EXIT_FAILURE;
 		goto tidy_and_exit;
 	}

@@ -1,6 +1,9 @@
 * 2022-12-22: version 0.4.3
-  * Fix Issue #330: PrivateUsers=false needed in systemd
+  * Fix Issue #330 and PR#324: PrivateUsers=false needed in systemd
     stubby.service file for stubby to start.
+    Thanks Archcan and Petr Menšík
+  * PR #323: Reduce log messages when interface is offline.
+    Thanks Russ Bubley and Andre Heider 
 
 * 2022-08-19: version 0.4.2
   * Fix Issue #320: Stubby doesn't start without "log_level"

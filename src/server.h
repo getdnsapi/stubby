@@ -30,6 +30,6 @@
 
 #include <getdns/getdns.h>
 
-int server_listen(getdns_context *context, int validate_dnssec);
+int server_listen(getdns_context *context, void *userarg, int validate_dnssec);
 
 #endif
