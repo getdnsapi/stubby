@@ -41,7 +41,6 @@ static void default_stubby_verror(getdns_loglevel_type level, const char *fmt, v
 {
         (void) level;
         (void) vfprintf(stderr, fmt, ap);
-        (void) fputc('\n', stderr);
 }
 
 long log_level = GETDNS_LOG_DEBUG + 1;
@@ -71,7 +70,6 @@ static void default_stubby_vlog(void *userarg, uint64_t system,
         (void)userarg; (void)system; (void)level;
         (void) fprintf(stderr, "[%s.%.6d] STUBBY: ", buf, (int)tv.tv_usec);
         (void) vfprintf(stderr, fmt, ap);
-        (void) fputc('\n', stderr);
 }
 
 static stubby_verror_t stubby_verror = default_stubby_verror;
