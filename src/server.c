@@ -418,10 +418,11 @@ static void incoming_request_handler(getdns_context *context,
                     stubby_getdns_strerror(r));
 
         else if ((r = getdns_general(context, qname_str, qtype,
-            qext, msg, &transaction_id, request_cb)))
-                stubby_error("Could not schedule query: %s",
-                    stubby_getdns_strerror(r));
-        else {
+            qext, msg, &transaction_id, request_cb))) {
+                if (r != GETDNS_RETURN_NO_UPSTREAM_AVAILABLE)
+                    stubby_error("Could not schedule query: %s",
+                        stubby_getdns_strerror(r));
+        } else {
                 DEBUG_SERVER("scheduled: %p %"PRIu64" for %s %d\n",
                     (void *)msg, transaction_id, qname_str, (int)qtype);
                 getdns_dict_destroy(qext);
