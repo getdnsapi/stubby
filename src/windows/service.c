@@ -55,7 +55,7 @@ static void winerr(const TCHAR* operation, DWORD err)
                            msg,
                            sizeof(msg),
                            NULL) == 0 )
-                fprintf(stderr, "Error: %s: errno=%d\n", operation, err);
+                fprintf(stderr, "Error: %s: errno=%ld\n", operation, (long)err);
         else
                 fprintf(stderr, "Error: %s: %s\n", operation, msg);
         exit(EXIT_FAILURE);
@@ -597,7 +597,7 @@ int SvcStatus(void)
                 return 3;
 
         default:
-                printf("Unexpected status: %d", st.dwCurrentState);
+                printf("Unexpected status: %ld", (long)st.dwCurrentState);
                 return 99;
         }
 }
@@ -672,6 +672,7 @@ static void timeout_callback(void* userarg)
         (void) userarg;
 }
 
+#define NO_LOGGING 999
 VOID SvcInit(DWORD dwArgc, LPTSTR* lpszArgv)
 {
         getdns_context *context = NULL;
@@ -680,6 +681,8 @@ VOID SvcInit(DWORD dwArgc, LPTSTR* lpszArgv)
         getdns_eventloop *eventloop;
         getdns_eventloop_event eventloop_event;
         int can_block;
+        long config_log_level = NO_LOGGING;
+        getdns_return_t previous_schedule_r = GETDNS_RETURN_GOOD;
 
         int validate_dnssec;
         const char* config_file = NULL;
@@ -713,15 +716,15 @@ VOID SvcInit(DWORD dwArgc, LPTSTR* lpszArgv)
                 // have the service default to a dedicated file in its own directory
                 config_file = system_service_config_file();
 
-        init_config(context);
+        init_config(context, &config_log_level);
         ReportSvcStatus(SERVICE_START_PENDING, 0, 1010);
         stubby_debug("Starting %s with config file %s", STUBBY_PACKAGE_STRING, config_file);
-        if ( !read_config(context, config_file, &validate_dnssec) ) {
+        if ( !read_config(context, config_file, &validate_dnssec, &config_log_level) ) {
                 ReportSvcStatus(SERVICE_STOPPED, 1, 0);
                 goto tidy_and_exit;
         }
         ReportSvcStatus(SERVICE_START_PENDING, 0, 1020);
-        if ( !server_listen(context, dnssec_validation) ) {
+        if ( !server_listen(context, (void*)&previous_schedule_r, dnssec_validation) ) {
                 ReportSvcStatus(SERVICE_STOPPED, 1, 0);
                 goto tidy_and_exit;
         }
