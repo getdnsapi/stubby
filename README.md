@@ -9,7 +9,7 @@ Stubby provides DNS Privacy by:
 * Running as a daemon
 * Listening on the loopback address to send all outgoing DNS queries received on that address out over TLS
 * Using a default configuration which provides Strict Privacy and uses a subset
-of the available [DNS Privacy servers](https://dnsprivacy.org/wiki/x/E4AT)
+of the available [DNS Privacy servers](https://dnsprivacy.org/test_servers/)
 
 Stubby is developed by the getdns team.
 
@@ -17,7 +17,7 @@ Stubby can be used as a command line tool requiring the user to manually modify 
 
 # Documentation
 
-See [Stubby Homepage](https://dnsprivacy.org/wiki/x/JYAT) for more details
+See [Stubby Homepage](https://dnsprivacy.org/dns_privacy_daemon_-_stubby/) for more details
 
 # Dependencies
 
@@ -32,9 +32,9 @@ https://repology.org/metapackage/stubby/versions
 https://repology.org/metapackage/getdns/versions
 https://repology.org/metapackage/libyaml/versions
 
-* A [Windows Installer](https://dnsprivacy.org/wiki/x/CoBn) is now available for Stubby. From version 0.4.0 the msi installer includes a development version of a Windowd GUI.
+* A [Windows Installer](https://dnsprivacy.org/dns_privacy_daemon_-_stubby/installation/windows_installer_for_stubby/) is now available for Stubby. From version 0.4.0 the msi installer includes a development version of a Windowd GUI.
 * A Homebrew package for stubby is now available (`brew install stubby`).
-* A [GUI for macOS](https://dnsprivacy.org/wiki/x/CIBn) is also available for testing
+* A [GUI for macOS](https://dnsprivacy.org/dns_privacy_daemon_-_stubby/installation/stubby_gui_for_macos/) is also available for testing
 
 If you need to install getdns from source, see the section [at the end of this document.](#building-getdns-from-source)
 
@@ -112,7 +112,7 @@ upstream_recursive_servers:
        value: foxZRnIh9gZpWnl+zEiKa0EJ2rdCGroMWm02gaxSc9Q=
 ```
 
-Additional privacy servers can be specified by adding more entries to the `upstream_recursive_servers` list above (note a separate entry must be made for the IPv4 and IPv6 addresses of a given server. More DNS Privacy test servers are listed [here](https://dnsprivacy.org/wiki/x/E4AT).
+Additional privacy servers can be specified by adding more entries to the `upstream_recursive_servers` list above (note a separate entry must be made for the IPv4 and IPv6 addresses of a given server. More DNS Privacy test servers are listed [here](https://dnsprivacy.org/test_servers/).
 
 A custom port can be specified by adding the `tls_port:` attribute to the `upstream_recursive_server` in the config file. 
 
