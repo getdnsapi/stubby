@@ -1,3 +1,8 @@
+*2203-07-26: vesrion 0.4.4-rc1
+  * Fix issues with Windows build via PR £335 (thanks AstralStorm)
+  * Remove `dnsovertls` servers from the man page
+  * Fix broken wiki links (thanks Ayushka Partohap)
+
 * 2022-12-22: version 0.4.3
   * Fix Issue #330 and PR#324: PrivateUsers=false needed in systemd
     stubby.service file for stubby to start.
