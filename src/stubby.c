@@ -50,7 +50,7 @@
 
 #if defined(ENABLE_WINDOWS_SERVICE)
 #include "windowsservice.h"
-#else
+#elif defined(ENABLE_PID_FILE)
 #define STUBBYPIDFILE RUNSTATEDIR"/stubby.pid"
 #endif
 
@@ -204,6 +204,7 @@ main(int argc, char **argv)
 #if !defined(STUBBY_ON_WINDOWS)
 	if (!run_in_foreground) {
 		pid_t pid;
+#if defined(ENABLE_PID_FILE)
 		char pid_str[1024], *endptr;
 		FILE *fh = fopen(STUBBYPIDFILE, "r");
 		do {
@@ -225,6 +226,7 @@ main(int argc, char **argv)
 		} while(0);
 		if (fh)
 			(void) fclose(fh);
+#endif
 
 		pid = fork();
 		if (pid == -1) {
@@ -232,6 +234,7 @@ main(int argc, char **argv)
 			r = GETDNS_RETURN_GENERIC_ERROR;
 
 		} else if (pid) {
+#if defined(ENABLE_PID_FILE)
 			fh = fopen(STUBBYPIDFILE, "w");
 			if (fh) {
 				fprintf(fh, "%d", (int)pid);
@@ -242,6 +245,7 @@ main(int argc, char **argv)
 					     strerror(errno));
 				exit(EXIT_FAILURE);
 			}
+#endif
 		} else {
 #ifdef SIGPIPE
 			(void)signal(SIGPIPE, SIG_IGN);
