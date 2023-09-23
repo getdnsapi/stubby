@@ -24,6 +24,7 @@
 
 #cmakedefine SERVER_DEBUG	1
 
+#cmakedefine ENABLE_PID_FILE    1
 #cmakedefine ENABLE_SYSTEMD     1
 
 #cmakedefine STUBBYCONFDIR      "@STUBBYCONFDIR@"
