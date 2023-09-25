@@ -34,6 +34,13 @@
 #include <getdns/getdns.h>
 #include <getdns/getdns_extra.h>
 
+typedef enum stubby_log_target {
+#if defined(HAVE_VSYSLOG)
+	STUBBY_LOG_SYSLOG,
+#endif
+	STUBBY_LOG_STDERR
+} stubby_log_target_t;
+
 typedef void(*stubby_verror_t)(getdns_loglevel_type level, const char *fmt, va_list ap);
 typedef void(*stubby_vlog_t)(void *userarg, uint64_t system,
                              getdns_loglevel_type level,
@@ -50,6 +57,7 @@ void stubby_warning(const char *fmt, ...);
 void stubby_debug(const char *fmt, ...);
 
 void stubby_set_log_funcs(stubby_verror_t errfunc, stubby_vlog_t logfunc);
+void stubby_set_log_target(stubby_log_target_t target);
 
 void stubby_set_getdns_logging(getdns_context *context, int loglevel);
 
