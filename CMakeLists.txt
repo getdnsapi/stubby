@@ -103,6 +103,10 @@ set(SERVER_DEBUG ${ENABLE_DEBUG_SERVER})
 
 
 check_symbol_exists(getopt "unistd.h" HAVE_GETOPT)
+check_symbol_exists(vsyslog "syslog.h" HAVE_VSYSLOG)
+if (HAVE_VSYSLOG)
+  add_compile_definitions(-DHAVE_VSYSLOG)
+endif ()
 
 # Does the compiler accept the "format" attribute?
 try_compile(HAVE_ATTR_FORMAT

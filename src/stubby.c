@@ -169,6 +169,12 @@ main(int argc, char **argv)
 	}
 #endif
 
+#if defined(HAVE_VSYSLOG) && !defined(STUBBY_ON_WINDOWS)
+	if (!run_in_foreground) {
+		stubby_set_log_target(STUBBY_LOG_SYSLOG);
+	}
+#endif
+
 	if ((r = getdns_context_create(&context, 1))) {
 		stubby_error("Create context failed: %s",
 		        stubby_getdns_strerror(r));
