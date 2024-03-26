@@ -316,10 +316,10 @@ upstream_recursive_servers:
 #        value: wTeXHM8aczvhRSi0cv2qOXkXInoDU+2C+M8MpRyT3OI=
 ## Fondation RESTENA (NREN for Luxembourg)
 #  - address_data: 158.64.1.29
-#    tls_auth_name: "kaitain.restena.lu"
+#    tls_auth_name: "dnspub.restena.lu"
 #    tls_pubkey_pinset:
 #      - digest: "sha256"
-#        value: 7ftvIkA+UeN/ktVkovd/7rPZ6mbkhVI7/8HnFJIiLa4=
+#        value: aC/vKm0neSr3uDucVsYO62RPZ4ETWjoI0Gw8uWjGdLg=
 ## NIC Chile
 #  - address_data: 200.1.123.46
 #    tls_pubkey_pinset:
