@@ -413,10 +413,10 @@ upstream_recursive_servers:
 #        value: INSZEZpDoWKiavosV2/xVT8O83vk/RRwS+LTiL+IpHs=
 ## Fondation RESTENA (NREN for Luxembourg)
 #  - address_data: 2001:a18:1::29
-#    tls_auth_name: "kaitain.restena.lu"
+#    tls_auth_name: "dnspub.restena.lu"
 #    tls_pubkey_pinset:
 #      - digest: "sha256"
-#        value: 7ftvIkA+UeN/ktVkovd/7rPZ6mbkhVI7/8HnFJIiLa4=
+#        value: aC/vKm0neSr3uDucVsYO62RPZ4ETWjoI0Gw8uWjGdLg=
 ## dns.neutopia.org
 #  - address_data: 2a00:5884:8209::2
 #    tls_auth_name: "dns.neutopia.org"
