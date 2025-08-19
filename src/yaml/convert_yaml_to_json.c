@@ -71,6 +71,7 @@ static const char* QUOTE_KEY_VALUES[] = {
 	"tls_auth_name",
 	"digest",
 	"resolvconf",
+	"listen_addresses",
 	NULL
 };
 
