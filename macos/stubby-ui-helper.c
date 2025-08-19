@@ -135,7 +135,7 @@ void list()
 #endif
         int err = execl(LAUNCHCTL, LAUNCHCTL, "list", "org.getdns.stubby", NULL);
         if (err == -1)
-                fail_with_errno("stop");
+                fail_with_errno("list");
 }
 
 void dns_stubby()
